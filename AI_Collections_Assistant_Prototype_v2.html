@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Collections Assistant — Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#F4F6F8;overflow:hidden;width:100vw;height:100vh}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes cardSlideIn{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulseBorder{0%,100%{border-color:#DC2626}50%{border-color:#FCA5A5}}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#DC2626;animation:lp 1.5s infinite;display:inline-block}
+@keyframes lp{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0.4)}50%{opacity:0.6;box-shadow:0 0 0 4px rgba(220,38,38,0)}}
+select:focus,input:focus,textarea:focus{border-color:#0891B2!important;box-shadow:0 0 0 2px #E0F7FA}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}::-webkit-scrollbar-thumb:hover{background:#94A3B8}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useEffect,useRef}=React;
+
+/* ── Mock Data ── */
+const CUSTOMER={name:"Rajesh Kumar Sharma",mobile:"XXXX-XXX-210",email:"r***a@gmail.com",agreementId:"PL-2024-00847391",loanType:"Personal Loan"};
+const LOAN={amount:"₹8,50,000",tenure:"48 months",emiStart:"15-Mar-2023",emiEnd:"15-Feb-2027",outstanding:"₹4,85,320",overdue:"₹73,800"};
+const ADDITIONAL={installmentNo:"22 of 48",dueDate:"15-Jan-2026",amount:"18,450",bounceCharges:"1,500",penalCharges:"3,240",dpd:67};
+const PAST_COMMS=[
+  {date:"28-Jan",caller:"Priya M.",summary:"Callback req. Job change."},
+  {date:"15-Jan",caller:"Amit R.",summary:"No answer. SMS sent."},
+  {date:"02-Jan",caller:"Priya M.",summary:"₹10K PTP Jan 10. Not rcvd."},
+  {date:"20-Dec",caller:"Amit R.",summary:"Agreed month-end. ₹5K paid."},
+];
+
+const TRANSCRIPT_FEED=[
+  {speaker:"agent",text:"Good morning, am I speaking with Mr. Rajesh Kumar?",ts:"0:05",sentiment:"neutral"},
+  {speaker:"customer",text:"Yes, who is this?",ts:"0:08",sentiment:"neutral"},
+  {speaker:"agent",text:"Sir, this is regarding your personal loan account ending 391. Your EMI of ₹18,450 is overdue by 67 days.",ts:"0:14",sentiment:"neutral"},
+  {speaker:"customer",text:"I know about it. I changed my job recently and there was a gap in salary.",ts:"0:22",sentiment:"negative"},
+  {speaker:"agent",text:"I understand sir. We have some options that can help you.",ts:"0:30",sentiment:"neutral"},
+  {speaker:"customer",text:"Yes, please tell me. I want to clear this but the total is too much at once.",ts:"0:38",sentiment:"positive"},
+  {speaker:"agent",text:"Your total overdue is ₹73,800. I can offer a restructured payment plan.",ts:"0:45",sentiment:"neutral"},
+  {speaker:"customer",text:"What kind of plan? Can I pay in parts?",ts:"0:50",sentiment:"positive"},
+  {speaker:"agent",text:"Yes sir. ₹25,000 now, ₹25,000 by Feb 15, and ₹23,800 by March 1.",ts:"0:58",sentiment:"neutral"},
+  {speaker:"customer",text:"That sounds reasonable. I can do ₹25,000 by this Friday.",ts:"1:05",sentiment:"positive"},
+];
+
+const AI_INSIGHTS_FEED=[
+  {type:"intent",text:"Customer willing to pay but needs flexible plan",time:"0:38",priority:"high"},
+  {type:"suggestion",text:"Offer 3-part: ₹25K now + ₹25K by Feb 15 + ₹23.8K by Mar 1",time:"0:45",priority:"high"},
+  {type:"policy",text:"Eligible 50% penalty waiver (saves ₹1,620). Threshold: ₹50K+",time:"0:46",priority:"medium"},
+  {type:"alert",text:"Previous broken PTP Jan 10 — secure firm date",time:"0:52",priority:"high"},
+  {type:"sentiment",text:"Tone shifted cooperative after plan offer",time:"1:05",priority:"low"},
+];
+
+const DISP_AUTO={result:"PTP",date:"2026-02-07",amount:"₹25,000",notes:"Agreed 3-part plan. First ₹25K by Fri Feb 7. Job change caused gap. Cooperative.",nextAction:"Follow-up Call"};
+
+const RESULT_CONFIG={
+  "PTP":{fields:"ptp"},
+  "Won't Pay":{fields:"wontpay",reasons:["Issues with Bank","Wrong EMI Amount"]},
+  "Can't Pay":{fields:"cantpay",reasons:["Job Loss","Business Loss","Medical Issues"]},
+  "Wrong Number":{fields:"none"},
+  "Invalid Number":{fields:"none"},
+  "Not Reachable":{fields:"none"},
+  "Not Picking":{fields:"none"},
+};
+
+/* ── Theme ── */
+const T={bg:"#F4F6F8",surface:"#FFFFFF",navy:"#0C1E35",teal:"#0891B2",tealLight:"#22D3EE",tealMuted:"#E0F7FA",accent:"#059669",accentLight:"#D1FAE5",warm:"#D97706",warmLight:"#FEF3C7",red:"#DC2626",redLight:"#FEE2E2",green:"#16A34A",amber:"#D97706",text:"#1E293B",textSec:"#64748B",textMuted:"#94A3B8",border:"#E2E8F0",borderLight:"#F1F5F9"};
+const SC={positive:{b:T.green,bg:"#F0FDF4"},neutral:{b:T.amber,bg:"#FFFBEB"},negative:{b:T.red,bg:"#FEF2F2"}};
+
+/* ── Flash card type config ── */
+const CARD_TYPES={
+  information:{icon:"\u2139\uFE0F",label:"INFORMATION",border:"#3B82F6",bg:"#EFF6FF",color:"#2563EB"},
+  recommendation:{icon:"\uD83D\uDCA1",label:"RECOMMENDATION",border:"#16A34A",bg:"#F0FDF4",color:"#15803D"},
+  alert:{icon:"\u26A0\uFE0F",label:"ALERT",border:"#DC2626",bg:"#FEF2F2",color:"#DC2626",pulse:true},
+  disposition:{icon:"\u2705",label:"DISPOSITION",border:"#0891B2",bg:"#F0FDFA",color:"#0E7490"},
+};
+
+/* Map AI_INSIGHTS_FEED types to flash card types */
+function mapInsightType(type){
+  if(type==="intent")return "information";
+  if(type==="suggestion")return "recommendation";
+  if(type==="policy")return "information";
+  if(type==="alert")return "alert";
+  return null; // sentiment -> not a card
+}
+
+/* ── Waveform (reused from original) ── */
+const Waveform=({active})=>{
+  const cRef=useRef(null),fRef=useRef(null),bars=useRef(Array.from({length:24},()=>Math.random()*0.3+0.1));
+  useEffect(()=>{
+    const c=cRef.current;if(!c)return;
+    const ctx=c.getContext("2d"),W=c.width,H=c.height,b=bars.current;
+    const draw=()=>{
+      ctx.clearRect(0,0,W,H);
+      const bW=2,g=1.5,st=(W-b.length*(bW+g))/2;
+      for(let i=0;i<b.length;i++){
+        b[i]+=((active?Math.random()*0.85+0.15:0.08)-b[i])*(active?0.18:0.1);
+        const h=b[i]*H,x=st+i*(bW+g),y=(H-h)/2;
+        ctx.fillStyle=active?`rgba(34,${Math.floor(180+b[i]*75)},110,${0.6+b[i]*0.4})`:`rgba(148,163,184,0.4)`;
+        ctx.beginPath();ctx.roundRect(x,y,bW,h,1);ctx.fill();
+      }
+      fRef.current=requestAnimationFrame(draw);
+    };
+    draw();return()=>{if(fRef.current)cancelAnimationFrame(fRef.current)};
+  },[active]);
+  return React.createElement("canvas",{ref:cRef,width:90,height:26,style:{display:"block"}});
+};
+
+/* ── Main App ── */
+function App(){
+  /* Call state */
+  const[ct,setCt]=useState(0);
+  const[ca,setCa]=useState(true);
+  const[aq,setAq]=useState(96);
+
+  /* Transcript & Insights */
+  const[tr,setTr]=useState([]);
+  const[ins,setIns]=useState([]);
+
+  /* Flash cards built from insights */
+  const[cards,setCards]=useState([]);
+  const[currentCard,setCurrentCard]=useState(0);
+  const[cardFeedback,setCardFeedback]=useState({});
+  const[cardKey,setCardKey]=useState(0); // for animation reset
+
+  /* Transcript collapse */
+  const[transcriptOpen,setTranscriptOpen]=useState(true);
+
+  /* Disposition */
+  const[dR,setDR]=useState("");
+  const[dD,setDD]=useState("");
+  const[dA,setDA]=useState("");
+  const[dRC,setDRC]=useState("");
+  const[dN,setDN]=useState("");
+  const[dNA,setDNA]=useState("");
+  const[dS,setDS]=useState(false);
+  const[dAF,setDAF]=useState(false);
+  const[dispOverride,setDispOverride]=useState(false);
+
+  const tRef=useRef(null);
+
+  /* Timer */
+  useEffect(()=>{if(!ca)return;const t=setInterval(()=>setCt(p=>p+1),1000);return()=>clearInterval(t)},[ca]);
+
+  /* Audio quality fluctuation */
+  useEffect(()=>{if(!ca)return;const t=setInterval(()=>setAq(p=>Math.max(72,Math.min(99,Math.round(p+(Math.random()-0.45)*6)))),2000);return()=>clearInterval(t)},[ca]);
+
+  /* Stream transcript */
+  useEffect(()=>{
+    TRANSCRIPT_FEED.forEach((it,i)=>{
+      setTimeout(()=>{
+        setTr(p=>[...p,it]);
+        if(tRef.current)setTimeout(()=>{if(tRef.current)tRef.current.scrollTop=tRef.current.scrollHeight},50);
+      },(i+1)*2000);
+    });
+  },[]);
+
+  /* Stream AI insights -> build flash cards */
+  useEffect(()=>{
+    AI_INSIGHTS_FEED.forEach((it,i)=>{
+      setTimeout(()=>{
+        setIns(p=>[...p,it]);
+        const cardType=mapInsightType(it.type);
+        if(cardType){
+          setCards(prev=>{
+            const next=[...prev,{type:cardType,text:it.text,time:it.time,priority:it.priority}];
+            return next;
+          });
+          // Auto-advance to newest card
+          setCards(prev=>{
+            setCurrentCard(prev.length-1);
+            setCardKey(k=>k+1);
+            return prev;
+          });
+        }
+      },(i+1)*2800+1500);
+    });
+  },[]);
+
+  /* Disposition auto-fill triggered at 8+ transcript items */
+  useEffect(()=>{
+    if(tr.length>=8&&!dAF){
+      setDAF(true);
+      setDR(DISP_AUTO.result);
+      setTimeout(()=>setDD(DISP_AUTO.date),400);
+      setTimeout(()=>setDA(DISP_AUTO.amount),800);
+      setTimeout(()=>setDN(DISP_AUTO.notes),1200);
+      setTimeout(()=>setDNA(DISP_AUTO.nextAction),1600);
+      // Add disposition card to flash cards
+      setTimeout(()=>{
+        setCards(prev=>{
+          const next=[...prev,{type:"disposition",text:"AI has auto-filled the disposition form based on call analysis.",time:fmt(ct)}];
+          setCurrentCard(next.length-1);
+          setCardKey(k=>k+1);
+          return next;
+        });
+      },2000);
+    }
+  },[tr,dAF]);
+
+  /* Reset conditional fields on result change */
+  useEffect(()=>{setDRC("");setDD("");setDA("")},[dR]);
+
+  /* Helpers */
+  const fmt=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+  const aqC=aq>=90?T.green:aq>=80?T.amber:T.red;
+  const rc=RESULT_CONFIG[dR];
+
+  /* Sentiment bar data: customer utterances only */
+  const customerSentiments=tr.filter(t=>t.speaker==="customer").map(t=>t.sentiment);
+  const overallSentiment=(()=>{
+    const cs=customerSentiments;
+    if(cs.length===0)return{label:"Waiting...",arrow:"",color:T.textMuted};
+    const last=cs[cs.length-1];
+    const secondLast=cs.length>=2?cs[cs.length-2]:null;
+    let trend="→";
+    if(secondLast){
+      const rank={negative:0,neutral:1,positive:2};
+      if(rank[last]>rank[secondLast])trend="↑";
+      else if(rank[last]<rank[secondLast])trend="↓";
+    }
+    const labels={positive:"Cooperative",neutral:"Neutral",negative:"Resistant"};
+    const colors={positive:T.green,neutral:T.amber,negative:T.red};
+    return{label:labels[last],arrow:trend,color:colors[last]};
+  })();
+
+  /* Navigate cards */
+  const goCard=(dir)=>{
+    setCurrentCard(prev=>{
+      const next=prev+dir;
+      if(next<0||next>=cards.length)return prev;
+      setCardKey(k=>k+1);
+      return next;
+    });
+  };
+
+  /* Feedback */
+  const giveFeedback=(idx,val)=>{
+    setCardFeedback(prev=>({...prev,[idx]:val}));
+  };
+
+  /* Override AI disposition */
+  const handleOverride=()=>{
+    setDispOverride(true);
+    setDR("");setDD("");setDA("");setDN("");setDNA("");setDRC("");
+  };
+
+  /* ── Sub-components ── */
+  const Cell=({l,v,hl,tag})=>(
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"2px 0",lineHeight:"1.3"}},
+      React.createElement("span",{style:{fontSize:"12px",color:T.textSec}},l),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"4px"}},
+        tag&&React.createElement("span",{style:{fontSize:"8px",fontWeight:700,padding:"1px 4px",borderRadius:"3px",background:tag.bg,color:tag.c}},tag.t),
+        React.createElement("span",{style:{fontSize:"13px",fontWeight:hl?700:600,color:hl?T.red:T.text,fontVariantNumeric:"tabular-nums"}},v)
+      )
+    )
+  );
+
+  /* AI fill styling for form inputs */
+  const aiFillStyle=(!dispOverride&&dAF)?{borderColor:T.accent,boxShadow:`0 0 0 1px ${T.accentLight}`,background:"#F0FDF9"}:{};
+
+  /* Input base style */
+  const inputStyle={width:"100%",padding:"6px 8px",fontSize:"13px",border:`1px solid ${T.border}`,borderRadius:"4px",color:T.text,background:T.surface,outline:"none",boxSizing:"border-box",transition:"all 0.3s",fontFamily:"'DM Sans',sans-serif"};
+
+  /* ── RENDER ── */
+  return React.createElement("div",{style:{width:"100vw",height:"100vh",display:"flex",flexDirection:"column",background:T.bg,fontFamily:"'DM Sans',sans-serif",overflow:"hidden"}},
+
+    /* ═══════════════ HEADER ═══════════════ */
+    React.createElement("header",{style:{background:`linear-gradient(135deg,${T.navy},#164E63)`,padding:"0 12px",height:"40px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}},
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"8px"}},
+        React.createElement("span",{style:{fontSize:"16px"}},"\uD83E\uDD16"),
+        React.createElement("span",{style:{color:"#FFF",fontSize:"13px",fontWeight:700}},"AI Collections Assistant")
+      ),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"6px",background:"rgba(217,119,6,0.15)",padding:"3px 10px",borderRadius:"4px",border:"1px solid rgba(217,119,6,0.3)"}},
+        React.createElement("span",{style:{fontSize:"9px",fontWeight:700,color:T.warm,textTransform:"uppercase"}},"Action:"),
+        React.createElement("span",{style:{fontSize:"11px",fontWeight:700,color:"#FDE68A"}},"Follow-up Call")
+      ),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"8px",background:"rgba(255,255,255,0.06)",padding:"3px 10px",borderRadius:"4px"}},
+        React.createElement(Waveform,{active:ca}),
+        React.createElement("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",lineHeight:"1.1"}},
+          React.createElement("span",{style:{fontSize:"8px",color:T.textMuted,textTransform:"uppercase",fontWeight:600}},"Audio"),
+          React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"3px"}},
+            React.createElement("span",{style:{width:"6px",height:"6px",borderRadius:"50%",background:aqC}}),
+            React.createElement("span",{style:{fontSize:"11px",fontWeight:700,color:aqC,fontVariantNumeric:"tabular-nums"}},ca?`${aq}%`:"\u2014")
+          )
+        )
+      ),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"12px",background:"rgba(255,255,255,0.07)",padding:"3px 14px",borderRadius:"16px"}},
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"4px"}},
+          React.createElement("span",{className:ca?"live-dot":"",style:{width:"7px",height:"7px",borderRadius:"50%",background:ca?"#22C55E":T.textMuted}}),
+          React.createElement("span",{style:{color:"#FFF",fontSize:"10px",fontWeight:600}},ca?"ON CALL":"IDLE")
+        ),
+        React.createElement("span",{style:{color:T.tealLight,fontSize:"15px",fontWeight:700,fontVariantNumeric:"tabular-nums"}},fmt(ct)),
+        React.createElement("span",{style:{color:"#FFF",fontSize:"10px"}},"\uD83D\uDCDE "+CUSTOMER.mobile)
+      ),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"10px"}},
+        ["LMS","LiveKit"].map(n=>React.createElement("div",{key:n,style:{display:"flex",alignItems:"center",gap:"3px"}},React.createElement("span",{style:{width:"5px",height:"5px",borderRadius:"50%",background:"#22C55E"}}),React.createElement("span",{style:{color:T.textMuted,fontSize:"9px"}},n))),
+        React.createElement("button",{onClick:()=>setCa(!ca),style:{padding:"4px 14px",borderRadius:"4px",border:"none",cursor:"pointer",fontSize:"10px",fontWeight:700,color:"#FFF",background:ca?T.red:T.accent}},ca?"End Call":"New Call")
+      )
+    ),
+
+    /* ═══════════════ 3-PANE BODY ═══════════════ */
+    React.createElement("div",{style:{
+      flex:1,display:"grid",
+      gridTemplateColumns:transcriptOpen?"280px minmax(0,1fr) minmax(0,1fr)":"280px 40px minmax(0,1fr)",
+      gap:"4px",padding:"4px",overflow:"hidden",
+      transition:"grid-template-columns 0.3s ease"
+    }},
+
+      /* ═══════════════ PANE 1: Static Data ═══════════════ */
+      React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:"4px",overflow:"hidden"}},
+
+        /* Customer Card */
+        React.createElement("div",{style:{background:T.surface,borderRadius:"4px",border:`1px solid ${T.border}`,overflow:"hidden",flexShrink:0}},
+          React.createElement("div",{style:{padding:"4px 8px",background:T.borderLight,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:"4px"}},
+            React.createElement("span",{style:{fontSize:"11px"}},"\uD83D\uDC64"),
+            React.createElement("span",{style:{fontSize:"12px",fontWeight:700,color:T.navy,textTransform:"uppercase"}},"Customer")
+          ),
+          React.createElement("div",{style:{padding:"4px 8px"}},
+            React.createElement(Cell,{l:"Name",v:CUSTOMER.name}),
+            React.createElement(Cell,{l:"Mobile",v:CUSTOMER.mobile}),
+            React.createElement(Cell,{l:"Email",v:CUSTOMER.email}),
+            React.createElement(Cell,{l:"Agreement",v:CUSTOMER.agreementId}),
+            React.createElement(Cell,{l:"Type",v:CUSTOMER.loanType,tag:{t:"PL",bg:T.tealMuted,c:T.teal}})
+          )
+        ),
+
+        /* Loan Card */
+        React.createElement("div",{style:{background:T.surface,borderRadius:"4px",border:`1px solid ${T.border}`,overflow:"hidden",flexShrink:0}},
+          React.createElement("div",{style:{padding:"4px 8px",background:T.borderLight,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:"4px"}},
+            React.createElement("span",{style:{fontSize:"11px"}},"\uD83D\uDCB0"),
+            React.createElement("span",{style:{fontSize:"12px",fontWeight:700,color:T.navy,textTransform:"uppercase"}},"Loan Details")
+          ),
+          React.createElement("div",{style:{padding:"4px 8px"}},
+            React.createElement(Cell,{l:"Amount",v:LOAN.amount}),
+            React.createElement(Cell,{l:"Tenure",v:LOAN.tenure}),
+            React.createElement(Cell,{l:"EMI Start",v:LOAN.emiStart}),
+            React.createElement(Cell,{l:"EMI End",v:LOAN.emiEnd}),
+            React.createElement(Cell,{l:"Outstanding",v:LOAN.outstanding,hl:true}),
+            React.createElement(Cell,{l:"Overdue",v:LOAN.overdue,hl:true})
+          )
+        ),
+
+        /* Additional Card */
+        React.createElement("div",{style:{background:T.surface,borderRadius:"4px",border:`1px solid ${T.border}`,overflow:"hidden",flexShrink:0}},
+          React.createElement("div",{style:{padding:"4px 8px",background:T.borderLight,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:"4px"}},
+            React.createElement("span",{style:{fontSize:"11px"}},"\uD83D\uDCCB"),
+            React.createElement("span",{style:{fontSize:"12px",fontWeight:700,color:T.navy,textTransform:"uppercase"}},"Additional")
+          ),
+          React.createElement("div",{style:{padding:"4px 8px"}},
+            React.createElement(Cell,{l:"Installment",v:ADDITIONAL.installmentNo}),
+            React.createElement(Cell,{l:"Due Date",v:ADDITIONAL.dueDate}),
+            React.createElement(Cell,{l:"Amount",v:"\u20B9"+ADDITIONAL.amount}),
+            React.createElement(Cell,{l:"Bounce",v:"\u20B9"+ADDITIONAL.bounceCharges}),
+            React.createElement(Cell,{l:"Penal",v:"\u20B9"+ADDITIONAL.penalCharges}),
+            React.createElement(Cell,{l:"DPD",v:ADDITIONAL.dpd,hl:true,tag:{t:"HIGH",bg:T.redLight,c:T.red}})
+          )
+        ),
+
+        /* Call History Card */
+        React.createElement("div",{style:{background:T.surface,borderRadius:"4px",border:`1px solid ${T.border}`,overflow:"hidden",flex:1,minHeight:0}},
+          React.createElement("div",{style:{padding:"4px 8px",background:T.borderLight,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:"4px"}},
+            React.createElement("span",{style:{fontSize:"11px"}},"\uD83D\uDCDE"),
+            React.createElement("span",{style:{fontSize:"12px",fontWeight:700,color:T.navy,textTransform:"uppercase"}},"Call History")
+          ),
+          React.createElement("div",{style:{padding:"2px 0"}},
+            PAST_COMMS.map((c,i)=>React.createElement("div",{key:i,style:{padding:"3px 8px",borderBottom:i<PAST_COMMS.length-1?`1px solid ${T.borderLight}`:"none",display:"flex",gap:"6px",alignItems:"baseline"}},
+              React.createElement("span",{style:{fontSize:"12px",fontWeight:600,color:T.text,fontVariantNumeric:"tabular-nums",flexShrink:0,width:"44px"}},c.date),
+              React.createElement("span",{style:{fontSize:"11px",color:T.teal,fontWeight:600,flexShrink:0,width:"52px"}},c.caller),
+              React.createElement("span",{style:{fontSize:"11px",color:T.textSec,lineHeight:"1.3"}},c.summary)
+            ))
+          )
+        )
+      ),
+
+      /* ═══════════════ PANE 2: Transcript ═══════════════ */
+      transcriptOpen?(
+        React.createElement("div",{style:{background:T.surface,borderRadius:"4px",border:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflow:"hidden"}},
+          /* Transcript Header */
+          React.createElement("div",{style:{padding:"5px 8px",background:T.borderLight,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}},
+            React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"6px"}},
+              React.createElement("span",{style:{fontSize:"12px"}},"\uD83C\uDFA4"),
+              React.createElement("span",{style:{fontSize:"12px",fontWeight:700,color:T.navy,textTransform:"uppercase"}},"Transcript"),
+              ca&&React.createElement("span",{className:"live-dot",style:{marginLeft:"2px"}})
+            ),
+            React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"8px"}},
+              [["#16A34A","Pos"],["#D97706","Neu"],["#DC2626","Neg"]].map(([clr,l])=>React.createElement("div",{key:l,style:{display:"flex",alignItems:"center",gap:"3px"}},
+                React.createElement("span",{style:{width:"8px",height:"8px",borderRadius:"50%",background:clr,display:"inline-block"}}),
+                React.createElement("span",{style:{fontSize:"10px",color:T.textMuted}},l)
+              )),
+              React.createElement("button",{onClick:()=>setTranscriptOpen(false),title:"Collapse transcript",style:{background:"none",border:`1px solid ${T.border}`,borderRadius:"3px",cursor:"pointer",padding:"1px 5px",fontSize:"12px",color:T.textSec,lineHeight:"1"}},"\u2715")
+            )
+          ),
+          /* Transcript Messages */
+          React.createElement("div",{ref:tRef,style:{flex:1,overflowY:"auto",padding:"6px 8px",scrollBehavior:"smooth"}},
+            tr.length===0&&React.createElement("div",{style:{textAlign:"center",padding:"20px 0",color:T.textMuted,fontSize:"13px"}},"Waiting for conversation..."),
+            tr.map((t,i)=>{
+              const s=SC[t.sentiment]||SC.neutral;
+              return React.createElement("div",{key:i,style:{marginBottom:"6px",display:"flex",gap:"6px",animation:"fadeIn 0.3s"}},
+                React.createElement("div",{style:{width:"3px",borderRadius:"2px",flexShrink:0,background:s.b}}),
+                React.createElement("div",{style:{width:"20px",height:"20px",borderRadius:"50%",flexShrink:0,background:t.speaker==="agent"?T.teal:T.warm,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"9px",color:"#FFF",fontWeight:700,marginTop:"2px"}},t.speaker==="agent"?"A":"C"),
+                React.createElement("div",{style:{flex:1}},
+                  React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"1px"}},
+                    React.createElement("span",{style:{fontSize:"11px",fontWeight:700,textTransform:"uppercase",color:t.speaker==="agent"?T.teal:T.warm}},t.speaker==="agent"?"Agent":"Customer"),
+                    React.createElement("span",{style:{fontSize:"11px",color:T.textMuted}},t.ts)
+                  ),
+                  React.createElement("div",{style:{fontSize:"13px",color:T.text,lineHeight:"1.4",background:s.bg,padding:"4px 8px",borderRadius:"4px",borderLeft:`3px solid ${s.b}`}},t.text)
+                )
+              );
+            })
+          )
+        )
+      ):(
+        /* Collapsed Transcript Strip */
+        React.createElement("div",{style:{background:T.borderLight,borderRadius:"4px",border:`1px solid ${T.border}`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"8px",cursor:"pointer",overflow:"hidden"},onClick:()=>setTranscriptOpen(true)},
+          React.createElement("button",{title:"Expand transcript",style:{background:T.teal,border:"none",borderRadius:"3px",cursor:"pointer",padding:"4px 6px",fontSize:"12px",color:"#FFF",fontWeight:700,lineHeight:"1"}},"\u25B6"),
+          React.createElement("span",{style:{writingMode:"vertical-rl",textOrientation:"mixed",fontSize:"11px",fontWeight:700,color:T.navy,textTransform:"uppercase",letterSpacing:"1px"}},"TRANSCRIPT")
+        )
+      ),
+
+      /* ═══════════════ PANE 3: AI Insights Flash Cards ═══════════════ */
+      React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:"4px",overflow:"hidden"}},
+
+        /* ── Sentiment Bar (always visible) ── */
+        React.createElement("div",{style:{background:T.surface,borderRadius:"4px",border:`1px solid ${T.border}`,padding:"6px 10px",flexShrink:0}},
+          React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"4px"}},
+            React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"6px"}},
+              React.createElement("span",{style:{fontSize:"12px",fontWeight:700,color:T.navy,textTransform:"uppercase"}},"Customer Mood"),
+              React.createElement("span",{style:{fontSize:"14px",fontWeight:700,color:overallSentiment.color}},overallSentiment.label),
+              overallSentiment.arrow&&React.createElement("span",{style:{fontSize:"16px",color:overallSentiment.color,fontWeight:700}},overallSentiment.arrow)
+            ),
+            React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"6px"}},
+              React.createElement("span",{style:{fontSize:"10px",color:T.textMuted}},customerSentiments.length+" utterances"),
+              ca&&React.createElement("span",{className:"live-dot"})
+            )
+          ),
+          /* Sentiment segments bar */
+          React.createElement("div",{style:{display:"flex",gap:"2px",height:"8px",borderRadius:"4px",overflow:"hidden",background:T.borderLight}},
+            customerSentiments.length===0&&React.createElement("div",{style:{flex:1,background:T.borderLight}}),
+            customerSentiments.map((s,i)=>{
+              const colors={positive:T.green,neutral:T.amber,negative:T.red};
+              return React.createElement("div",{key:i,style:{flex:1,background:colors[s],borderRadius:"2px",transition:"all 0.3s",animation:"fadeIn 0.3s"}});
+            })
+          )
+        ),
+
+        /* ── Flash Card Area ── */
+        React.createElement("div",{style:{flex:1,display:"flex",flexDirection:"column",background:T.surface,borderRadius:"4px",border:`1px solid ${T.border}`,overflow:"hidden",minHeight:0}},
+
+          /* Card header */
+          React.createElement("div",{style:{padding:"5px 10px",background:T.borderLight,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}},
+            React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"6px"}},
+              React.createElement("span",{style:{fontSize:"12px"}},"\uD83E\uDDE0"),
+              React.createElement("span",{style:{fontSize:"12px",fontWeight:700,color:T.navy,textTransform:"uppercase"}},"AI Insights"),
+              ca&&React.createElement("span",{className:"live-dot",style:{marginLeft:"2px"}})
+            ),
+            cards.length>0&&React.createElement("span",{style:{fontSize:"11px",color:T.textSec,fontWeight:600}},`${currentCard+1} of ${cards.length}`)
+          ),
+
+          /* Card content area */
+          React.createElement("div",{style:{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",padding:"12px",overflow:"auto",minHeight:0}},
+            cards.length===0?(
+              React.createElement("div",{style:{textAlign:"center",color:T.textMuted}},
+                React.createElement("div",{style:{fontSize:"28px",marginBottom:"8px"}},"\uD83E\uDDE0"),
+                React.createElement("div",{style:{fontSize:"14px"}},"AI is analyzing the conversation..."),
+                React.createElement("div",{style:{fontSize:"12px",marginTop:"4px"}},"Insights will appear here as they're detected")
+              )
+            ):(
+              (()=>{
+                const card=cards[currentCard];
+                if(!card)return null;
+                const cfg=CARD_TYPES[card.type];
+                const fb=cardFeedback[currentCard];
+
+                /* ── DISPOSITION CARD ── */
+                if(card.type==="disposition"){
+                  return React.createElement("div",{key:"disp-"+cardKey,style:{
+                    border:`2px solid ${cfg.border}`,borderRadius:"8px",background:cfg.bg,
+                    padding:"16px",animation:"cardSlideIn 0.3s ease",display:"flex",flexDirection:"column",gap:"10px",flex:1,minHeight:0,overflow:"auto"
+                  }},
+                    /* Header */
+                    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"6px"}},
+                        React.createElement("span",{style:{fontSize:"16px"}},cfg.icon),
+                        React.createElement("span",{style:{fontSize:"11px",fontWeight:700,textTransform:"uppercase",color:cfg.color,letterSpacing:"0.5px"}},cfg.label)
+                      ),
+                      (!dispOverride&&dAF)&&React.createElement("span",{style:{fontSize:"10px",fontWeight:700,padding:"2px 8px",borderRadius:"4px",background:T.accentLight,color:T.accent}},"\uD83E\uDD16 AI FILLED")
+                    ),
+
+                    /* Form fields */
+                    React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:"8px"}},
+                      /* Result */
+                      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"8px"}},
+                        React.createElement("span",{style:{fontSize:"12px",fontWeight:600,color:T.textSec,width:"50px",flexShrink:0}},"Result"),
+                        React.createElement("select",{value:dR,onChange:e=>setDR(e.target.value),style:{...inputStyle,...aiFillStyle,flex:1,cursor:"pointer"}},
+                          React.createElement("option",{value:""},"Select..."),
+                          Object.keys(RESULT_CONFIG).map(k=>React.createElement("option",{key:k},k))
+                        )
+                      ),
+                      /* Conditional: PTP Date + Amount */
+                      rc&&rc.fields==="ptp"&&React.createElement(React.Fragment,null,
+                        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"8px"}},
+                          React.createElement("span",{style:{fontSize:"12px",fontWeight:600,color:T.textSec,width:"50px",flexShrink:0}},"Date"),
+                          React.createElement("input",{type:"date",value:dD,onChange:e=>setDD(e.target.value),style:{...inputStyle,...aiFillStyle,flex:1}})
+                        ),
+                        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"8px"}},
+                          React.createElement("span",{style:{fontSize:"12px",fontWeight:600,color:T.textSec,width:"50px",flexShrink:0}},"Amount"),
+                          React.createElement("input",{value:dA,onChange:e=>setDA(e.target.value),style:{...inputStyle,...aiFillStyle,flex:1},placeholder:"\u20B9"})
+                        )
+                      ),
+                      /* Conditional: Reason Code */
+                      rc&&(rc.fields==="wontpay"||rc.fields==="cantpay")&&React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"8px"}},
+                        React.createElement("span",{style:{fontSize:"12px",fontWeight:600,color:T.textSec,width:"50px",flexShrink:0}},"Reason"),
+                        React.createElement("select",{value:dRC,onChange:e=>setDRC(e.target.value),style:{...inputStyle,...aiFillStyle,flex:1,cursor:"pointer"}},
+                          React.createElement("option",{value:""},"Select reason..."),
+                          rc.reasons.map(r=>React.createElement("option",{key:r},r))
+                        )
+                      ),
+                      /* Notes */
+                      React.createElement("div",{style:{display:"flex",alignItems:"flex-start",gap:"8px"}},
+                        React.createElement("span",{style:{fontSize:"12px",fontWeight:600,color:T.textSec,width:"50px",flexShrink:0,paddingTop:"6px"}},"Notes"),
+                        React.createElement("textarea",{value:dN,onChange:e=>setDN(e.target.value),rows:2,style:{...inputStyle,...aiFillStyle,flex:1,resize:"vertical",lineHeight:"1.4"},placeholder:"AI auto-populated..."})
+                      ),
+                      /* Next Action */
+                      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"8px"}},
+                        React.createElement("span",{style:{fontSize:"12px",fontWeight:600,color:T.textSec,width:"50px",flexShrink:0}},"Next"),
+                        React.createElement("select",{value:dNA,onChange:e=>setDNA(e.target.value),style:{...inputStyle,...aiFillStyle,flex:1,cursor:"pointer"}},
+                          React.createElement("option",{value:""},"Select..."),
+                          ["Follow-up Call","Send Payment Link","Field Visit","Legal Notice","Escalate","Settlement Processing","Close \u2014 Resolved"].map(o=>React.createElement("option",{key:o},o))
+                        )
+                      )
+                    ),
+
+                    /* Action buttons */
+                    React.createElement("div",{style:{display:"flex",gap:"8px",marginTop:"4px"}},
+                      React.createElement("button",{onClick:handleOverride,style:{flex:1,padding:"8px",borderRadius:"4px",border:`1px solid ${T.border}`,background:T.surface,color:T.textSec,fontSize:"12px",fontWeight:700,cursor:"pointer"}},"Override AI"),
+                      React.createElement("button",{onClick:()=>setDS(true),style:{flex:1,padding:"8px",borderRadius:"4px",border:"none",background:dS?T.accent:`linear-gradient(135deg,${T.teal},#164E63)`,color:"#FFF",fontSize:"12px",fontWeight:700,cursor:"pointer",transition:"all 0.3s"}},dS?"\u2713 Saved to LMS":"Submit to LMS")
+                    ),
+
+                    /* Feedback */
+                    React.createElement("div",{style:{display:"flex",justifyContent:"center",gap:"10px",paddingTop:"4px"}},
+                      React.createElement("button",{onClick:()=>giveFeedback(currentCard,"up"),style:{padding:"6px 16px",borderRadius:"6px",border:`1px solid ${fb==="up"?T.green:T.border}`,background:fb==="up"?"#F0FDF4":T.surface,cursor:"pointer",fontSize:"16px",opacity:fb==="down"?0.3:1,transition:"all 0.2s"}},"\uD83D\uDC4D"),
+                      React.createElement("button",{onClick:()=>giveFeedback(currentCard,"down"),style:{padding:"6px 16px",borderRadius:"6px",border:`1px solid ${fb==="down"?T.red:T.border}`,background:fb==="down"?"#FEF2F2":T.surface,cursor:"pointer",fontSize:"16px",opacity:fb==="up"?0.3:1,transition:"all 0.2s"}},"\uD83D\uDC4E")
+                    )
+                  );
+                }
+
+                /* ── STANDARD INSIGHT CARDS ── */
+                return React.createElement("div",{key:"card-"+cardKey,style:{
+                  border:`2px solid ${cfg.border}`,borderRadius:"8px",background:cfg.bg,
+                  padding:"20px",animation:cfg.pulse?"cardSlideIn 0.3s ease, pulseBorder 2s infinite":"cardSlideIn 0.3s ease",
+                  display:"flex",flexDirection:"column",gap:"16px"
+                }},
+                  /* Type badge + timestamp */
+                  React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                    React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"6px"}},
+                      React.createElement("span",{style:{fontSize:"16px"}},cfg.icon),
+                      React.createElement("span",{style:{fontSize:"11px",fontWeight:700,textTransform:"uppercase",color:cfg.color,letterSpacing:"0.5px"}},cfg.label),
+                      card.priority==="high"&&React.createElement("span",{style:{fontSize:"9px",fontWeight:700,padding:"1px 6px",borderRadius:"3px",background:T.red,color:"#FFF"}},"HIGH")
+                    ),
+                    React.createElement("span",{style:{fontSize:"12px",color:T.textMuted,fontWeight:600,fontVariantNumeric:"tabular-nums"}},card.time)
+                  ),
+
+                  /* Main text — large and readable */
+                  React.createElement("div",{style:{fontSize:"18px",fontWeight:500,color:T.text,lineHeight:"1.5"}},card.text),
+
+                  /* Feedback buttons */
+                  React.createElement("div",{style:{display:"flex",justifyContent:"center",gap:"10px",paddingTop:"4px"}},
+                    React.createElement("button",{onClick:()=>giveFeedback(currentCard,"up"),style:{padding:"6px 16px",borderRadius:"6px",border:`1px solid ${fb==="up"?T.green:T.border}`,background:fb==="up"?"#F0FDF4":T.surface,cursor:"pointer",fontSize:"16px",opacity:fb==="down"?0.3:1,transition:"all 0.2s"}},"\uD83D\uDC4D"),
+                    React.createElement("button",{onClick:()=>giveFeedback(currentCard,"down"),style:{padding:"6px 16px",borderRadius:"6px",border:`1px solid ${fb==="down"?T.red:T.border}`,background:fb==="down"?"#FEF2F2":T.surface,cursor:"pointer",fontSize:"16px",opacity:fb==="up"?0.3:1,transition:"all 0.2s"}},"\uD83D\uDC4E")
+                  )
+                );
+              })()
+            )
+          ),
+
+          /* Card navigation bar */
+          cards.length>0&&React.createElement("div",{style:{padding:"6px 10px",borderTop:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"center",gap:"12px",flexShrink:0,background:T.borderLight}},
+            React.createElement("button",{onClick:()=>goCard(-1),disabled:currentCard===0,style:{padding:"4px 12px",borderRadius:"4px",border:`1px solid ${T.border}`,background:currentCard===0?"#F1F5F9":T.surface,color:currentCard===0?T.textMuted:T.text,cursor:currentCard===0?"default":"pointer",fontSize:"13px",fontWeight:600}},"\u2190 Prev"),
+            React.createElement("span",{style:{fontSize:"13px",fontWeight:700,color:T.navy,fontVariantNumeric:"tabular-nums",minWidth:"40px",textAlign:"center"}},`${currentCard+1} / ${cards.length}`),
+            React.createElement("button",{onClick:()=>goCard(1),disabled:currentCard===cards.length-1,style:{padding:"4px 12px",borderRadius:"4px",border:`1px solid ${T.border}`,background:currentCard===cards.length-1?"#F1F5F9":T.surface,color:currentCard===cards.length-1?T.textMuted:T.text,cursor:currentCard===cards.length-1?"default":"pointer",fontSize:"13px",fontWeight:600}},"Next \u2192")
+          )
+        )
+      )
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
