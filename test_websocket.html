@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test - AI Collections Assistant</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 { margin-bottom: 20px; color: #0C1E35; }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-connect { background: #16A34A; color: white; }
+        .btn-connect:hover { background: #15803D; }
+        .btn-disconnect { background: #DC2626; color: white; }
+        .btn-disconnect:hover { background: #B91C1C; }
+        .btn-test { background: #0891B2; color: white; }
+        .btn-test:hover { background: #0E7490; }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .status.connected { background: #D1FAE5; color: #15803D; }
+        .status.disconnected { background: #FEE2E2; color: #B91C1C; }
+        .messages {
+            border: 1px solid #E2E8F0;
+            border-radius: 4px;
+            height: 500px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #F8FAFC;
+        }
+        .message {
+            padding: 8px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            border-left: 3px solid;
+            animation: slideIn 0.3s;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .msg-system { background: #EFF6FF; border-color: #3B82F6; }
+        .msg-transcript { background: #FEF3C7; border-color: #D97706; }
+        .msg-insight { background: #D1FAE5; border-color: #16A34A; }
+        .msg-sentiment { background: #FCE7F3; border-color: #DB2777; }
+        .msg-error { background: #FEE2E2; border-color: #DC2626; }
+        .timestamp { color: #64748B; font-size: 11px; }
+        .event-type { font-weight: 700; text-transform: uppercase; }
+        pre { margin-top: 5px; font-size: 11px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI Collections Assistant - WebSocket Test</h1>
+
+        <div class="controls">
+            <button class="btn-connect" onclick="connect()">🔌 Connect</button>
+            <button class="btn-disconnect" onclick="disconnect()">❌ Disconnect</button>
+            <button class="btn-test" onclick="sendTestUtterances()">📝 Send Test Utterances</button>
+            <button class="btn-test" onclick="refreshInsights()">🔄 Refresh Insights</button>
+        </div>
+
+        <div id="status" class="status disconnected">
+            Status: Disconnected
+        </div>
+
+        <h3>Messages</h3>
+        <div id="messages" class="messages"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        const callId = 'test-ws-001';
+        const BASE_URL = 'http://localhost:8000';
+
+        function connect() {
+            if (ws) {
+                addMessage('⚠️ Already connected', 'system');
+                return;
+            }
+
+            addMessage('🔌 Connecting to WebSocket...', 'system');
+
+            ws = new WebSocket(`ws://localhost:8000/api/v1/calls/${callId}/stream?token=demo-token`);
+
+            ws.onopen = () => {
+                updateStatus(true);
+                addMessage('✅ Connected successfully!', 'system');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+
+            ws.onerror = (error) => {
+                addMessage('❌ WebSocket error: ' + error, 'error');
+            };
+
+            ws.onclose = () => {
+                updateStatus(false);
+                addMessage('🔌 Connection closed', 'system');
+                ws = null;
+            };
+        }
+
+        function disconnect() {
+            if (!ws) {
+                addMessage('⚠️ Not connected', 'system');
+                return;
+            }
+            ws.close();
+        }
+
+        function handleMessage(data) {
+            const eventType = data.event;
+            const payload = data.payload;
+
+            let className = 'msg-system';
+            let icon = '📩';
+
+            switch(eventType) {
+                case 'transcript':
+                    className = 'msg-transcript';
+                    icon = '🎤';
+                    break;
+                case 'insight':
+                    className = 'msg-insight';
+                    icon = '💡';
+                    break;
+                case 'sentiment_update':
+                    className = 'msg-sentiment';
+                    icon = '😊';
+                    break;
+                case 'disposition_prefill':
+                    className = 'msg-system';
+                    icon = '📝';
+                    break;
+            }
+
+            addMessage(
+                `${icon} <span class="event-type">${eventType}</span><pre>${JSON.stringify(payload, null, 2)}</pre>`,
+                className
+            );
+        }
+
+        async function sendTestUtterances() {
+            addMessage('📤 Sending test utterances...', 'system');
+
+            const utterances = [
+                { speaker: "agent", text: "Good morning, this is about your loan", call_elapsed_ms: 5000 },
+                { speaker: "customer", text: "I lost my job and cannot pay", call_elapsed_ms: 10000, sentiment: "negative" },
+                { speaker: "agent", text: "I understand. We can offer a payment plan", call_elapsed_ms: 15000 },
+                { speaker: "customer", text: "What kind of plan?", call_elapsed_ms: 20000, sentiment: "positive" },
+            ];
+
+            for (const utterance of utterances) {
+                await fetch(`${BASE_URL}/api/v1/test/utterance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        call_id: callId,
+                        ...utterance
+                    })
+                });
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            addMessage('✅ Test utterances sent!', 'system');
+        }
+
+        function refreshInsights() {
+            if (!ws) {
+                addMessage('⚠️ Not connected', 'system');
+                return;
+            }
+
+            ws.send(JSON.stringify({
+                action: 'refresh_insights'
+            }));
+
+            addMessage('🔄 Refresh insights requested', 'system');
+        }
+
+        function updateStatus(connected) {
+            const statusEl = document.getElementById('status');
+            if (connected) {
+                statusEl.textContent = `Status: Connected to call ${callId}`;
+                statusEl.className = 'status connected';
+            } else {
+                statusEl.textContent = 'Status: Disconnected';
+                statusEl.className = 'status disconnected';
+            }
+        }
+
+        function addMessage(html, className = 'msg-system') {
+            const div = document.getElementById('messages');
+            const now = new Date().toLocaleTimeString();
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${className}`;
+            msgDiv.innerHTML = `<span class="timestamp">[${now}]</span> ${html}`;
+
+            div.appendChild(msgDiv);
+            div.scrollTop = div.scrollHeight;
+        }
+
+        // Auto-connect on load
+        window.addEventListener('load', () => {
+            addMessage('👋 Ready to test! Click "Connect" to start.', 'system');
+        });
+    </script>
+</body>
+</html>

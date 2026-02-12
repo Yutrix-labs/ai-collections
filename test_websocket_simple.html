@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple WebSocket Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #0C1E35; margin-bottom: 20px; }
+        button {
+            padding: 12px 24px;
+            margin: 10px 10px 10px 0;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-connect { background: #16A34A; color: white; }
+        .btn-connect:hover { background: #15803D; }
+        .btn-disconnect { background: #DC2626; color: white; }
+        .btn-disconnect:hover { background: #B91C1C; }
+        .btn-test { background: #0891B2; color: white; }
+        .btn-test:hover { background: #0E7490; }
+        #status {
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        .connected { background: #D1FAE5; color: #15803D; }
+        .disconnected { background: #FEE2E2; color: #B91C1C; }
+        #log {
+            background: #1E293B;
+            color: #E2E8F0;
+            padding: 15px;
+            border-radius: 4px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .log-success { color: #4ADE80; }
+        .log-error { color: #F87171; }
+        .log-info { color: #60A5FA; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Simple WebSocket Connection Test</h1>
+        <p>This tests <strong>only the WebSocket connection</strong> - no Redis needed!</p>
+
+        <div>
+            <button class="btn-connect" onclick="connect()">🔌 Connect</button>
+            <button class="btn-disconnect" onclick="disconnect()">❌ Disconnect</button>
+            <button class="btn-test" onclick="sendTest()">📤 Send Test Message</button>
+        </div>
+
+        <div id="status" class="disconnected">
+            Status: Disconnected
+        </div>
+
+        <h3>Console Log:</h3>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        const callId = 'test-basic-001';
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const now = new Date().toLocaleTimeString();
+            const className = `log-${type}`;
+            logDiv.innerHTML += `<div class="${className}">[${now}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            const statusEl = document.getElementById('status');
+            if (connected) {
+                statusEl.textContent = `Status: Connected to ${callId}`;
+                statusEl.className = 'connected';
+            } else {
+                statusEl.textContent = 'Status: Disconnected';
+                statusEl.className = 'disconnected';
+            }
+        }
+
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('⚠️ Already connected!', 'info');
+                return;
+            }
+
+            log('🔌 Connecting to ws://localhost:8000...', 'info');
+
+            ws = new WebSocket(`ws://localhost:8000/api/v1/calls/${callId}/stream?token=demo-token`);
+
+            ws.onopen = () => {
+                updateStatus(true);
+                log('✅ WebSocket Connected Successfully!', 'success');
+                log('The FastAPI server is working!', 'success');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                log(`📩 Received: ${data.event}`, 'info');
+                log(`   Data: ${JSON.stringify(data.payload)}`, 'info');
+            };
+
+            ws.onerror = (error) => {
+                log('❌ WebSocket Error - Check if server is running', 'error');
+                console.error(error);
+            };
+
+            ws.onclose = () => {
+                updateStatus(false);
+                log('🔌 Connection closed', 'info');
+                ws = null;
+            };
+        }
+
+        function disconnect() {
+            if (!ws) {
+                log('⚠️ Not connected', 'info');
+                return;
+            }
+            ws.close();
+            log('Disconnecting...', 'info');
+        }
+
+        function sendTest() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('⚠️ Not connected. Click "Connect" first!', 'error');
+                return;
+            }
+
+            const message = {
+                action: 'refresh_insights',
+                test: true
+            };
+
+            ws.send(JSON.stringify(message));
+            log('📤 Sent test message: ' + JSON.stringify(message), 'success');
+            log('If server processes it, you\'ll see a response above', 'info');
+        }
+
+        // Auto-connect on load
+        window.onload = () => {
+            log('👋 Ready! Click "Connect" to test the WebSocket', 'info');
+            log('', 'info');
+            log('ℹ️ This test does NOT need Redis!', 'info');
+            log('It only tests if the WebSocket connection works.', 'info');
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+# FastAPI and server
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+websockets>=13.0
+python-multipart>=0.0.20
+
+# Redis
+redis>=5.2.0
+
+# AI/ML
+anthropic>=0.40.0
+
+# Database (optional - can skip if not using DB)
+# asyncpg>=0.30.0
+# sqlalchemy[asyncio]>=2.0.36
+
+# Authentication (optional - using mock auth for now)
+# python-jose[cryptography]>=3.3.0
+# passlib[bcrypt]>=1.7.4
+
+# Data validation
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+
+# Utilities
+python-dotenv>=1.0.1

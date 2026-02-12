@@ -1,0 +1,25 @@
+# Virtual environment
+venv/
+
+# Environment variables (contains API keys)
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Installers
+*.msi
+
+# Windows artifacts
+nul
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
