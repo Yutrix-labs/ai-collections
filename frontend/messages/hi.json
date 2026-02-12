@@ -1,0 +1,100 @@
+{
+  "app": {
+    "title": "AI कलेक्शन असिस्टेंट",
+    "description": "AI-संचालित कलेक्शन प्रबंधन"
+  },
+  "home": {
+    "heading": "AI कलेक्शन असिस्टेंट",
+    "subheading": "AI-संचालित इनसाइट्स और रियल-टाइम कॉल एनालिसिस के साथ अपने कलेक्शन वर्कफ़्लो को सुव्यवस्थित करें।",
+    "launchButton": "असिस्टेंट शुरू करें"
+  },
+  "header": {
+    "title": "AI कलेक्शन असिस्टेंट",
+    "actionLabel": "कार्रवाई:",
+    "followUpCall": "फ़ॉलो-अप कॉल",
+    "audio": "ऑडियो",
+    "onCall": "कॉल पर",
+    "idle": "निष्क्रिय",
+    "endCall": "कॉल समाप्त",
+    "newCall": "नई कॉल"
+  },
+  "customer": {
+    "title": "ग्राहक",
+    "name": "नाम",
+    "mobile": "मोबाइल",
+    "email": "ईमेल",
+    "agreement": "एग्रीमेंट",
+    "type": "प्रकार"
+  },
+  "loan": {
+    "title": "ऋण विवरण",
+    "amount": "राशि",
+    "tenure": "अवधि",
+    "emiStart": "EMI शुरू",
+    "emiEnd": "EMI समाप्त",
+    "outstanding": "बकाया",
+    "overdue": "अतिदेय"
+  },
+  "additional": {
+    "title": "अतिरिक्त",
+    "installment": "किस्त",
+    "dueDate": "देय तिथि",
+    "amount": "राशि",
+    "bounce": "बाउंस",
+    "penal": "दंड",
+    "dpd": "DPD"
+  },
+  "callHistory": {
+    "title": "कॉल इतिहास"
+  },
+  "transcript": {
+    "title": "ट्रांसक्रिप्ट",
+    "waiting": "बातचीत की प्रतीक्षा...",
+    "pos": "सकारात्मक",
+    "neu": "तटस्थ",
+    "neg": "नकारात्मक",
+    "agent": "एजेंट",
+    "customerSpeaker": "ग्राहक"
+  },
+  "sentiment": {
+    "title": "ग्राहक मनोदशा",
+    "waiting": "प्रतीक्षा...",
+    "cooperative": "सहयोगी",
+    "neutral": "तटस्थ",
+    "resistant": "प्रतिरोधी",
+    "utterances": "उक्तियाँ"
+  },
+  "insights": {
+    "title": "AI इनसाइट्स",
+    "analyzing": "AI बातचीत का विश्लेषण कर रहा है...",
+    "analyzingSubtext": "इनसाइट्स यहाँ दिखाई देंगी",
+    "of": "में से",
+    "prev": "← पिछला",
+    "next": "अगला →",
+    "aiFilled": "AI भरा",
+    "aiAutoPopulated": "AI स्वतः भरा गया..."
+  },
+  "disposition": {
+    "result": "परिणाम",
+    "date": "तिथि",
+    "amount": "राशि",
+    "reason": "कारण",
+    "notes": "नोट्स",
+    "nextAction": "अगला",
+    "select": "चुनें...",
+    "selectReason": "कारण चुनें...",
+    "overrideAi": "AI ओवरराइड",
+    "submitToLms": "LMS में जमा करें",
+    "savedToLms": "✓ LMS में सहेजा गया",
+    "autoFillMessage": "AI ने कॉल विश्लेषण के आधार पर डिस्पोज़िशन फ़ॉर्म स्वतः भर दिया है।"
+  },
+  "nextActions": {
+    "followUpCall": "फ़ॉलो-अप कॉल",
+    "sendPaymentLink": "भुगतान लिंक भेजें",
+    "fieldVisit": "फ़ील्ड विज़िट",
+    "legalNotice": "कानूनी नोटिस",
+    "escalate": "एस्कलेट करें",
+    "settlementProcessing": "निपटान प्रक्रिया",
+    "closeResolved": "बंद — हल किया गया"
+  }
+}

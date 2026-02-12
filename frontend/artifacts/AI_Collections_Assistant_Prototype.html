@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Collections Assistant — Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#F4F6F8;overflow:hidden;width:100vw;height:100vh}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#DC2626;animation:lp 1.5s infinite;display:inline-block}
+@keyframes lp{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(220,38,38,0.4)}50%{opacity:0.6;box-shadow:0 0 0 3px rgba(220,38,38,0)}}
+select:focus,input:focus{border-color:#0891B2!important;box-shadow:0 0 0 2px #E0F7FA}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#E2E8F0;border-radius:2px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useEffect,useRef}=React;
+
+const CUSTOMER={name:"Rajesh Kumar Sharma",mobile:"XXXX-XXX-210",email:"r***a@gmail.com",agreementId:"PL-2024-00847391",loanType:"Personal Loan"};
+const LOAN={amount:"₹8,50,000",tenure:"48 months",emiStart:"15-Mar-2023",emiEnd:"15-Feb-2027",outstanding:"₹4,85,320",overdue:"₹73,800"};
+const ADDITIONAL={installmentNo:"22 of 48",dueDate:"15-Jan-2026",amount:"₹18,450",bounceCharges:"₹1,500",penalCharges:"₹3,240",dpd:67};
+const PAST_COMMS=[
+  {date:"28-Jan",caller:"Priya M.",summary:"Callback req. Job change."},
+  {date:"15-Jan",caller:"Amit R.",summary:"No answer. SMS sent."},
+  {date:"02-Jan",caller:"Priya M.",summary:"₹10K PTP Jan 10. Not rcvd."},
+  {date:"20-Dec",caller:"Amit R.",summary:"Agreed month-end. ₹5K paid."},
+];
+
+const TRANSCRIPT_FEED=[
+  {speaker:"agent",text:"Good morning, am I speaking with Mr. Rajesh Kumar?",ts:"0:05",sentiment:"neutral"},
+  {speaker:"customer",text:"Yes, who is this?",ts:"0:08",sentiment:"neutral"},
+  {speaker:"agent",text:"Sir, this is regarding your personal loan account ending 391. Your EMI of ₹18,450 is overdue by 67 days.",ts:"0:14",sentiment:"neutral"},
+  {speaker:"customer",text:"I know about it. I changed my job recently and there was a gap in salary.",ts:"0:22",sentiment:"negative"},
+  {speaker:"agent",text:"I understand sir. We have some options that can help you.",ts:"0:30",sentiment:"neutral"},
+  {speaker:"customer",text:"Yes, please tell me. I want to clear this but the total is too much at once.",ts:"0:38",sentiment:"positive"},
+  {speaker:"agent",text:"Your total overdue is ₹73,800. I can offer a restructured payment plan.",ts:"0:45",sentiment:"neutral"},
+  {speaker:"customer",text:"What kind of plan? Can I pay in parts?",ts:"0:50",sentiment:"positive"},
+  {speaker:"agent",text:"Yes sir. ₹25,000 now, ₹25,000 by Feb 15, and ₹23,800 by March 1.",ts:"0:58",sentiment:"neutral"},
+  {speaker:"customer",text:"That sounds reasonable. I can do ₹25,000 by this Friday.",ts:"1:05",sentiment:"positive"},
+];
+
+const AI_INSIGHTS_FEED=[
+  {type:"intent",text:"Customer willing to pay but needs flexible plan",time:"0:38",priority:"high"},
+  {type:"suggestion",text:"Offer 3-part: ₹25K now + ₹25K by Feb 15 + ₹23.8K by Mar 1",time:"0:45",priority:"high"},
+  {type:"policy",text:"Eligible 50% penalty waiver (saves ₹1,620). Threshold: ₹50K+",time:"0:46",priority:"medium"},
+  {type:"alert",text:"Previous broken PTP Jan 10 — secure firm date",time:"0:52",priority:"high"},
+  {type:"sentiment",text:"Tone shifted cooperative after plan offer",time:"1:05",priority:"low"},
+];
+
+const DISP_AUTO={result:"PTP",date:"2026-02-07",amount:"₹25,000",notes:"Agreed 3-part plan. First ₹25K by Fri Feb 7. Job change caused gap. Cooperative.",nextAction:"Follow-up Call"};
+
+const RESULT_CONFIG={
+  "PTP":{fields:"ptp"},
+  "Won't Pay":{fields:"wontpay",reasons:["Issues with Bank","Wrong EMI Amount"]},
+  "Can't Pay":{fields:"cantpay",reasons:["Job Loss","Business Loss","Medical Issues"]},
+  "Wrong Number":{fields:"none"},
+  "Invalid Number":{fields:"none"},
+  "Not Reachable":{fields:"none"},
+  "Not Picking":{fields:"none"},
+};
+
+const T={bg:"#F4F6F8",surface:"#FFFFFF",navy:"#0C1E35",teal:"#0891B2",tealLight:"#22D3EE",tealMuted:"#E0F7FA",accent:"#059669",accentLight:"#D1FAE5",warm:"#D97706",warmLight:"#FEF3C7",red:"#DC2626",redLight:"#FEE2E2",green:"#16A34A",amber:"#D97706",text:"#1E293B",textSec:"#64748B",textMuted:"#94A3B8",border:"#E2E8F0",borderLight:"#F1F5F9"};
+const SC={positive:{b:T.green,bg:"#F0FDF4"},neutral:{b:T.amber,bg:"#FFFBEB"},negative:{b:T.red,bg:"#FEF2F2"}};
+
+const Waveform=({active})=>{
+  const cRef=useRef(null),fRef=useRef(null),bars=useRef(Array.from({length:24},()=>Math.random()*0.3+0.1));
+  useEffect(()=>{
+    const c=cRef.current;if(!c)return;
+    const ctx=c.getContext("2d"),W=c.width,H=c.height,b=bars.current;
+    const draw=()=>{
+      ctx.clearRect(0,0,W,H);
+      const bW=2,g=1.5,st=(W-b.length*(bW+g))/2;
+      for(let i=0;i<b.length;i++){
+        b[i]+=((active?Math.random()*0.85+0.15:0.08)-b[i])*(active?0.18:0.1);
+        const h=b[i]*H,x=st+i*(bW+g),y=(H-h)/2;
+        ctx.fillStyle=active?`rgba(34,${Math.floor(180+b[i]*75)},110,${0.6+b[i]*0.4})`:`rgba(148,163,184,0.4)`;
+        ctx.beginPath();ctx.roundRect(x,y,bW,h,1);ctx.fill();
+      }
+      fRef.current=requestAnimationFrame(draw);
+    };
+    draw();return()=>{if(fRef.current)cancelAnimationFrame(fRef.current)};
+  },[active]);
+  return React.createElement("canvas",{ref:cRef,width:90,height:24,style:{display:"block"}});
+};
+
+function App(){
+  const[ct,setCt]=useState(0);
+  const[ca,setCa]=useState(true);
+  const[tr,setTr]=useState([]);
+  const[ins,setIns]=useState([]);
+  const[dR,setDR]=useState("");
+  const[dD,setDD]=useState("");
+  const[dA,setDA]=useState("");
+  const[dRC,setDRC]=useState("");
+  const[dN,setDN]=useState("");
+  const[dNA,setDNA]=useState("");
+  const[dS,setDS]=useState(false);
+  const[dAF,setDAF]=useState(false);
+  const[aq,setAq]=useState(96);
+  const tRef=useRef(null);
+
+  useEffect(()=>{if(!ca)return;const t=setInterval(()=>setCt(p=>p+1),1000);return()=>clearInterval(t)},[ca]);
+  useEffect(()=>{TRANSCRIPT_FEED.forEach((it,i)=>{setTimeout(()=>{setTr(p=>[...p,it]);if(tRef.current)tRef.current.scrollTop=tRef.current.scrollHeight},(i+1)*2000)});},[]);
+  useEffect(()=>{AI_INSIGHTS_FEED.forEach((it,i)=>{setTimeout(()=>setIns(p=>[...p,it]),(i+1)*2800+1500)});},[]);
+  useEffect(()=>{if(tr.length>=8&&!dAF){setDAF(true);setDR(DISP_AUTO.result);setTimeout(()=>setDD(DISP_AUTO.date),400);setTimeout(()=>setDA(DISP_AUTO.amount),800);setTimeout(()=>setDN(DISP_AUTO.notes),1200);setTimeout(()=>setDNA(DISP_AUTO.nextAction),1600);}},[tr,dAF]);
+  useEffect(()=>{if(!ca)return;const t=setInterval(()=>setAq(p=>Math.max(72,Math.min(99,Math.round(p+(Math.random()-0.45)*6)))),2000);return()=>clearInterval(t)},[ca]);
+  useEffect(()=>{setDRC("");setDD("");setDA("")},[dR]);
+
+  const fmt=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+  const ip={width:"100%",padding:"3px 6px",fontSize:"10.5px",border:`1px solid ${T.border}`,borderRadius:"3px",color:T.text,background:T.surface,outline:"none",boxSizing:"border-box",transition:"all 0.3s",fontFamily:"'DM Sans',sans-serif"};
+  const ag=dAF?{borderColor:T.accent,boxShadow:`0 0 0 1px ${T.accentLight}`,background:"#FAFFFE"}:{};
+  const aqC=aq>=90?T.green:aq>=80?T.amber:T.red;
+  const rc=RESULT_CONFIG[dR];
+
+  const Cell=({l,v,hl,tag})=>(
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"1px 0",lineHeight:"1.25"}},
+      React.createElement("span",{style:{fontSize:"10.5px",color:T.textSec}},l),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"3px"}},
+        tag&&React.createElement("span",{style:{fontSize:"7px",fontWeight:700,padding:"0 3px",borderRadius:"2px",background:tag.bg,color:tag.c}},tag.t),
+        React.createElement("span",{style:{fontSize:"10.5px",fontWeight:hl?700:600,color:hl?T.red:T.text,fontVariantNumeric:"tabular-nums"}},v)
+      )
+    )
+  );
+
+  const Lbl=({children})=>React.createElement("label",{style:{fontSize:"8px",fontWeight:700,color:T.textSec,display:"block",marginBottom:"1px",textTransform:"uppercase",letterSpacing:"0.2px"}},children);
+
+  return React.createElement("div",{style:{width:"100vw",height:"100vh",display:"flex",flexDirection:"column",background:T.bg,fontFamily:"'DM Sans',sans-serif",overflow:"hidden"}},
+
+    // HEADER
+    React.createElement("header",{style:{background:`linear-gradient(135deg,${T.navy},#164E63)`,padding:"0 10px",height:"36px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}},
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"6px"}},
+        React.createElement("span",{style:{fontSize:"14px"}},"🤖"),
+        React.createElement("span",{style:{color:"#FFF",fontSize:"11.5px",fontWeight:700}},"AI Collections Assistant")
+      ),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"5px",background:"rgba(217,119,6,0.15)",padding:"2px 8px",borderRadius:"3px",border:"1px solid rgba(217,119,6,0.3)"}},
+        React.createElement("span",{style:{fontSize:"8px",fontWeight:700,color:T.warm,textTransform:"uppercase"}},"Action:"),
+        React.createElement("span",{style:{fontSize:"10px",fontWeight:700,color:"#FDE68A"}},"Follow-up Call")
+      ),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"6px",background:"rgba(255,255,255,0.06)",padding:"2px 8px",borderRadius:"3px"}},
+        React.createElement(Waveform,{active:ca}),
+        React.createElement("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",lineHeight:"1.1"}},
+          React.createElement("span",{style:{fontSize:"7px",color:T.textMuted,textTransform:"uppercase",fontWeight:600}},"Audio"),
+          React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"2px"}},
+            React.createElement("span",{style:{width:"5px",height:"5px",borderRadius:"50%",background:aqC}}),
+            React.createElement("span",{style:{fontSize:"10px",fontWeight:700,color:aqC,fontVariantNumeric:"tabular-nums"}},ca?`${aq}%`:"—")
+          )
+        )
+      ),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"10px",background:"rgba(255,255,255,0.07)",padding:"2px 12px",borderRadius:"14px"}},
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"3px"}},
+          React.createElement("span",{className:ca?"live-dot":"",style:{width:"6px",height:"6px",borderRadius:"50%",background:ca?"#22C55E":T.textMuted}}),
+          React.createElement("span",{style:{color:"#FFF",fontSize:"9px",fontWeight:600}},ca?"ON CALL":"IDLE")
+        ),
+        React.createElement("span",{style:{color:T.tealLight,fontSize:"13px",fontWeight:700,fontVariantNumeric:"tabular-nums"}},fmt(ct)),
+        React.createElement("span",{style:{color:"#FFF",fontSize:"9px"}},"📞 "+CUSTOMER.mobile)
+      ),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"8px"}},
+        ["LMS","LiveKit"].map(n=>React.createElement("div",{key:n,style:{display:"flex",alignItems:"center",gap:"2px"}},React.createElement("span",{style:{width:"4px",height:"4px",borderRadius:"50%",background:"#22C55E"}}),React.createElement("span",{style:{color:T.textMuted,fontSize:"8px"}},n))),
+        React.createElement("button",{onClick:()=>setCa(!ca),style:{padding:"2px 10px",borderRadius:"3px",border:"none",cursor:"pointer",fontSize:"9px",fontWeight:700,color:"#FFF",background:ca?T.red:T.accent}},ca?"End Call":"New Call")
+      )
+    ),
+
+    // BODY
+    React.createElement("div",{style:{flex:1,display:"flex",flexDirection:"column",padding:"3px 5px",gap:"3px",overflow:"hidden"}},
+
+      // TOP ROW
+      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"0.85fr 0.85fr 0.85fr 1.45fr",gap:"3px",flexShrink:0}},
+        // Customer
+        React.createElement("div",{style:{background:T.surface,borderRadius:"3px",border:`1px solid ${T.border}`,overflow:"hidden"}},
+          React.createElement("div",{style:{padding:"2px 6px",background:T.borderLight,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:"3px"}},React.createElement("span",{style:{fontSize:"9px"}},"👤"),React.createElement("span",{style:{fontSize:"9px",fontWeight:700,color:T.navy,textTransform:"uppercase"}},"Customer")),
+          React.createElement("div",{style:{padding:"2px 6px"}},
+            React.createElement(Cell,{l:"Name",v:CUSTOMER.name}),React.createElement(Cell,{l:"Mobile",v:CUSTOMER.mobile}),React.createElement(Cell,{l:"Email",v:CUSTOMER.email}),React.createElement(Cell,{l:"Agreement",v:CUSTOMER.agreementId}),React.createElement(Cell,{l:"Type",v:CUSTOMER.loanType,tag:{t:"PL",bg:T.tealMuted,c:T.teal}})
+          )
+        ),
+        // Loan
+        React.createElement("div",{style:{background:T.surface,borderRadius:"3px",border:`1px solid ${T.border}`,overflow:"hidden"}},
+          React.createElement("div",{style:{padding:"2px 6px",background:T.borderLight,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:"3px"}},React.createElement("span",{style:{fontSize:"9px"}},"💰"),React.createElement("span",{style:{fontSize:"9px",fontWeight:700,color:T.navy,textTransform:"uppercase"}},"Loan Details")),
+          React.createElement("div",{style:{padding:"2px 6px"}},
+            React.createElement(Cell,{l:"Amount",v:LOAN.amount}),React.createElement(Cell,{l:"Tenure",v:LOAN.tenure}),React.createElement(Cell,{l:"EMI Start",v:LOAN.emiStart}),React.createElement(Cell,{l:"EMI End",v:LOAN.emiEnd}),React.createElement(Cell,{l:"Outstanding",v:LOAN.outstanding,hl:true}),React.createElement(Cell,{l:"Overdue",v:LOAN.overdue,hl:true})
+          )
+        ),
+        // Additional
+        React.createElement("div",{style:{background:T.surface,borderRadius:"3px",border:`1px solid ${T.border}`,overflow:"hidden"}},
+          React.createElement("div",{style:{padding:"2px 6px",background:T.borderLight,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:"3px"}},React.createElement("span",{style:{fontSize:"9px"}},"📋"),React.createElement("span",{style:{fontSize:"9px",fontWeight:700,color:T.navy,textTransform:"uppercase"}},"Additional")),
+          React.createElement("div",{style:{padding:"2px 6px"}},
+            React.createElement(Cell,{l:"Installment",v:ADDITIONAL.installmentNo}),React.createElement(Cell,{l:"Due Date",v:ADDITIONAL.dueDate}),React.createElement(Cell,{l:"Amount",v:"₹"+ADDITIONAL.amount}),React.createElement(Cell,{l:"Bounce",v:"₹"+ADDITIONAL.bounceCharges}),React.createElement(Cell,{l:"Penal",v:"₹"+ADDITIONAL.penalCharges}),React.createElement(Cell,{l:"DPD",v:ADDITIONAL.dpd,hl:true,tag:{t:"HIGH",bg:T.redLight,c:T.red}})
+          )
+        ),
+        // Call History
+        React.createElement("div",{style:{background:T.surface,borderRadius:"3px",border:`1px solid ${T.border}`,overflow:"hidden"}},
+          React.createElement("div",{style:{padding:"2px 6px",background:T.borderLight,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:"3px"}},React.createElement("span",{style:{fontSize:"9px"}},"📞"),React.createElement("span",{style:{fontSize:"9px",fontWeight:700,color:T.navy,textTransform:"uppercase"}},"Call History")),
+          React.createElement("div",{style:{padding:"1px 0"}},
+            React.createElement("div",{style:{display:"grid",gridTemplateColumns:"46px 56px 1fr",padding:"1px 6px",borderBottom:`1px solid ${T.borderLight}`}},
+              React.createElement("span",{style:{fontSize:"8px",fontWeight:700,color:T.textMuted}},"DATE"),React.createElement("span",{style:{fontSize:"8px",fontWeight:700,color:T.textMuted}},"CALLER"),React.createElement("span",{style:{fontSize:"8px",fontWeight:700,color:T.textMuted}},"SUMMARY")
+            ),
+            PAST_COMMS.map((c,i)=>React.createElement("div",{key:i,style:{display:"grid",gridTemplateColumns:"46px 56px 1fr",padding:"1.5px 6px",borderBottom:i<PAST_COMMS.length-1?`1px solid ${T.borderLight}`:"none"}},
+              React.createElement("span",{style:{fontSize:"10px",fontWeight:600,color:T.text,fontVariantNumeric:"tabular-nums"}},c.date),
+              React.createElement("span",{style:{fontSize:"9.5px",color:T.teal,fontWeight:600}},c.caller),
+              React.createElement("span",{style:{fontSize:"9.5px",color:T.textSec,lineHeight:"1.25"}},c.summary)
+            ))
+          )
+        )
+      ),
+
+      // MIDDLE: Transcript + AI Insights
+      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"3px",flex:1,minHeight:0}},
+        // Transcript
+        React.createElement("div",{style:{background:T.surface,borderRadius:"3px",border:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflow:"hidden"}},
+          React.createElement("div",{style:{padding:"2px 6px",background:T.borderLight,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}},
+            React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"4px"}},React.createElement("span",{style:{fontSize:"9px"}},"🎙️"),React.createElement("span",{style:{fontSize:"9px",fontWeight:700,color:T.navy,textTransform:"uppercase"}},"Transcript")),
+            React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"6px"}},
+              [["🟢","Pos"],["🟡","Neu"],["🔴","Neg"]].map(([d,l])=>React.createElement("div",{key:l,style:{display:"flex",alignItems:"center",gap:"1px"}},React.createElement("span",{style:{fontSize:"7px"}},d),React.createElement("span",{style:{fontSize:"7px",color:T.textMuted}},l))),
+              ca&&React.createElement("span",{className:"live-dot",style:{marginLeft:"1px"}})
+            )
+          ),
+          React.createElement("div",{ref:tRef,style:{flex:1,overflowY:"auto",padding:"3px 5px",scrollBehavior:"smooth"}},
+            tr.length===0&&React.createElement("div",{style:{textAlign:"center",padding:"10px 0",color:T.textMuted,fontSize:"10px"}},"Waiting for conversation..."),
+            tr.map((t,i)=>{
+              const s=SC[t.sentiment]||SC.neutral;
+              return React.createElement("div",{key:i,style:{marginBottom:"3px",display:"flex",gap:"4px",animation:"fadeIn 0.3s"}},
+                React.createElement("div",{style:{width:"3px",borderRadius:"1px",flexShrink:0,background:s.b}}),
+                React.createElement("div",{style:{width:"16px",height:"16px",borderRadius:"50%",flexShrink:0,background:t.speaker==="agent"?T.teal:T.warm,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"7.5px",color:"#FFF",fontWeight:700,marginTop:"1px"}},t.speaker==="agent"?"A":"C"),
+                React.createElement("div",{style:{flex:1}},
+                  React.createElement("div",{style:{display:"flex",justifyContent:"space-between"}},
+                    React.createElement("span",{style:{fontSize:"8px",fontWeight:700,textTransform:"uppercase",color:t.speaker==="agent"?T.teal:T.warm}},t.speaker==="agent"?"Agent":"Customer"),
+                    React.createElement("span",{style:{fontSize:"7px",color:T.textMuted}},t.ts)
+                  ),
+                  React.createElement("div",{style:{fontSize:"10.5px",color:T.text,lineHeight:"1.3",background:s.bg,padding:"2px 6px",borderRadius:"3px",borderLeft:`2px solid ${s.b}`}},t.text)
+                )
+              );
+            })
+          )
+        ),
+        // AI Insights
+        React.createElement("div",{style:{background:T.surface,borderRadius:"3px",border:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflow:"hidden"}},
+          React.createElement("div",{style:{padding:"2px 6px",background:T.borderLight,borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}},
+            React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"4px"}},React.createElement("span",{style:{fontSize:"9px"}},"🧠"),React.createElement("span",{style:{fontSize:"9px",fontWeight:700,color:T.navy,textTransform:"uppercase"}},"AI Insights")),
+            ca&&React.createElement("span",{className:"live-dot"})
+          ),
+          React.createElement("div",{style:{flex:1,overflowY:"auto",padding:"3px 5px"}},
+            ins.length===0&&React.createElement("div",{style:{textAlign:"center",padding:"10px 0",color:T.textMuted,fontSize:"10px"}},"AI analyzing..."),
+            ins.map((n,i)=>{
+              const cfg={intent:{icon:"🎯",label:"INTENT",color:T.teal,bg:T.tealMuted},suggestion:{icon:"💡",label:"SUGGEST",color:T.accent,bg:T.accentLight},policy:{icon:"📜",label:"POLICY",color:T.warm,bg:T.warmLight},sentiment:{icon:"😊",label:"TONE",color:T.textSec,bg:T.borderLight},alert:{icon:"⚠️",label:"ALERT",color:T.red,bg:T.redLight}}[n.type];
+              return React.createElement("div",{key:i,style:{marginBottom:"3px",padding:"4px 6px",borderRadius:"3px",background:cfg.bg,borderLeft:`3px solid ${cfg.color}`,animation:"fadeIn 0.3s"}},
+                React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1px"}},
+                  React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"2px"}},React.createElement("span",{style:{fontSize:"8px"}},cfg.icon),React.createElement("span",{style:{fontSize:"7.5px",fontWeight:700,color:cfg.color,textTransform:"uppercase"}},cfg.label)),
+                  React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"3px"}},n.priority==="high"&&React.createElement("span",{style:{fontSize:"7px",fontWeight:700,padding:"0 3px",borderRadius:"2px",background:T.red,color:"#FFF"}},"HIGH"),React.createElement("span",{style:{fontSize:"7px",color:T.textMuted}},n.time))
+                ),
+                React.createElement("div",{style:{fontSize:"10.5px",color:T.text,lineHeight:"1.3"}},n.text)
+              );
+            })
+          )
+        )
+      ),
+
+      // DISPOSITION
+      React.createElement("div",{style:{background:T.surface,borderRadius:"3px",border:`1px solid ${T.border}`,flexShrink:0,overflow:"hidden"}},
+        React.createElement("div",{style:{display:"flex",alignItems:"stretch"}},
+          React.createElement("div",{style:{background:T.borderLight,borderRight:`1px solid ${T.border}`,padding:"4px 8px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minWidth:"68px"}},
+            React.createElement("span",{style:{fontSize:"11px"}},"✅"),
+            React.createElement("span",{style:{fontSize:"8px",fontWeight:700,color:T.navy,textTransform:"uppercase"}},"Disposition"),
+            dAF&&React.createElement("div",{style:{display:"flex",alignItems:"center",gap:"2px",background:T.accentLight,padding:"0px 4px",borderRadius:"2px",marginTop:"2px"}},React.createElement("span",{style:{fontSize:"7px"}},"🤖"),React.createElement("span",{style:{fontSize:"7px",fontWeight:700,color:T.accent}},"AI"))
+          ),
+          React.createElement("div",{style:{flex:1,padding:"4px 8px",display:"flex",flexDirection:"column",gap:"4px"}},
+            React.createElement("div",{style:{display:"flex",gap:"6px",alignItems:"flex-end"}},
+              React.createElement("div",{style:{minWidth:"130px"}},
+                React.createElement(Lbl,null,"Result"),
+                React.createElement("select",{value:dR,onChange:e=>setDR(e.target.value),style:{...ip,cursor:"pointer",...ag}},
+                  React.createElement("option",{value:""},"Select..."),
+                  Object.keys(RESULT_CONFIG).map(k=>React.createElement("option",{key:k},k))
+                )
+              ),
+              rc&&rc.fields==="ptp"&&React.createElement(React.Fragment,null,
+                React.createElement("div",{style:{minWidth:"110px"}},React.createElement(Lbl,null,"PTP Date"),React.createElement("input",{type:"date",value:dD,onChange:e=>setDD(e.target.value),style:{...ip,...ag}})),
+                React.createElement("div",{style:{minWidth:"90px"}},React.createElement(Lbl,null,"PTP Amount"),React.createElement("input",{value:dA,onChange:e=>setDA(e.target.value),style:{...ip,...ag},placeholder:"₹"}))
+              ),
+              rc&&(rc.fields==="wontpay"||rc.fields==="cantpay")&&React.createElement("div",{style:{minWidth:"150px"}},
+                React.createElement(Lbl,null,"Reason Code"),
+                React.createElement("select",{value:dRC,onChange:e=>setDRC(e.target.value),style:{...ip,cursor:"pointer",...ag}},
+                  React.createElement("option",{value:""},"Select reason..."),
+                  rc.reasons.map(r=>React.createElement("option",{key:r},r))
+                )
+              ),
+              React.createElement("div",{style:{minWidth:"130px"}},
+                React.createElement(Lbl,null,"Next Action"),
+                React.createElement("select",{value:dNA,onChange:e=>setDNA(e.target.value),style:{...ip,cursor:"pointer",...ag}},
+                  React.createElement("option",{value:""},"Select..."),
+                  ["Follow-up Call","Send Payment Link","Field Visit","Legal Notice","Escalate","Settlement Processing","Close — Resolved"].map(o=>React.createElement("option",{key:o},o))
+                )
+              ),
+              React.createElement("div",{style:{flex:1}}),
+              React.createElement("button",{onClick:()=>setDS(true),style:{padding:"5px 18px",borderRadius:"3px",border:"none",background:dS?T.accent:`linear-gradient(135deg,${T.teal},#164E63)`,color:"#FFF",fontSize:"10px",fontWeight:700,cursor:"pointer",transition:"all 0.3s",whiteSpace:"nowrap"}},dS?"✓ Saved":"Submit")
+            ),
+            React.createElement("div",null,
+              React.createElement(Lbl,null,"Notes"),
+              React.createElement("input",{value:dN,onChange:e=>setDN(e.target.value),style:{...ip,...ag},placeholder:"AI auto-populated..."})
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>

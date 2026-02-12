@@ -1,0 +1,100 @@
+{
+  "app": {
+    "title": "AI Collections Assistant",
+    "description": "AI-powered collections management"
+  },
+  "home": {
+    "heading": "AI Collections Assistant",
+    "subheading": "Streamline your collections workflow with AI-powered insights and real-time call analysis.",
+    "launchButton": "Launch Assistant"
+  },
+  "header": {
+    "title": "AI Collections Assistant",
+    "actionLabel": "Action:",
+    "followUpCall": "Follow-up Call",
+    "audio": "Audio",
+    "onCall": "ON CALL",
+    "idle": "IDLE",
+    "endCall": "End Call",
+    "newCall": "New Call"
+  },
+  "customer": {
+    "title": "Customer",
+    "name": "Name",
+    "mobile": "Mobile",
+    "email": "Email",
+    "agreement": "Agreement",
+    "type": "Type"
+  },
+  "loan": {
+    "title": "Loan Details",
+    "amount": "Amount",
+    "tenure": "Tenure",
+    "emiStart": "EMI Start",
+    "emiEnd": "EMI End",
+    "outstanding": "Outstanding",
+    "overdue": "Overdue"
+  },
+  "additional": {
+    "title": "Additional",
+    "installment": "Installment",
+    "dueDate": "Due Date",
+    "amount": "Amount",
+    "bounce": "Bounce",
+    "penal": "Penal",
+    "dpd": "DPD"
+  },
+  "callHistory": {
+    "title": "Call History"
+  },
+  "transcript": {
+    "title": "Transcript",
+    "waiting": "Waiting for conversation...",
+    "pos": "Pos",
+    "neu": "Neu",
+    "neg": "Neg",
+    "agent": "Agent",
+    "customerSpeaker": "Customer"
+  },
+  "sentiment": {
+    "title": "Customer Mood",
+    "waiting": "Waiting...",
+    "cooperative": "Cooperative",
+    "neutral": "Neutral",
+    "resistant": "Resistant",
+    "utterances": "utterances"
+  },
+  "insights": {
+    "title": "AI Insights",
+    "analyzing": "AI is analyzing the conversation...",
+    "analyzingSubtext": "Insights will appear here as they're detected",
+    "of": "of",
+    "prev": "← Prev",
+    "next": "Next →",
+    "aiFilled": "AI FILLED",
+    "aiAutoPopulated": "AI auto-populated..."
+  },
+  "disposition": {
+    "result": "Result",
+    "date": "Date",
+    "amount": "Amount",
+    "reason": "Reason",
+    "notes": "Notes",
+    "nextAction": "Next",
+    "select": "Select...",
+    "selectReason": "Select reason...",
+    "overrideAi": "Override AI",
+    "submitToLms": "Submit to LMS",
+    "savedToLms": "✓ Saved to LMS",
+    "autoFillMessage": "AI has auto-filled the disposition form based on call analysis."
+  },
+  "nextActions": {
+    "followUpCall": "Follow-up Call",
+    "sendPaymentLink": "Send Payment Link",
+    "fieldVisit": "Field Visit",
+    "legalNotice": "Legal Notice",
+    "escalate": "Escalate",
+    "settlementProcessing": "Settlement Processing",
+    "closeResolved": "Close — Resolved"
+  }
+}
