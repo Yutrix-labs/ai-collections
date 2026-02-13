@@ -1,0 +1,60 @@
+spring:
+  application:
+    name: ai-collections
+
+  # AI config (disabled until needed)
+  ai:
+    chat:
+      client:
+        enabled: false
+    openai:
+      api-key: ${OPENAI_API_KEY:placeholder}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.3
+    vertex:
+      ai:
+        gemini:
+          project-id: ${GCP_PROJECT_ID:placeholder}
+          location: ${GCP_LOCATION:us-central1}
+          chat:
+            options:
+              model: gemini-2.0-flash
+              temperature: 0.3
+
+server:
+  port: 8080
+  servlet:
+    context-path: /uwapi
+
+# Exotel Click2Call
+exotel:
+  subdomain: api.in.exotel.com
+  account-sid: fintaar2m
+  auth-key: d842fcade85285ab94b01b5769e84aadce61ae656320f2e1
+  auth-token: 5102f8bd375bce451f009c4b98a1fdad6fd83386c69eba75
+  caller-id: 02247790123
+  call-type: trans
+  time-limit: 600
+  record: true
+  recording-channels: dual
+  recording-format: mp3-hq
+
+# LiveKit
+livekit:
+  url: wss://test125-h4h82mth.livekit.cloud
+  api-key: APInXwLysngAB2W
+  api-secret: eGhv62IbKuM9dkX2gNSVSbYiddDIBefYSpMareRKDVRA
+
+# CORS
+app:
+  cors:
+    allowed-origins: http://localhost:3000
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

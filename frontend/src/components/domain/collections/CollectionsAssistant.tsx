@@ -1,17 +1,22 @@
 "use client";
 
-import { useState, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { useState, useEffect, useRef, useCallback, type CSSProperties, type ReactNode } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { CUSTOMER, LOAN, ADDITIONAL, PAST_COMMS, TRANSCRIPT_FEED, AI_INSIGHTS_FEED, DISP_AUTO } from "@/data/mock-data";
 import { T, SC, CARD_TYPES, RESULT_CONFIG, mapInsightType } from "@/config/theme";
-import type { FlashCard, Sentiment, CellTag } from "@/types/collections.types";
+import type { FlashCard, Sentiment, CellTag, TranscriptItem, CustomerData } from "@/types/collections.types";
 import { formatCallTime } from "@/lib/utils";
+import { fetchCustomerData, startCall, endCall } from "@/lib/api/collections-api";
+import { useStompClient } from "@/hooks/useStompClient";
+import { useLiveKitConnection } from "@/hooks/useLiveKitConnection";
+import { LiveKitCallProvider } from "./LiveKitCallProvider";
+import { LiveKitAudioBridge } from "./LiveKitAudioBridge";
 import {
   Bot, Phone, PhoneOff, PhoneCall,
   User, Landmark, FileText, History,
-  Mic, X, ChevronRight, ChevronLeft,
+  Mic, MicOff, X, ChevronRight, ChevronLeft,
   Brain, ThumbsUp, ThumbsDown, Sparkles,
   Info, Lightbulb, AlertTriangle, CircleCheck,
   Globe, Check, ChevronDown,
@@ -62,7 +67,7 @@ const CARD_ICON_MAP: Record<string, ReactNode> = {
 };
 
 /* ── Waveform canvas component ── */
-function Waveform({ active }: { active: boolean }) {
+function Waveform({ active, audioLevel }: { active: boolean; audioLevel?: number | null }) {
   const cRef = useRef<HTMLCanvasElement>(null);
   const fRef = useRef<number | null>(null);
   const bars = useRef(Array.from({ length: 24 }, () => Math.random() * 0.3 + 0.1));
@@ -81,7 +86,10 @@ function Waveform({ active }: { active: boolean }) {
       const g = 1.5;
       const st = (W - b.length * (bW + g)) / 2;
       for (let i = 0; i < b.length; i++) {
-        b[i] += ((active ? Math.random() * 0.85 + 0.15 : 0.08) - b[i]) * (active ? 0.18 : 0.1);
+        const target = audioLevel != null
+          ? (audioLevel * 0.85 + 0.15) * (0.7 + Math.random() * 0.3)
+          : (active ? Math.random() * 0.85 + 0.15 : 0.08);
+        b[i] += (target - b[i]) * (active ? 0.18 : 0.1);
         const h = b[i] * H;
         const x = st + i * (bW + g);
         const y = (H - h) / 2;
@@ -98,7 +106,7 @@ function Waveform({ active }: { active: boolean }) {
     return () => {
       if (fRef.current) cancelAnimationFrame(fRef.current);
     };
-  }, [active]);
+  }, [active, audioLevel]);
 
   return <canvas ref={cRef} width={90} height={26} style={{ display: "block" }} />;
 }
@@ -143,13 +151,22 @@ export function CollectionsAssistant() {
     router.replace(pathname, { locale: newLocale });
   };
 
+  /* Backend integration */
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [customerData, setCustomerData] = useState<CustomerData | null>(null);
+  const [liveAudioLevel, setLiveAudioLevel] = useState<number | null>(null);
+  const [micToggle, setMicToggle] = useState<(() => void) | null>(null);
+  const [micEnabled, setMicEnabled] = useState(true);
+  const stomp = useStompClient();
+  const liveKit = useLiveKitConnection();
+
   /* Call state */
   const [ct, setCt] = useState(0);
-  const [ca, setCa] = useState(true);
+  const [ca, setCa] = useState(false);
   const [aq, setAq] = useState(96);
 
   /* Transcript & Insights */
-  const [tr, setTr] = useState<typeof TRANSCRIPT_FEED>([]);
+  const [tr, setTr] = useState<TranscriptItem[]>([]);
   const [, setIns] = useState<typeof AI_INSIGHTS_FEED>([]);
 
   /* Flash cards built from insights */
@@ -174,6 +191,19 @@ export function CollectionsAssistant() {
 
   const tRef = useRef<HTMLDivElement>(null);
 
+  /* Derived data: use backend data if available, otherwise mock fallback */
+  const customer = customerData?.customer ?? CUSTOMER;
+  const loan = customerData?.loan ?? LOAN;
+  const additional = customerData?.additionalDetails ?? ADDITIONAL;
+  const pastComms = customerData?.pastCommunications ?? PAST_COMMS;
+
+  /* Fetch customer data on mount */
+  useEffect(() => {
+    fetchCustomerData("PL-2024-00847391")
+      .then(setCustomerData)
+      .catch(() => { /* fall back to mock data */ });
+  }, []);
+
   /* Timer */
   useEffect(() => {
     if (!ca) return;
@@ -181,18 +211,19 @@ export function CollectionsAssistant() {
     return () => clearInterval(timer);
   }, [ca]);
 
-  /* Audio quality fluctuation */
+  /* Audio quality fluctuation (mock only — skipped when LiveKit provides real data) */
   useEffect(() => {
-    if (!ca) return;
+    if (!ca || sessionId) return;
     const timer = setInterval(
       () => setAq((p) => Math.max(72, Math.min(99, Math.round(p + (Math.random() - 0.45) * 6)))),
       2000,
     );
     return () => clearInterval(timer);
-  }, [ca]);
+  }, [ca, sessionId]);
 
-  /* Stream transcript */
+  /* Stream transcript (mock only — skipped when call inactive or real session active) */
   useEffect(() => {
+    if (!ca || sessionId) return;
     const timeouts: ReturnType<typeof setTimeout>[] = [];
     TRANSCRIPT_FEED.forEach((item, i) => {
       timeouts.push(
@@ -203,10 +234,11 @@ export function CollectionsAssistant() {
       );
     });
     return () => timeouts.forEach(clearTimeout);
-  }, []);
+  }, [ca, sessionId]);
 
-  /* Stream AI insights -> build flash cards */
+  /* Stream AI insights -> build flash cards (mock only — skipped when call inactive or real session active) */
   useEffect(() => {
+    if (!ca || sessionId) return;
     const timeouts: ReturnType<typeof setTimeout>[] = [];
     AI_INSIGHTS_FEED.forEach((item, i) => {
       timeouts.push(
@@ -228,7 +260,7 @@ export function CollectionsAssistant() {
       );
     });
     return () => timeouts.forEach(clearTimeout);
-  }, []);
+  }, [ca, sessionId]);
 
   /* Disposition auto-fill triggered at 8+ transcript items */
   useEffect(() => {
@@ -257,6 +289,79 @@ export function CollectionsAssistant() {
     setDD("");
     setDA("");
   }, [dR]);
+
+  /* Call toggle handler */
+  const handleCallToggle = useCallback(async () => {
+    if (ca) {
+      // END CALL
+      if (sessionId) {
+        try {
+          await endCall({
+            sessionId,
+            result: dR,
+            date: dD,
+            amount: dA,
+            notes: dN,
+            nextAction: dNA,
+            reasonCode: dRC,
+          });
+        } catch (e) {
+          console.error("Failed to end call:", e);
+        }
+      }
+      stomp.disconnect();
+      liveKit.disconnectLiveKit();
+      setCa(false);
+      setSessionId(null);
+      setLiveAudioLevel(null);
+      setMicToggle(null);
+      setMicEnabled(true);
+    } else {
+      // START CALL
+      setCa(true);
+      setCt(0);
+      setTr([]);
+      setCards([]);
+      setCurrentCard(0);
+      setCardKey(0);
+      setDAF(false);
+      setDS(false);
+      setDispOverride(false);
+      setDR(""); setDD(""); setDA(""); setDN(""); setDNA(""); setDRC("");
+
+      try {
+        const session = await startCall(customer.agreementId, "9870064932");
+        setSessionId(session.sessionId);
+
+        stomp.connect(session.sessionId, {
+          onTranscript: (item) => {
+            setTr((prev) => [...prev, item]);
+            if (tRef.current) {
+              setTimeout(() => {
+                if (tRef.current) tRef.current.scrollTop = tRef.current.scrollHeight;
+              }, 50);
+            }
+          },
+          onMeetUrl: (url) => {
+            console.log("Meet URL:", url);
+            liveKit.connectFromMeetUrl(url);
+          },
+        });
+      } catch (e) {
+        console.error("Failed to start call, falling back to mock:", e);
+        // Keep ca=true so mock simulation runs (sessionId stays null)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ca, sessionId, dR, dD, dA, dN, dNA, dRC, customer.agreementId, stomp, liveKit]);
+
+  /* Stable callbacks for LiveKitAudioBridge */
+  const handleQualityChange = useCallback((pct: number) => setAq(pct), []);
+  const handleAudioLevelChange = useCallback((level: number) => setLiveAudioLevel(level), []);
+  const handleMicControls = useCallback((toggle: () => void, enabled: boolean) => {
+    setMicToggle(() => toggle);
+    setMicEnabled(enabled);
+  }, []);
 
   /* Helpers */
   const aqC = aq >= 90 ? T.green : aq >= 80 ? T.amber : T.red;
@@ -331,6 +436,18 @@ export function CollectionsAssistant() {
 
   /* ── RENDER ── */
   return (
+    <LiveKitCallProvider
+      connectionInfo={liveKit.connectionInfo}
+      onConnected={() => console.log("LiveKit room connected")}
+      onDisconnected={() => console.log("LiveKit room disconnected")}
+    >
+      {liveKit.connectionInfo && (
+        <LiveKitAudioBridge
+          onQualityChange={handleQualityChange}
+          onAudioLevelChange={handleAudioLevelChange}
+          onMicControls={handleMicControls}
+        />
+      )}
     <div
       className="collections-assistant"
       style={{
@@ -357,7 +474,7 @@ export function CollectionsAssistant() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "rgba(255,255,255,0.06)", padding: "4px 12px", borderRadius: "6px", height: "26px" }}>
-          <Waveform active={ca} />
+          <Waveform active={ca} audioLevel={liveAudioLevel} />
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: "1.1" }}>
             <span style={{ fontSize: "8px", color: T.textMuted, textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.3px" }}>{t("header.audio")}</span>
             <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
@@ -377,7 +494,7 @@ export function CollectionsAssistant() {
           <span style={{ color: T.tealLight, fontSize: "15px", fontWeight: 700, fontVariantNumeric: "tabular-nums", minWidth: "50px", textAlign: "center", display: "inline-block", lineHeight: 1 }}>{formatCallTime(ct)}</span>
           <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#FFF", fontSize: "10px", lineHeight: 1 }}>
             <Phone size={11} color="#94A3B8" style={{ flexShrink: 0 }} />
-            {CUSTOMER.mobile}
+            {customer.mobile}
           </div>
         </div>
 
@@ -430,8 +547,25 @@ export function CollectionsAssistant() {
               <span style={{ color: T.textMuted, fontSize: "9px", lineHeight: 1 }}>{n}</span>
             </div>
           ))}
+          {ca && micToggle && (
+            <button
+              onClick={micToggle}
+              title={micEnabled ? "Mute" : "Unmute"}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: "26px", height: "26px", borderRadius: "6px", border: "none", cursor: "pointer",
+                background: micEnabled ? "rgba(255,255,255,0.10)" : "rgba(239,68,68,0.25)",
+                color: micEnabled ? "#FFF" : "#FCA5A5",
+                transition: "background 0.2s ease, color 0.2s ease",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = micEnabled ? "rgba(255,255,255,0.18)" : "rgba(239,68,68,0.35)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = micEnabled ? "rgba(255,255,255,0.10)" : "rgba(239,68,68,0.25)"; }}
+            >
+              {micEnabled ? <Mic size={12} /> : <MicOff size={12} />}
+            </button>
+          )}
           <button
-            onClick={() => setCa(!ca)}
+            onClick={handleCallToggle}
             style={{
               display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
               padding: "5px 14px", borderRadius: "6px", border: "none", cursor: "pointer",
@@ -460,11 +594,11 @@ export function CollectionsAssistant() {
           <div style={{ background: T.surface, borderRadius: "6px", border: `1px solid ${T.border}`, overflow: "hidden", flexShrink: 0 }}>
             <SectionHeader icon={<User size={IC.xs} />} title={t("customer.title")} />
             <div style={{ padding: "6px 10px" }}>
-              <Cell l={t("customer.name")} v={CUSTOMER.name} />
-              <Cell l={t("customer.mobile")} v={CUSTOMER.mobile} />
-              <Cell l={t("customer.email")} v={CUSTOMER.email} />
-              <Cell l={t("customer.agreement")} v={CUSTOMER.agreementId} />
-              <Cell l={t("customer.type")} v={CUSTOMER.loanType} tag={{ t: "PL", bg: T.tealMuted, c: T.teal }} />
+              <Cell l={t("customer.name")} v={customer.name} />
+              <Cell l={t("customer.mobile")} v={customer.mobile} />
+              <Cell l={t("customer.email")} v={customer.email} />
+              <Cell l={t("customer.agreement")} v={customer.agreementId} />
+              <Cell l={t("customer.type")} v={customer.loanType} tag={{ t: "PL", bg: T.tealMuted, c: T.teal }} />
             </div>
           </div>
 
@@ -472,12 +606,12 @@ export function CollectionsAssistant() {
           <div style={{ background: T.surface, borderRadius: "6px", border: `1px solid ${T.border}`, overflow: "hidden", flexShrink: 0 }}>
             <SectionHeader icon={<Landmark size={IC.xs} />} title={t("loan.title")} />
             <div style={{ padding: "6px 10px" }}>
-              <Cell l={t("loan.amount")} v={LOAN.amount} />
-              <Cell l={t("loan.tenure")} v={LOAN.tenure} />
-              <Cell l={t("loan.emiStart")} v={LOAN.emiStart} />
-              <Cell l={t("loan.emiEnd")} v={LOAN.emiEnd} />
-              <Cell l={t("loan.outstanding")} v={LOAN.outstanding} hl />
-              <Cell l={t("loan.overdue")} v={LOAN.overdue} hl />
+              <Cell l={t("loan.amount")} v={loan.amount} />
+              <Cell l={t("loan.tenure")} v={loan.tenure} />
+              <Cell l={t("loan.emiStart")} v={loan.emiStart} />
+              <Cell l={t("loan.emiEnd")} v={loan.emiEnd} />
+              <Cell l={t("loan.outstanding")} v={loan.outstanding} hl />
+              <Cell l={t("loan.overdue")} v={loan.overdue} hl />
             </div>
           </div>
 
@@ -485,12 +619,12 @@ export function CollectionsAssistant() {
           <div style={{ background: T.surface, borderRadius: "6px", border: `1px solid ${T.border}`, overflow: "hidden", flexShrink: 0 }}>
             <SectionHeader icon={<FileText size={IC.xs} />} title={t("additional.title")} />
             <div style={{ padding: "6px 10px" }}>
-              <Cell l={t("additional.installment")} v={ADDITIONAL.installmentNo} />
-              <Cell l={t("additional.dueDate")} v={ADDITIONAL.dueDate} />
-              <Cell l={t("additional.amount")} v={`₹${ADDITIONAL.amount}`} />
-              <Cell l={t("additional.bounce")} v={`₹${ADDITIONAL.bounceCharges}`} />
-              <Cell l={t("additional.penal")} v={`₹${ADDITIONAL.penalCharges}`} />
-              <Cell l={t("additional.dpd")} v={ADDITIONAL.dpd} hl tag={{ t: "HIGH", bg: T.redLight, c: T.red }} />
+              <Cell l={t("additional.installment")} v={additional.installmentNo} />
+              <Cell l={t("additional.dueDate")} v={additional.dueDate} />
+              <Cell l={t("additional.amount")} v={`₹${additional.amount}`} />
+              <Cell l={t("additional.bounce")} v={`₹${additional.bounceCharges}`} />
+              <Cell l={t("additional.penal")} v={`₹${additional.penalCharges}`} />
+              <Cell l={t("additional.dpd")} v={additional.dpd} hl tag={{ t: "HIGH", bg: T.redLight, c: T.red }} />
             </div>
           </div>
 
@@ -498,12 +632,12 @@ export function CollectionsAssistant() {
           <div style={{ background: T.surface, borderRadius: "6px", border: `1px solid ${T.border}`, overflow: "hidden", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
             <SectionHeader icon={<History size={IC.xs} />} title={t("callHistory.title")} />
             <div style={{ padding: "4px 0", flex: 1, overflowY: "auto" }}>
-              {PAST_COMMS.map((c, i) => (
+              {pastComms.map((c, i) => (
                 <div
                   key={i}
                   style={{
                     padding: "5px 10px",
-                    borderBottom: i < PAST_COMMS.length - 1 ? `1px solid ${T.borderLight}` : "none",
+                    borderBottom: i < pastComms.length - 1 ? `1px solid ${T.borderLight}` : "none",
                     display: "grid", gridTemplateColumns: "48px 54px 1fr", gap: "8px", alignItems: "baseline",
                   }}
                 >
@@ -876,5 +1010,6 @@ export function CollectionsAssistant() {
         </div>
       </div>
     </div>
+    </LiveKitCallProvider>
   );
 }

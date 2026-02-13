@@ -1,8 +1,27 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# ========================
+# Frontend (Next.js)
+# ========================
 
 # dependencies
-node_modules
-/.pnp
+node_modules/
+
+# next.js
+.next/
+frontend/.next/
+frontend/out/
+
+# production
+frontend/build/
+
+# testing
+frontend/coverage/
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# pnp
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -10,32 +29,73 @@ node_modules
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
+# debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
-
 # vercel
 .vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# ========================
+# Backend (Spring Boot)
+# ========================
+
+# Maven build output
+backend/target/
+
+# Maven wrapper jar (regenerable)
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# IDE / editor
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+.factorypath
+
+# Spring Boot
+backend/src/main/resources/application-local.yml
+
+# ========================
+# Python (Listening Agent)
+# ========================
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+.venv/
+venv/
+.eggs/
+
+# ========================
+# Shared / OS
+# ========================
+
+# env files
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# secrets / keys
+*.pem
+*.key
+*.p12
+*.jks
+
+# logs
+*.log

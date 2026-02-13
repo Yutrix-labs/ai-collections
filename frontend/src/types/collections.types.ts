@@ -84,3 +84,43 @@ export interface CellTag {
   bg: string;
   c: string;
 }
+
+/* ── Backend integration types ── */
+
+export interface CallSession {
+  sessionId: string;
+  agreementId: string;
+  customerMobile: string;
+  status: "ACTIVE" | "ENDED";
+  meetUrl: string | null;
+  startedAt: string;
+  endedAt: string | null;
+  dispositionResult: string | null;
+  dispositionDate: string | null;
+  dispositionAmount: string | null;
+  dispositionNotes: string | null;
+  dispositionNextAction: string | null;
+  dispositionReasonCode: string | null;
+}
+
+export interface CustomerData {
+  customer: Customer;
+  loan: Loan;
+  additionalDetails: AdditionalDetails;
+  pastCommunications: PastComm[];
+}
+
+export interface EndCallParams {
+  sessionId: string;
+  result: string;
+  date: string;
+  amount: string;
+  notes: string;
+  nextAction: string;
+  reasonCode: string;
+}
+
+export interface LiveKitConnectionInfo {
+  serverUrl: string;
+  token: string;
+}

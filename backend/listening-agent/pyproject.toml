@@ -1,0 +1,13 @@
+[project]
+name = "listening-agent"
+version = "0.1.0"
+description = "Standalone silent transcriber agent for LiveKit multi-speaker transcription"
+requires-python = ">=3.12"
+dependencies = [
+    "livekit-agents[deepgram,silero]~=1.2",
+    "python-dotenv>=1.2.1",
+    "aiohttp>=3.9",
+]
+
+[project.scripts]
+listening-agent = "silent_transcriber_agent:main"
