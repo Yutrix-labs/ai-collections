@@ -18,6 +18,27 @@
     "endCall": "End Call",
     "newCall": "New Call"
   },
+  "account": {
+    "title": "Account Details",
+    "disbursementDate": "Disbursement Date",
+    "tenor": "Tenor",
+    "interestRate": "Interest Rate",
+    "instStartDate": "Inst. Start Date",
+    "instEndDate": "Inst. End Date",
+    "cycleDays": "Cycle Days",
+    "productOffered": "Product Offered",
+    "noOfOdInstallments": "No. Of OD Installments",
+    "noOfOsInstallments": "No Of OS Installments",
+    "lastReversalDateAmount": "Last Reversal Date / Amount",
+    "lastReversalOn": "Last Reversal On",
+    "lastPaymentOn": "Last Payment On",
+    "paymentDueDate": "Payment Due Date",
+    "lastReversalAmount": "Last Reversal Amount",
+    "lastPaymentAmount": "Last Payment Amount",
+    "installmentAmount": "Installment Amount",
+    "currentInstallmentNo": "Current Installment Number",
+    "paymentMode": "Payment Mode"
+  },
   "customer": {
     "title": "Customer",
     "name": "Name",
@@ -87,6 +108,50 @@
     "submitToLms": "Submit to LMS",
     "savedToLms": "✓ Saved to LMS",
     "autoFillMessage": "AI has auto-filled the disposition form based on call analysis."
+  },
+  "customerInfoBar": {
+    "name": "Name",
+    "applicationNo": "Application No.",
+    "combinedKpi": "OD Amount / DPD / Due Date",
+    "dpd": "DPD",
+    "outstanding": "Outstanding (POS)",
+    "overdue": "Overdue",
+    "bucket": "Bucket",
+    "liabilities": "No of Liabilities"
+  },
+  "customerDetails": {
+    "title": "Customer Details",
+    "personal": "Personal Details",
+    "agreement": "Agreement Details",
+    "payment": "Payment Details",
+    "overdue": "Overdue Details",
+    "cifNumber": "CIF Number",
+    "noOfAgreements": "No of Agreements",
+    "writeoff": "Writeoff",
+    "legalProceedings": "Legal Proceedings"
+  },
+  "communicationProfile": {
+    "title": "Communication Profile",
+    "commLogs": "Communication Logs",
+    "date": "Date",
+    "type": "Type",
+    "summary": "Summary",
+    "viewSummary": "View Summary",
+    "lastCallBehaviour": "Last Call Behaviour",
+    "callerBehaviour": "Caller",
+    "customerBehaviour": "Customer",
+    "sentiment": "Mood",
+    "agent": "Agent",
+    "customer": "Cust"
+  },
+  "conversationSummary": {
+    "title": "Conversation Summary",
+    "waiting": "Summary will appear as the call progresses...",
+    "live": "LIVE",
+    "summaryTitle": "Conversation Summary",
+    "insightsTitle": "AI Insights",
+    "showTranscript": "View Transcript",
+    "backToSummary": "Back to Summary"
   },
   "nextActions": {
     "followUpCall": "Follow-up Call",

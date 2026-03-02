@@ -2,7 +2,9 @@ package labs.yutrix.uw;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
 
+@EnableAsync
 @SpringBootApplication(excludeName = {
 	"org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration",
 	"org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration",

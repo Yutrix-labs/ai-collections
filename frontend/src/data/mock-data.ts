@@ -6,6 +6,7 @@ import type {
   TranscriptItem,
   AIInsight,
   DispositionAutoFill,
+  CallBehaviour,
 } from "@/types/collections.types";
 
 export const CUSTOMER: Customer = {
@@ -14,15 +15,35 @@ export const CUSTOMER: Customer = {
   email: "r***a@gmail.com",
   agreementId: "PL-2024-00847391",
   loanType: "Personal Loan",
+  cifNumber: "CIF-98234571",
+  noOfAgreements: 2,
+  writeoff: "N",
+  legalProceedings: null,
+  noOfLiabilities: 3,
 };
 
 export const LOAN: Loan = {
   amount: "₹8,50,000",
-  tenure: "48 months",
-  emiStart: "15-Mar-2023",
-  emiEnd: "15-Feb-2027",
+  tenure: "20",
+  emiStart: "03/07/2021",
+  emiEnd: "03/07/2031",
   outstanding: "₹4,85,320",
   overdue: "₹73,800",
+  disbursementDate: "02/07/2021",
+  interestRate: "13.0",
+  instStartDate: "03/07/2021",
+  instEndDate: "03/07/2031",
+  cycleDays: "5",
+  productOffered: "PL",
+  noOfOdInstallments: "1",
+  noOfOsInstallments: "9",
+  lastReversalOn: "-",
+  lastPaymentOn: "19/03/2023",
+  paymentDueDate: "-",
+  lastReversalAmount: "0",
+  lastPaymentAmount: "50000.0",
+  installmentAmount: "25001",
+  paymentMode: "ECS",
 };
 
 export const ADDITIONAL: AdditionalDetails = {
@@ -35,11 +56,16 @@ export const ADDITIONAL: AdditionalDetails = {
 };
 
 export const PAST_COMMS: PastComm[] = [
-  { date: "28-Jan", caller: "Priya M.", summary: "Callback req. Job change." },
-  { date: "15-Jan", caller: "Amit R.", summary: "No answer. SMS sent." },
-  { date: "02-Jan", caller: "Priya M.", summary: "₹10K PTP Jan 10. Not rcvd." },
-  { date: "20-Dec", caller: "Amit R.", summary: "Agreed month-end. ₹5K paid." },
+  { date: "28-Jan", caller: "Priya M.", summary: "Callback req. Job change.", type: "Call", agentSentiment: "neutral", customerSentiment: "negative" },
+  { date: "15-Jan", caller: "Amit R.", summary: "No answer. SMS sent.", type: "SMS", agentSentiment: "neutral", customerSentiment: "neutral" },
+  { date: "02-Jan", caller: "Priya M.", summary: "₹10K PTP Jan 10. Not rcvd.", type: "Call", agentSentiment: "positive", customerSentiment: "positive" },
+  { date: "20-Dec", caller: "Amit R.", summary: "Agreed month-end. ₹5K paid.", type: "Whatsapp", agentSentiment: "positive", customerSentiment: "positive" },
 ];
+
+export const CALL_BEHAVIOUR: CallBehaviour = {
+  callerBehaviour: "Professional, Firm",
+  customerBehaviour: "Polite, Defensive",
+};
 
 export const TRANSCRIPT_FEED: TranscriptItem[] = [
   { speaker: "agent", text: "Good morning, am I speaking with Mr. Rajesh Kumar?", ts: "0:05", sentiment: "neutral" },

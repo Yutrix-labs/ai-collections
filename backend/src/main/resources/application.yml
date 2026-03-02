@@ -2,13 +2,21 @@ spring:
   application:
     name: ai-collections
 
-  # AI config (disabled until needed)
+  # AI config — Bedrock is primary (used for disposition generation)
   ai:
-    chat:
-      client:
-        enabled: false
+    bedrock:
+      aws:
+        region: ap-south-1
+        access-key: AKIASDPOMNPVVR2M2PIW
+        secret-key: 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
+      converse:
+        chat:
+          options:
+            model: arn:aws:bedrock:ap-south-1:144918211563:inference-profile/global.anthropic.claude-haiku-4-5-20251001-v1:0
+            temperature: 0.3
+            max-tokens: 600
     openai:
-      api-key: ${OPENAI_API_KEY:placeholder}
+      api-key: sk-proj-VfELibCuYLPtxyVTfZ8Stuov2cWtnQR69c7nffDaa8UNMJNaZeZhaThBSPVKtHw4nP21uD94wvT3BlbkFJ6-UFO1NtPC9JJE9mgbpYdPzKT0W0QlAQhym0nnjGoXVse3M3O1BQwaqcIAg1F8kZUPc9CYtUQAZ
       chat:
         options:
           model: gpt-4o-mini
@@ -34,7 +42,7 @@ exotel:
   account-sid: fintaar2m
   auth-key: d842fcade85285ab94b01b5769e84aadce61ae656320f2e1
   auth-token: 5102f8bd375bce451f009c4b98a1fdad6fd83386c69eba75
-  caller-id: 02247790123
+  caller-id: 02247790125
   call-type: trans
   time-limit: 600
   record: true

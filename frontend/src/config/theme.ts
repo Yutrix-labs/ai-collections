@@ -20,6 +20,9 @@ export const T = {
   textMuted: "#94A3B8",
   border: "#E2E8F0",
   borderLight: "#F1F5F9",
+  glassBg: "rgba(255, 255, 255, 0.7)",
+  glassBorder: "rgba(255, 255, 255, 0.5)",
+  glassShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.07)",
 } as const;
 
 export const SC = {

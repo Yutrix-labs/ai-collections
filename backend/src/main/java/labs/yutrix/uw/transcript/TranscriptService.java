@@ -24,7 +24,8 @@ public class TranscriptService {
 
     public void processTranscriptTurn(TranscriptPushRequest request) {
         // Resolve sessionId from Exotel Call SID
-        CallSession session = sessionStore.getByCallSid(request.callSid());
+        // CallSession session = sessionStore.getByCallSid(request.callSid());
+        CallSession session = sessionStore.getByMobile(request.mobileNumber());
         String sessionId = session.getSessionId();
 
         TranscriptItemDTO dto = new TranscriptItemDTO(

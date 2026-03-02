@@ -8,7 +8,7 @@ AI-powered collections management assistant built with Next.js. Provides a real-
 
 - **Framework:** Next.js 16.1.6 (App Router, Turbopack)
 - **Language:** TypeScript (strict mode)
-- **Styling:** Tailwind CSS 4 + shadcn/ui + inline styles (prototype-faithful)
+- **Styling:** Tailwind CSS 4 + shadcn/ui (utility-first approach)
 - **Animations:** Framer Motion 12 (declarative motion variants)
 - **Icons:** Lucide React
 - **i18n:** next-intl v4 (locale-based routing, 3 locales: en, hi, mr)
@@ -67,7 +67,7 @@ src/
 - **Animations:** Framer Motion `motion.div` with declarative variants (`fadeInUp`, `cardSlideIn`, `segmentFadeIn`). CSS keyframes only for the `.live-dot` pulse. No CSS keyframe animations in the component — all handled by Framer Motion.
 - **Icons:** Lucide React for all icons. Theme config uses string icon keys (e.g. `"info"`, `"lightbulb"`), mapped to Lucide components via `CARD_ICON_MAP` in the component.
 - **UI components:** shadcn/ui for complex interactive elements (e.g. DropdownMenu for language switcher). Initialized with `npx shadcn@canary` for Tailwind v4 compatibility.
-- **Theme tokens:** Centralized in `src/config/theme.ts` — not Tailwind config. Used as inline style values.
+- **Theme tokens:** Centralized in `src/config/theme.ts` and used via arbitrary Tailwind values when needed (e.g., `bg-[#F8FAFC]`).
 - **Mock data:** Extracted to `src/data/mock-data.ts`, typed with interfaces from `src/types/collections.types.ts`.
 - **Path alias:** `@/*` maps to `./src/*`.
 
@@ -97,8 +97,7 @@ The `CollectionsAssistant` component simulates a live collections call:
 - Use Framer Motion for all component animations — no CSS `animation` properties in JSX
 - Use Lucide React for icons — no emoji icons in the UI
 - Use shadcn/ui for complex interactive UI elements (dropdowns, dialogs, etc.)
-- Use inline styles for the collections assistant (matches pixel-precise prototype)
-- Use Tailwind classes for page-level layouts (home page, wrappers) and shadcn components
+- Use Tailwind CSS classes for all styling — avoid inline styles except for dynamic runtime values
 - Keep all translatable strings in `messages/{locale}.json`, never hardcode UI text in components
 - Types go in `src/types/`, mock data in `src/data/`, theme config in `src/config/`
 - Use `as const` on Framer Motion transition `ease` values for proper TypeScript typing

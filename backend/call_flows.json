@@ -1,0 +1,41 @@
+{
+  "flows": [
+    {
+      "id": "ptp",
+      "name": "Promise to Pay",
+      "goal": "Get explicit date + amount + method",
+      "steps": [
+        "greet → verify identity",
+        "if not verified → confirm number → end call",
+        "state overdue amount + EMI clearly",
+        "if willing → push exact date → exact amount → payment method → confirm all 3 → close",
+        "if vague → anchor with date suggestion → offer partial payment → get commitment",
+        "if needs time → offer 2-3 day window max → set callback date → confirm"
+      ]
+    },
+    {
+      "id": "wrong_number",
+      "name": "Wrong Number",
+      "goal": "Confirm wrong number, update records, end quickly",
+      "steps": [
+        "greet → ask for customer by name",
+        "if wrong person → confirm phone number → ask if they know customer → apologize → end",
+        "if no such person → confirm number → apologize → end",
+        "if customer denies identity → do NOT argue → note as possible right party refusal → end politely"
+      ]
+    },
+    {
+      "id": "cant_pay_job_loss",
+      "name": "Can't Pay — Job Loss",
+      "goal": "Show empathy, explore options, escalate if needed",
+      "steps": [
+        "greet → verify identity → state overdue",
+        "on hardship disclosed → empathize, do NOT pressure",
+        "explore partial payment → can they pay small amount? → get date + amount",
+        "explore restructuring → mention EMI restructuring / moratorium if in policy",
+        "if no capacity at all → note hardship reason → set follow-up 2-4 weeks → escalate to supervisor",
+        "compliance: never threaten or pressure after hardship disclosed"
+      ]
+    }
+  ]
+}

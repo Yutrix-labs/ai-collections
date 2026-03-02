@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "voicebot-449112",
+  "private_key_id": "70b38920755db49316347d88d90970de6171e458",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCa+Wx1DF5M7oSI\ntSoxEt+e7EuMcz3zRVYbn/OTETdJpiFsF4SFtPjmEoWh16N/ep/be8oex3fozsmv\n0NODb0Y7rKHNehqgMt9XsZuSDCk07eB2wrDxRls2rYN1Yhdbn6mkHoeM21QjIZGy\nnKkOWkxIFu7i3UNt46iCirgykwLhoV5qF/+AaAXzVZ4nyruf5IJN4OGuK/mUptxZ\nHxX1sCFIriVHXg4pM8CZVLlje9PQRrblf9chFTW1ErKFxUNX6P7rQ37/9mud69di\nPmXLckihfhUGw4iymvmCeH43O2PknvPz3sIvzmPfvOtjA+FP4bcbKATQmfHynKiM\ne2RqmbKTAgMBAAECggEADZk4Acf6uQLE8RSp2xyDhXfJOU3IxdaeXlYuvVzpXmEM\nKxFKjkukUNaXO0L8vxbiKBQ4rB1nUYUJADscFDsTYpvHUYxsAa/1FnDTQdbSAX74\nufMOK7MMwJjWdtpgn6g8Q9ZvS9YtuoIbksdZs5S2Ki04+6yGr4HRK4NDSSIf7URk\nqI4bYhsC6nq9eL8crByCRtZ1qj5UPGe/x08MYKx/KH0PzW66kSVzKoSvh3IN7Dgz\nlgGlLjIpPLZDx/evMfBtZL/phTy+BqM8saf1DexCvLKhPC7imk3nNGneyo6JTicH\nopOXVLJz3skYCkEf7UZyRgb/dtHyWK7EVZ103s7uoQKBgQDQHHXUQ6tegGFKS+eo\nEoe6Vktq0ZtuuAey/81TUrvMaXzpmnhzeimN7LNZ+afrza7jYHZ3/8aThIfVpXC5\nAkJ5Ixesw2OH9NFO33UKl7GN1D2cMPR0MckzJU25fK9BJZOnsMZsIufj9WBw+L+n\nh0zgZOCmG20HXb826RR6Bm7rNQKBgQC+or6piUIZWFlLGODgXO9mxaIVqlmloMrH\nkrV9y+4bUARoI+kbMZ789YaDI7fFL5vPzPrdn6UUjvCTeRNYlPCv7mW133aM2eWe\nMfmNCVCEvuLmshJTEfr1r5BcbBRsBQJf1lS8Apyi4UvaAaFgQfnw7RENfOcuXfiV\nWm8OK7qXpwKBgQDHzDsXgawZ+zjsgnkydC/YppabRAdswcOqh0nSECD6e+APylyP\nyR3yAuihnj0n9v1LkMXMKUS1Rcy/Qak6BcBZ2mYVWDTLRzBX/9K3S7GMD9LijGF0\n2INo1gyL4vfCnNfoa5/kG5Lz2RUxAK/Hn+8fk9nVv4jqRIeaqSUejeSZbQKBgA10\nDMKIJjsFqh+LnOsYg+ibz+l5gSQYKddVuisrhh01U2pKBnxdzxuI9Doy/hgTWQqc\nK6QSTSMbR00RAVWCBU5VI6ZnI8Wi5vp4CmVyn9UOZ5LiRDrKjQxjnGt5USOiYt2C\nka5G/Ojdv22eKdZSMaJYCJkMFICILy/TFv1IBr4HAoGBAK/C4O2YsuXpUVkMRQr6\njglsdmHDK9/HjQYRnBAkvRshZLwjf0jT/S114OdkYmUKfB5kmtKdOEWXZn+GLnni\nMUUOPuLXt4gknkIqLjeDLOD/X9dn8bKookBDvRnxiJ6m9lCWIykRSurhhiHKd0Zk\nBGymoT1OUigM71YuAwCpJGav\n-----END PRIVATE KEY-----\n",
+  "client_email": "livekit@voicebot-449112.iam.gserviceaccount.com",
+  "client_id": "110584852521871502217",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/livekit%40voicebot-449112.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

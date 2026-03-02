@@ -4,6 +4,23 @@ export interface Customer {
   email: string;
   agreementId: string;
   loanType: string;
+  cifNumber?: string;
+  noOfAgreements?: number;
+  writeoff?: "Y" | "N";
+  legalProceedings?: "Legal" | "Settlement/mitigations" | null;
+  noOfLiabilities?: number;
+}
+
+export type CommType = "Call" | "Whatsapp" | "SMS" | "Email" | "Field Visit";
+
+export interface CallBehaviour {
+  callerBehaviour: string;
+  customerBehaviour: string;
+}
+
+export interface ConversationSummaryItem {
+  text: string;
+  timestamp: string;
 }
 
 export interface Loan {
@@ -13,6 +30,22 @@ export interface Loan {
   emiEnd: string;
   outstanding: string;
   overdue: string;
+  disbursementDate?: string;
+  interestRate?: string;
+  instStartDate?: string;
+  instEndDate?: string;
+  cycleDays?: string;
+  productOffered?: string;
+  noOfOdInstallments?: string;
+  noOfOsInstallments?: string;
+  lastReversalOn?: string;
+  lastPaymentOn?: string;
+  paymentDueDate?: string;
+  lastReversalAmount?: string;
+  lastPaymentAmount?: string;
+  installmentAmount?: string;
+  currentInstallmentNo?: string;
+  paymentMode?: string;
 }
 
 export interface AdditionalDetails {
@@ -28,6 +61,9 @@ export interface PastComm {
   date: string;
   caller: string;
   summary: string;
+  type?: CommType;
+  agentSentiment?: Sentiment;
+  customerSentiment?: Sentiment;
 }
 
 export type Sentiment = "positive" | "neutral" | "negative";
@@ -55,6 +91,33 @@ export interface FlashCard {
   text: string;
   time: string;
   priority?: Priority;
+}
+
+export interface Insight {
+  insightId: string;
+  type: string;
+  text: string;
+  priority: string;
+  time: string;
+  reasoning?: string;
+  sourceLayer?: string;
+  disposition?: DispositionData;
+}
+
+export interface SummaryCombinedDTO {
+  summaryItems: ConversationSummaryItem[] | null;
+  insightItems: Insight[] | null;
+}
+
+export interface DispositionData {
+  result: string;
+  confidence: number;
+  date: string | null;
+  amount: string | null;
+  reason: string | null;
+  notes: string;
+  nextAction: string;
+  reasoning: string;
 }
 
 export interface DispositionAutoFill {
@@ -108,6 +171,7 @@ export interface CustomerData {
   loan: Loan;
   additionalDetails: AdditionalDetails;
   pastCommunications: PastComm[];
+  callBehaviour?: CallBehaviour;
 }
 
 export interface EndCallParams {

@@ -1,0 +1,1 @@
+# AI Collections Assistant - Backend Application

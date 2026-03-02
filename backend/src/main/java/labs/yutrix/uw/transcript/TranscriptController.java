@@ -13,6 +13,7 @@ import java.util.List;
 public class TranscriptController {
 
     private final TranscriptService transcriptService;
+    private final SummaryService summaryService;
 
     /**
      * Endpoint for the Python listening agent to POST each transcript turn.
@@ -25,10 +26,31 @@ public class TranscriptController {
     }
 
     /**
-     * Get full transcript history for a session (for late-joining clients or replay).
+     * Get full transcript history for a session (for late-joining clients or
+     * replay).
      */
     @GetMapping("/{sessionId}")
     public ApiResponse<List<TranscriptItemDTO>> getTranscript(@PathVariable String sessionId) {
         return ApiResponse.ok(transcriptService.getTranscript(sessionId));
+    }
+
+    /**
+     * Endpoint for the listening agent (or AI pipeline) to POST conversation
+     * summary items.
+     * Items are stored and broadcast to the frontend via WebSocket on
+     * /topic/call/{sessionId}/summary.
+     */
+    @PostMapping("/summary")
+    public ApiResponse<String> pushSummary(@Valid @RequestBody SummaryPushRequest request) {
+        summaryService.processSummaryPush(request);
+        return ApiResponse.ok("Summary received");
+    }
+
+    /**
+     * Get full conversation summary history for a session (includes AI insights).
+     */
+    @GetMapping("/{sessionId}/summary")
+    public ApiResponse<SummaryCombinedDTO> getSummary(@PathVariable String sessionId) {
+        return ApiResponse.ok(summaryService.getCombinedSummary(sessionId));
     }
 }

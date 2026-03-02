@@ -18,6 +18,25 @@
     "endCall": "कॉल समाप्त",
     "newCall": "नई कॉल"
   },
+  "account": {
+    "title": "खाता विवरण",
+    "disbursementDate": "वितरण तिथि",
+    "tenor": "अवधि",
+    "interestRate": "ब्याज दर",
+    "instStartDate": "किस्त शुरू तिथि",
+    "instEndDate": "किस्त समाप्ति तिथि",
+    "cycleDays": "चक्र दिन",
+    "productOffered": "पेश किया गया उत्पाद",
+    "noOfOdInstallments": "ओडी किस्तों की संख्या",
+    "noOfOsInstallments": "ओएस किस्तों की संख्या",
+    "lastReversalOn": "पिछला रिवर्सल तिथि",
+    "lastPaymentOn": "पिछला भुगतान तिथि",
+    "paymentDueDate": "भुगतान देय तिथि",
+    "lastReversalAmount": "पिछली रिवर्सल राशि",
+    "lastPaymentAmount": "पिछली भुगतान राशि",
+    "installmentAmount": "किस्त राशि",
+    "paymentMode": "भुगतान मोड"
+  },
   "customer": {
     "title": "ग्राहक",
     "name": "नाम",
@@ -87,6 +106,44 @@
     "submitToLms": "LMS में जमा करें",
     "savedToLms": "✓ LMS में सहेजा गया",
     "autoFillMessage": "AI ने कॉल विश्लेषण के आधार पर डिस्पोज़िशन फ़ॉर्म स्वतः भर दिया है।"
+  },
+  "customerInfoBar": {
+    "name": "नाम",
+    "applicationNo": "आवेदन संख्या",
+    "dpd": "DPD",
+    "outstanding": "बकाया (POS)",
+    "overdue": "अतिदेय",
+    "bucket": "बकेट",
+    "liabilities": "देनदारियों की संख्या"
+  },
+  "customerDetails": {
+    "title": "ग्राहक विवरण",
+    "cifNumber": "CIF नंबर",
+    "noOfAgreements": "एग्रीमेंट की संख्या",
+    "writeoff": "राइट-ऑफ",
+    "legalProceedings": "कानूनी कार्यवाही"
+  },
+  "customerProfile": {
+    "title": "ग्राहक प्रोफ़ाइल",
+    "commLogs": "संचार लॉग",
+    "date": "तिथि",
+    "type": "प्रकार",
+    "action": "कार्रवाई",
+    "viewSummary": "सारांश देखें",
+    "lastCallBehaviour": "पिछले कॉल का व्यवहार",
+    "callerBehaviour": "कॉलर",
+    "customerBehaviour": "ग्राहक"
+  },
+  "conversationSummary": {
+    "title": "बातचीत का सारांश",
+    "waiting": "कॉल आगे बढ़ने पर सारांश दिखाई देगा...",
+    "live": "लाइव"
+  },
+  "bottomRow": {
+    "expandLabel": "डिस्पोज़िशन और ट्रांसक्रिप्ट",
+    "collapse": "संक्षिप्त करें",
+    "showTranscript": "ट्रांसक्रिप्ट दिखाएं",
+    "hideTranscript": "ट्रांसक्रिप्ट छिपाएं"
   },
   "nextActions": {
     "followUpCall": "फ़ॉलो-अप कॉल",

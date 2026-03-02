@@ -13,7 +13,7 @@ exotel:
   account-sid: fintaar2m
   auth-key: d842fcade85285ab94b01b5769e84aadce61ae656320f2e1
   auth-token: 5102f8bd375bce451f009c4b98a1fdad6fd83386c69eba75
-  caller-id: 02247790123
+  caller-id: 02247790125
 
 # LiveKit (staging)
 livekit:
