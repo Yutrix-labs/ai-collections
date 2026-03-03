@@ -1,0 +1,30 @@
+ {
+    "schema_version": "1.0",
+    "record_count": 1000,
+    "output_format": "both",
+    "ml_task": "binary_classification",
+    "class_balance_target": 0.80,
+    "random_seed": 42,
+    "dpd_weights": {
+      "current": 45,
+      "early":   20,
+      "mild":    15,
+      "severe":  12,
+      "npa":      8
+    },
+    "segment_weights": {
+      "Retail":    60,
+      "SME":       20,
+      "MSME":      15,
+      "Corporate":  5
+    },
+    "schema_modules": [
+      "demographic",
+      "bureau",
+      "interactions",
+      "behavioural",
+      "communication",
+      "collateral",
+      "next_action"
+    ]
+  }

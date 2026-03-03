@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CollectionsSynthConfig",
+  "version": "1.0",
+  "type": "object",
+  "required": ["record_count", "output_format", "ml_task", "dpd_weights", "segment_weights"],
+  "properties": {
+    "schema_version":      { "type": "string", "default": "1.0" },
+    "record_count":        { "type": "integer", "minimum": 1000, "maximum": 1000000 },
+    "output_format":       { "type": "string", "enum": ["csv", "excel", "both"] },
+    "ml_task":             { "type": "string", "enum": ["binary_classification", "multiclass", "sequence"] },
+    "class_balance_target":{ "type": "number",  "minimum": 0.5, "maximum": 0.95, "default": 0.80 },
+    "noise_level":         { "type": "number",  "minimum": 0.0, "maximum": 0.3,  "default": 0.05 },
+    "use_smote":           { "type": "boolean", "default": false },
+    "random_seed":         { "type": "integer", "default": 42 },
+    "dpd_weights": {
+      "type": "object",
+      "properties": {
+        "current": { "type": "integer" },
+        "early":   { "type": "integer" },
+        "mild":    { "type": "integer" },
+        "severe":  { "type": "integer" },
+        "npa":     { "type": "integer" }
+      }
+    },
+    "segment_weights": {
+      "type": "object",
+      "properties": {
+        "Retail":    { "type": "integer" },
+        "SME":       { "type": "integer" },
+        "MSME":      { "type": "integer" },
+        "Corporate": { "type": "integer" }
+      }
+    },
+    "schema_modules": {
+      "type": "array",
+      "items": { "enum": ["demographic", "bureau", "interactions", "behavioural", "communication", "collateral", "next_action"] },
+      "default": ["demographic", "bureau", "interactions"]
+    }
+  }
+}
