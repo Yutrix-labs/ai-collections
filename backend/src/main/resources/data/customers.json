@@ -2,7 +2,7 @@
   {
     "customer": {
       "name": "Rajesh Kumar Sharma",
-      "mobile": "8605319666",
+      "mobile": "9870064932",
       "loanType": "Personal Loan",
       "agreementId": "PL-2024-00847391",
       "email": "r***a@gmail.com",
@@ -10,7 +10,8 @@
       "noOfAgreements": 3,
       "writeoff": "N",
       "legalProceedings": null,
-      "noOfLiabilities": 3
+      "noOfLiabilities": 3,
+      "preferredLanguage": "hi"
     },
     "loan": {
       "amount": "₹8,00,000",
@@ -92,7 +93,8 @@
       "noOfAgreements": 1,
       "writeoff": "N",
       "legalProceedings": null,
-      "noOfLiabilities": 2
+      "noOfLiabilities": 2,
+      "preferredLanguage": "en"
     },
     "loan": {
       "amount": "₹15,00,000",
@@ -169,7 +171,8 @@
       "noOfAgreements": 3,
       "writeoff": "N",
       "legalProceedings": null,
-      "noOfLiabilities": 4
+      "noOfLiabilities": 4,
+      "preferredLanguage": "mr"
     },
     "loan": {
       "amount": "₹2,00,000",
@@ -245,7 +248,8 @@
       "noOfAgreements": 1,
       "writeoff": "Y",
       "legalProceedings": "Legal",
-      "noOfLiabilities": 1
+      "noOfLiabilities": 1,
+      "preferredLanguage": "en"
     },
     "loan": {
       "amount": "₹5,00,000",

@@ -18,8 +18,17 @@ import time
 from datetime import datetime
 from typing import Callable, Dict, List, Optional
 
+from call_flow_loader import format_flow_text, select_flow
+from toon_util import json_to_toon
+
 # ── Transcript preprocessing constants ─────────────────────────────────────
 MAX_TRANSCRIPT_TURNS = 8
+
+LANGUAGE_NAMES = {
+    "en": "English",
+    "hi": "Hindi",
+    "mr": "Marathi",
+}
 
 FILLER_PATTERNS = re.compile(
     r"\b(um+|uh+|hmm+|okay so|right right|you know|like I said|actually|basically)\b",
@@ -230,6 +239,8 @@ def build_llm_prompt(
 ) -> str:
     """Legacy single-string prompt builder. Used when COPILOT_V2_ENABLED=false."""
     customer = profile.get("customer", {})
+    preferred_language = customer.get("preferredLanguage", "en")
+    language_name = LANGUAGE_NAMES.get(preferred_language, "English")
     loan = profile.get("loan", {})
     additional = profile.get("additional", {})
     payment_history = profile.get("payment_history", [])
@@ -347,6 +358,8 @@ RULES:
 - Priority HIGH for urgent actions, alerts, or critical information.
 - Priority MEDIUM for helpful suggestions or policy reminders.
 - Priority LOW for sentiment observations or general context.
+
+LANGUAGE: Generate all insight text and disposition notes in {language_name}. Keep amounts, dates, and account numbers in their original format.
 
 CRITICAL: Return ONLY valid JSON. Do NOT include any explanation, rationale, or additional text before or after the JSON object.
 """
@@ -546,11 +559,8 @@ class InsightEngine:
         payment_history = self.customer_profile.get("payment_history", [])
         active_policies = self.customer_profile.get("active_policies", [])
 
-        payment_lines = []
-        for p in payment_history:  # Compressed: last 3 turns
-            payment_lines.append(
-                f"{p.get('month', '')}:₹{int(p.get('amount', 0))}/{int(p.get('dueAmount', 0))} ({p.get('status', '')})"
-            )
+        # TOON-encode payment history for token efficiency
+        payment_toon = json_to_toon(payment_history) if payment_history else ""
 
         policy_lines = []
         for pol in active_policies:
@@ -560,16 +570,25 @@ class InsightEngine:
         transcript_lines = preprocess_transcript(self.transcript, MAX_TRANSCRIPT_TURNS)
         recent_count = min(len(self.transcript), MAX_TRANSCRIPT_TURNS)
 
+        # Select call flow based on customer profile heuristics
+        flow_id = select_flow(self.customer_profile)
+        call_flow_text = format_flow_text(flow_id)
+
+        # Customer's preferred language for insight generation
+        preferred_language = customer.get("preferredLanguage", "en")
+
         system_prompt, user_prompt = self.build_copilot_prompt(
             customer,
             loan,
             additional,
-            payment_lines,
+            payment_toon,
             policy_lines,
             recent_count,
             transcript_lines,
             include_disposition=include_disposition,
             include_contextual=include_contextual,
+            call_flow_text=call_flow_text,
+            preferred_language=preferred_language,
         )
 
         # (A1) Cache Consistency
@@ -1583,6 +1602,10 @@ class InsightEngine:
                                 f"[{turn.get('time', '')}] CUSTOMER: {turn['text']}"
                             )
 
+                # Customer's preferred language for periodic updates
+                periodic_lang_code = self.customer_profile.get("customer", {}).get("preferredLanguage", "en")
+                periodic_lang_name = LANGUAGE_NAMES.get(periodic_lang_code, "English")
+
                 if new_customer_lines:
                     transcript_text = "\n".join(new_customer_lines)
                     summary_prompt = f"""You are analyzing a debt collection call. Below are recent CUSTOMER statements.
@@ -1601,6 +1624,7 @@ DO NOT INCLUDE:
 
 Return ONLY a JSON array with EXACTLY 1 bullet if something important was said: [{{"text":"key point (max 80 chars)","timestamp":"M:SS"}}]
 Return [] if nothing noteworthy.
+Generate the key point text in {periodic_lang_name}.
 
 Customer statements:
 {transcript_text}"""
@@ -1646,6 +1670,7 @@ Examples: "Customer stalling — offer settlement", "High aggression — de-esca
 
 Return ONLY a JSON array: [{{"text":"short crisp insight (max 80 chars)","timestamp":"M:SS"}}]
 If no insight, return [].
+Generate the insight text in {periodic_lang_name}.
 
 Recent conversation:
 {chr(10).join(transcript_context)}"""
@@ -1857,12 +1882,14 @@ Recent conversation:
         customer: dict,
         loan: dict,
         additional: dict,
-        payment_lines: list[str],
+        payment_toon: str,
         policy_lines: list[str],
         recent_count: int,
         transcript_lines: list[str],
         include_disposition: bool = True,
         include_contextual: bool = True,
+        call_flow_text: str = "",
+        preferred_language: str = "en",
     ) -> tuple[str, str]:
         """(A2) v2 copilot prompt — aggressive compression for latency."""
         schema_dict = {"next_move": {"points": ["max 2"], "priority": "high|mid|low"}}
@@ -1888,18 +1915,23 @@ contextual_details: 3-5 items from profile relevant to last customer statement.
 STRICT FORMAT — label: short field name (max 18 chars). value: raw number/fact ONLY (max 20 chars). NEVER write sentences, analysis, or semicolons in value.
 GOOD: {{"label":"DPD","value":"67 days","highlight":true}}, {{"label":"Overdue","value":"₹73,800","highlight":true}}, {{"label":"Last Paid","value":"Dec ₹5K","highlight":false}}, {{"label":"EMI","value":"₹18,450","highlight":false}}, {{"label":"Bounce Charges","value":"₹1,500","highlight":false}}
 BAD (NEVER DO THIS): {{"value":"Aug bounced; Sep cleared; liquidity stress"}}, {{"value":"eligible for plan, not settlement"}}, {{"value":"3 missed in last 6 months"}}
-disposition=null if <3 turns or premature. Use ONLY provided data. No fabrication.
-If the conversation indicates the customer is questioning payments, disputing amounts, or the agent needs payment context — surface payment history in contextual_details as TWO separate items: one for paid months and one for unpaid months (e.g. {{"label":"Paid Months","value":"Jun ₹5K, Aug ₹5K","highlight":false}}, {{"label":"Unpaid Months","value":"Jul ✗, Sep ✗","highlight":true}})."""
+Use ONLY provided data. No fabrication. Follow the call flow decision tree steps.
+If the conversation indicates the customer is questioning payments, disputing amounts, or the agent needs payment context — surface payment history in contextual_details as TWO separate items: one for paid months and one for unpaid months (e.g. {{"label":"Paid Months","value":"Jun ₹5K, Aug ₹5K","highlight":false}}, {{"label":"Unpaid Months","value":"Jul ✗, Sep ✗","highlight":true}}).
+LANGUAGE: Generate next_move points and contextual_details labels in {LANGUAGE_NAMES.get(preferred_language, "English")}. Keep field values (amounts, dates, numbers) in their original format."""
+
+        # Build call flow section for user prompt (dynamic, not in system prompt for caching)
+        flow_section = f"\nFlow:\n{call_flow_text}" if call_flow_text else ""
 
         user_prompt = f"""Cust:{customer.get("name", "")} Agr:{customer.get("agreementId", "")} Loan:{loan.get("amount", "")} Ten:{customer.get("loanType", "")}
 Outs:{loan.get("outstanding", "")} Due:{loan.get("overdue", "")} DPD:{additional.get("dpd", 0)}d EMI:₹{additional.get("amount", "")}
-Pay:{"; ".join(payment_lines)}
-Pol:{"; ".join(policy_lines)}
+Pay:
+{payment_toon}
+Pol:{"; ".join(policy_lines)}{flow_section}
 Trans:
 {chr(10).join(transcript_lines)}
 Rules:
 - points: 1-2 cues. NOT dialogue.
-{"- include disposition only if definitive signal or count%3==0" if not include_disposition else "- provide full disposition"}"""
+- Follow the call flow decision tree steps."""
 
         return system_prompt, user_prompt
 

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/vsk/Ritesh/X/AI_Collections-main/frontend/**)"
+    ]
+  }
+}
