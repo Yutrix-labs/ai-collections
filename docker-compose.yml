@@ -1,6 +1,10 @@
 services:
   frontend:
     image: ${GHCR_IMAGE_PREFIX}/frontend:latest
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -9,12 +13,16 @@ services:
 
   backend:
     image: ${GHCR_IMAGE_PREFIX}/backend:latest
+    build:
+      context: ./backend
     restart: unless-stopped
     ports:
       - "8080:8080"
 
   listening-agent:
     image: ${GHCR_IMAGE_PREFIX}/listening-agent:latest
+    build:
+      context: ./backend/listening-agent
     restart: unless-stopped
     env_file:
       - backend/listening-agent/.env

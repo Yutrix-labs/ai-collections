@@ -2,14 +2,14 @@ name: Backend CI/CD
 
 on:
   push:
-    branches: [main, v1.0.0.1-customer-servicing]
+    branches: [master]
     paths:
       - "backend/src/**"
       - "backend/pom.xml"
       - "backend/Dockerfile"
       - ".github/workflows/backend.yml"
   pull_request:
-    branches: [main]
+    branches: [master]
     paths:
       - "backend/src/**"
       - "backend/pom.xml"
