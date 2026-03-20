@@ -65,5 +65,6 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             cd /opt/deployment/code-base/ai-collections
+            git pull origin master
             docker compose pull backend
             docker compose up -d backend

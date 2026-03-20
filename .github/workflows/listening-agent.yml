@@ -62,5 +62,6 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             cd /opt/deployment/code-base/ai-collections
+            git pull origin master
             docker compose pull listening-agent
             docker compose up -d listening-agent
