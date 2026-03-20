@@ -14,5 +14,8 @@ dependencies = [
     "cerebras-cloud-sdk>=1.0.0",
 ]
 
+[tool.uv]
+package = true
+
 [project.scripts]
 listening-agent = "silent_transcriber_agent:main"
