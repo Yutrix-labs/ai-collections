@@ -1,0 +1,22 @@
+services:
+  frontend:
+    image: ${GHCR_IMAGE_PREFIX}/frontend:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  backend:
+    image: ${GHCR_IMAGE_PREFIX}/backend:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+
+  listening-agent:
+    image: ${GHCR_IMAGE_PREFIX}/listening-agent:latest
+    restart: unless-stopped
+    env_file:
+      - backend/listening-agent/.env
+    depends_on:
+      - backend
