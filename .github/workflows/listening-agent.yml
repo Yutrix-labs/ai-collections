@@ -40,7 +40,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: ./backend/listening-agent
+          context: ./backend
+          file: ./backend/listening-agent/Dockerfile
           push: ${{ github.ref == 'refs/heads/master' && github.event_name == 'push' }}
           tags: ${{ steps.image.outputs.name }}:latest
           cache-from: type=gha
