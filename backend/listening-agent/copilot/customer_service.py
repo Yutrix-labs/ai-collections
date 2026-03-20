@@ -28,7 +28,7 @@ from copilot.schemas.customer_service import (
 
 logger = logging.getLogger(__name__)
 
-DATA_PATH = Path(__file__).parents[2] / "src" / "main" / "resources" / "data" / "customer-service.json"
+DATA_PATH = Path(__file__).parent / "data" / "customer-service.json"
 
 # ── Bedrock model (same as collections) ──────────────────────────────────────
 BEDROCK_MODEL_ID = (

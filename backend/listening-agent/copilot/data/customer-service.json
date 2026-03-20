@@ -1,0 +1,319 @@
+{
+  "9870064932": {
+    "profile": {
+      "customerId": "CUST-10042",
+      "name": "Ritesh Pandey",
+      "phone": "9870064932",
+      "email": "ritesh.pandey@email.com",
+      "dateOfBirth": "1985-03-14",
+      "address": "B-204, Sunshine Apartments, Andheri West, Mumbai 400053",
+      "segment": "Gold",
+      "relationshipValue": 1250000,
+      "customerSince": "2019-06-10",
+      "kycStatus": "Verified",
+      "alternatePhone": "9123456780"
+    },
+    "savingsAccount": {
+      "accountNumber": "098765432109",
+      "accountType": "Regular Savings",
+      "balance": 200000,
+      "status": "Active",
+      "branch": "Andheri West, Mumbai",
+      "recentTransactions": [
+        { "date": "2025-03-15", "description": "Salary Credit", "amount": 85000, "type": "Credit", "balanceAfter": 200000 },
+        { "date": "2025-03-12", "description": "ATM Withdrawal", "amount": 5000, "type": "Debit", "balanceAfter": 115000 },
+        { "date": "2025-03-10", "description": "FX Remmitance", "amount": 75000, "type": "Debit", "balanceAfter": 120000 }
+      ]
+    },
+    "loans": [
+      {
+        "agreementId": "LN-2022-88431",
+        "loanType": "Personal Loan",
+        "sanctionedAmount": 500000,
+        "tenure": "36 months",
+        "emiAmount": 16200,
+        "outstandingAmount": 291600,
+        "overdueAmount": 32400,
+        "dpd": 15,
+        "disbursementDate": "2022-11-01",
+        "nextDueDate": "2025-04-01",
+        "status": "Overdue",
+        "paymentHistory": [
+          { "date": "2025-03-01", "amount": 0, "status": "Missed" },
+          { "date": "2025-02-01", "amount": 0, "status": "Missed" },
+          { "date": "2025-01-01", "amount": 16200, "status": "Paid" },
+          { "date": "2024-12-01", "amount": 16200, "status": "Paid" },
+          { "date": "2024-11-01", "amount": 16200, "status": "Paid" }
+        ]
+      },
+      {
+        "agreementId": "CC-2021-44210",
+        "loanType": "Credit Card",
+        "creditLimit": 300000,
+        "currentOutstanding": 45200,
+        "minimumDue": 4520,
+        "dueDate": "2025-04-15",
+        "dpd": 0,
+        "status": "Active"
+      }
+    ],
+    "collections": {
+      "isInCollections": true,
+      "collectionStatus": "Soft Bucket",
+      "assignedAgency": null,
+      "contactAttempts": [
+        { "date": "2025-03-18", "method": "Phone", "outcome": "Not Reachable" },
+        { "date": "2025-03-15", "method": "Phone", "outcome": "Not Reachable" },
+        { "date": "2025-03-10", "method": "SMS", "outcome": "Reminder Sent" }
+      ],
+      "lastPromise": null,
+      "totalOverdue": 32400
+    },
+    "interactionHistory": [
+      {
+        "date": "2025-03-17",
+        "channel": "Phone",
+        "topic": "Credit Card Billing Dispute",
+        "summary": "Customer disputed a charge of ₹3,200 from an online merchant. Investigated and found it was a duplicate charge. Refund processed. Customer satisfied.",
+        "status": "Resolved",
+        "handledBy": "Agent Priya"
+      },
+      {
+        "date": "2025-02-28",
+        "channel": "Email",
+        "topic": "Statement Request",
+        "summary": "Customer requested last 6 months loan account statement for tax filing. Emailed within 24 hours.",
+        "status": "Resolved",
+        "handledBy": "System Auto"
+      },
+      {
+        "date": "2025-01-10",
+        "channel": "Phone",
+        "topic": "Loan Prepayment Inquiry",
+        "summary": "Customer asked about prepayment charges for personal loan. Informed about 4% prepayment penalty. Customer said they'd think about it.",
+        "status": "Resolved",
+        "handledBy": "Agent Vikram"
+      }
+    ],
+    "complaints": [
+      {
+        "complaintId": "CMP-2025-1182",
+        "date": "2025-03-17",
+        "category": "Billing Dispute",
+        "description": "Duplicate charge of ₹3,200 on credit card from online merchant",
+        "status": "Resolved",
+        "resolution": "Refund processed",
+        "resolvedDate": "2025-03-17"
+      }
+    ],
+    "pendingRequests": []
+  },
+
+  "9988776655": {
+    "profile": {
+      "customerId": "CUST-20187",
+      "name": "Anita Deshmukh",
+      "phone": "9988776655",
+      "email": "anita.d@yahoo.com",
+      "dateOfBirth": "1990-08-22",
+      "address": "Flat 12, Rose Garden Society, Koregaon Park, Pune 411001",
+      "segment": "Platinum",
+      "relationshipValue": 3500000,
+      "customerSince": "2017-02-15",
+      "kycStatus": "Verified",
+      "alternatePhone": null
+    },
+    "savingsAccount": {
+      "accountNumber": "987654321098",
+      "accountType": "Priority Savings",
+      "balance": 850000.75,
+      "status": "Active",
+      "branch": "Koregaon Park, Pune",
+      "recentTransactions": [
+        { "date": "2025-03-20", "description": "Investment Maturity Credit", "amount": 250000, "type": "Credit", "balanceAfter": 850000.75 },
+        { "date": "2025-03-18", "description": "Credit Card Bill Pay", "amount": 12300, "type": "Debit", "balanceAfter": 600000.75 },
+        { "date": "2025-03-15", "description": "NEFT Transfer In", "amount": 50000, "type": "Credit", "balanceAfter": 612300.75 }
+      ]
+    },
+    "loans": [
+      {
+        "agreementId": "HL-2020-55123",
+        "loanType": "Home Loan",
+        "sanctionedAmount": 4500000,
+        "tenure": "240 months",
+        "emiAmount": 38500,
+        "outstandingAmount": 3850000,
+        "overdueAmount": 0,
+        "dpd": 0,
+        "disbursementDate": "2020-03-15",
+        "nextDueDate": "2025-04-05",
+        "status": "Active",
+        "paymentHistory": [
+          { "date": "2025-03-05", "amount": 38500, "status": "Paid" },
+          { "date": "2025-02-05", "amount": 38500, "status": "Paid" },
+          { "date": "2025-01-05", "amount": 38500, "status": "Paid" },
+          { "date": "2024-12-05", "amount": 38500, "status": "Paid" },
+          { "date": "2024-11-05", "amount": 38500, "status": "Paid" }
+        ]
+      },
+      {
+        "agreementId": "CC-2019-77891",
+        "loanType": "Credit Card",
+        "creditLimit": 500000,
+        "currentOutstanding": 12300,
+        "minimumDue": 1230,
+        "dueDate": "2025-04-20",
+        "dpd": 0,
+        "status": "Active"
+      }
+    ],
+    "collections": {
+      "isInCollections": false,
+      "collectionStatus": null,
+      "assignedAgency": null,
+      "contactAttempts": [],
+      "lastPromise": null,
+      "totalOverdue": 0
+    },
+    "interactionHistory": [
+      {
+        "date": "2025-03-10",
+        "channel": "App",
+        "topic": "Address Update Request",
+        "summary": "Customer initiated address change through mobile app. KYC re-verification pending — Aadhaar OTP not completed.",
+        "status": "Pending",
+        "handledBy": "System Auto"
+      },
+      {
+        "date": "2025-02-20",
+        "channel": "Phone",
+        "topic": "Home Loan Interest Certificate",
+        "summary": "Customer requested interest certificate for FY 2024-25 for tax filing. Generated and emailed.",
+        "status": "Resolved",
+        "handledBy": "Agent Meera"
+      },
+      {
+        "date": "2025-01-05",
+        "channel": "Phone",
+        "topic": "Credit Card Reward Points",
+        "summary": "Customer asked about redeeming 14,500 reward points. Guided through the app redemption flow. Customer redeemed for Amazon voucher.",
+        "status": "Resolved",
+        "handledBy": "Agent Sunil"
+      }
+    ],
+    "complaints": [],
+    "pendingRequests": [
+      {
+        "requestId": "SR-2025-3341",
+        "type": "Address Update",
+        "requestedDate": "2025-03-10",
+        "status": "Pending KYC Verification",
+        "details": "New address: 301, Blue Ridge Township, Hinjewadi Phase 2, Pune 411057. Aadhaar OTP verification incomplete."
+      }
+    ]
+  },
+
+  "9011223344": {
+    "profile": {
+      "customerId": "CUST-30455",
+      "name": "Mohammed Faizan",
+      "phone": "9011223344",
+      "email": "faizan.m@outlook.com",
+      "dateOfBirth": "1978-11-30",
+      "address": "H.No 8-2-120, Banjara Hills, Hyderabad 500034",
+      "segment": "Silver",
+      "relationshipValue": 620000,
+      "customerSince": "2021-09-01",
+      "kycStatus": "Verified",
+      "alternatePhone": "9900112233"
+    },
+    "savingsAccount": {
+      "accountNumber": "456789012345",
+      "accountType": "Standard Savings",
+      "balance": 45500.25,
+      "status": "Active",
+      "branch": "Banjara Hills, Hyderabad",
+      "recentTransactions": [
+        { "date": "2025-03-18", "description": "UPI Transfer - Fuel", "amount": 2500, "type": "Debit", "balanceAfter": 45500.25 },
+        { "date": "2025-03-15", "description": "Salary Credit", "amount": 65000, "type": "Credit", "balanceAfter": 48000.25 },
+        { "date": "2025-03-10", "description": "EMI Auto Debit", "amount": 16800, "type": "Debit", "balanceAfter": -17000.00 }
+      ]
+    },
+    "loans": [
+      {
+        "agreementId": "VL-2023-91002",
+        "loanType": "Vehicle Loan",
+        "sanctionedAmount": 800000,
+        "tenure": "60 months",
+        "emiAmount": 16800,
+        "outstandingAmount": 588000,
+        "overdueAmount": 0,
+        "dpd": 0,
+        "disbursementDate": "2023-01-10",
+        "nextDueDate": "2025-04-10",
+        "status": "Active",
+        "paymentHistory": [
+          { "date": "2025-03-10", "amount": 16800, "status": "Paid" },
+          { "date": "2025-02-10", "amount": 16800, "status": "Paid" },
+          { "date": "2025-01-10", "amount": 16800, "status": "Paid" },
+          { "date": "2024-12-10", "amount": 16800, "status": "Paid" },
+          { "date": "2024-11-10", "amount": 16800, "status": "Paid" }
+        ]
+      }
+    ],
+    "collections": {
+      "isInCollections": false,
+      "collectionStatus": null,
+      "assignedAgency": null,
+      "contactAttempts": [],
+      "lastPromise": null,
+      "totalOverdue": 0
+    },
+    "interactionHistory": [
+      {
+        "date": "2025-03-19",
+        "channel": "Phone",
+        "topic": "Vehicle Insurance Renewal",
+        "summary": "Customer called asking about vehicle insurance renewal linked to loan. Informed that insurance is customer's responsibility but bank needs updated policy copy. Customer said they'll upload within a week.",
+        "status": "Open",
+        "handledBy": "Agent Kavita"
+      },
+      {
+        "date": "2025-03-05",
+        "channel": "Phone",
+        "topic": "EMI Debit Failure",
+        "summary": "Auto-debit failed for March EMI due to insufficient funds. Customer was notified via SMS. Customer called back, made manual NEFT payment same day.",
+        "status": "Resolved",
+        "handledBy": "Agent Arjun"
+      },
+      {
+        "date": "2025-02-14",
+        "channel": "Email",
+        "topic": "Loan Foreclosure Inquiry",
+        "summary": "Customer emailed asking for foreclosure quote for vehicle loan. Quote sent: ₹5,72,400 (principal) + ₹11,448 (2% foreclosure charge) = ₹5,83,848. Valid till March 15. Customer did not proceed.",
+        "status": "Resolved",
+        "handledBy": "System Auto"
+      }
+    ],
+    "complaints": [
+      {
+        "complaintId": "CMP-2025-0843",
+        "date": "2025-03-06",
+        "category": "Auto-Debit Failure",
+        "description": "EMI auto-debit attempted despite insufficient balance. Customer charged ₹350 bounce fee by their bank. Wants reimbursement.",
+        "status": "Under Review",
+        "resolution": null,
+        "resolvedDate": null
+      }
+    ],
+    "pendingRequests": [
+      {
+        "requestId": "SR-2025-2890",
+        "type": "Insurance Policy Upload",
+        "requestedDate": "2025-03-19",
+        "status": "Awaiting Customer",
+        "details": "Updated vehicle insurance policy copy required for loan compliance. Customer committed to upload by March 26."
+      }
+    ]
+  }
+}
