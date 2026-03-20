@@ -19,7 +19,14 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["silent_transcriber_agent"]
+py-modules = [
+    "silent_transcriber_agent",
+    "insight_engine",
+    "call_flow_loader",
+    "copilot_schema",
+    "sip_mobile_extractor",
+    "toon_util",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
