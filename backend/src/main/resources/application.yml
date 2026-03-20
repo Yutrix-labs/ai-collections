@@ -34,7 +34,7 @@ spring:
 server:
   port: 8080
   servlet:
-    context-path: /uwapi
+    context-path: /api
 
 # Exotel Click2Call
 exotel:
