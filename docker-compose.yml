@@ -22,7 +22,8 @@ services:
   listening-agent:
     image: ${GHCR_IMAGE_PREFIX}/listening-agent:latest
     build:
-      context: ./backend/listening-agent
+      context: ./backend
+      dockerfile: listening-agent/Dockerfile
     restart: unless-stopped
     env_file:
       - backend/listening-agent/.env
