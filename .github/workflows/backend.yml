@@ -14,9 +14,6 @@ on:
       - "backend/src/**"
       - "backend/pom.xml"
 
-env:
-  IMAGE: ghcr.io/${{ github.repository }}/backend
-
 jobs:
   build-push:
     name: Build & Push Image
@@ -27,6 +24,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set lowercase image name
+        id: image
+        run: echo "name=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/backend" >> $GITHUB_OUTPUT
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -43,7 +44,7 @@ jobs:
         with:
           context: ./backend
           push: ${{ github.ref == 'refs/heads/master' && github.event_name == 'push' }}
-          tags: ${{ env.IMAGE }}:latest
+          tags: ${{ steps.image.outputs.name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
