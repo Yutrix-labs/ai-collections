@@ -41,7 +41,7 @@ sudo usermod -aG docker $USER   # if not running as root
 ```bash
 cd /opt/deployment/code-base/AI_Collections
 cp .env.example .env
-nano .env   # set GHCR_IMAGE_PREFIX=ghcr.io/yutrix-labs/ai_collections
+nano .env   # set GHCR_IMAGE_PREFIX=ghcr.io/yutrix-labs/ai-collections
 ```
 
 **Listening agent `.env`** — LiveKit credentials:

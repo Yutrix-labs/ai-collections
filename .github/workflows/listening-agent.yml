@@ -2,12 +2,12 @@ name: Listening Agent CI/CD
 
 on:
   push:
-    branches: [main, v1.0.0.1-customer-servicing]
+    branches: [master]
     paths:
       - "backend/listening-agent/**"
       - ".github/workflows/listening-agent.yml"
   pull_request:
-    branches: [main]
+    branches: [master]
     paths:
       - "backend/listening-agent/**"
 
@@ -39,7 +39,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./backend/listening-agent
-          push: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+          push: ${{ github.ref == 'refs/heads/master' && github.event_name == 'push' }}
           tags: ${{ env.IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -48,7 +48,7 @@ jobs:
     name: Deploy to VPS
     needs: build-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
 
     steps:
       - name: Deploy via SSH
@@ -59,6 +59,6 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            cd /opt/deployment/code-base/AI_Collections
+            cd /opt/deployment/code-base/ai-collections
             docker compose pull listening-agent
             docker compose up -d listening-agent
