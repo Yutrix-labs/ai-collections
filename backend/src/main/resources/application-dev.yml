@@ -5,7 +5,7 @@ spring:
 server:
   port: 8080
   servlet:
-    context-path: /uwapi
+    context-path: /collassistantapi
 
 # Exotel Click2Call (staging)
 exotel:

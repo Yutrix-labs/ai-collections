@@ -14,7 +14,7 @@ Go to GitHub → your repo → **Settings → Secrets and variables → Actions 
 | `VPS_USER` | SSH username (e.g. `root`) |
 | `VPS_SSH_KEY` | Contents of your **private** SSH key (e.g. `~/.ssh/id_ed25519`) |
 | `VPS_PORT` | SSH port, usually `22` |
-| `NEXT_PUBLIC_API_URL` | e.g. `https://yourdomain.com/uwapi` |
+| `NEXT_PUBLIC_API_URL` | e.g. `https://yourdomain.com/collassistantapi` |
 
 To generate a dedicated deploy key:
 ```bash
@@ -102,8 +102,8 @@ server {
     }
 
     # Backend API + WebSocket (STOMP)
-    location /uwapi/ {
-        proxy_pass http://localhost:8080/uwapi/;
+    location /collassistantapi/ {
+        proxy_pass http://localhost:8080/collassistantapi/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';

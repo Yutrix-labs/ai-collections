@@ -128,7 +128,7 @@ async def push_transcript(
             payload["mobileNumber"] = mobile_number
 
         async with session.post(
-            f"{BACKEND_URL}/uwapi/transcript/push",
+            f"{BACKEND_URL}/collassistantapi/transcript/push",
             json=payload,
             timeout=aiohttp.ClientTimeout(total=5),
         ) as resp:
@@ -150,7 +150,7 @@ async def push_incoming_call(
         if meet_url:
             payload["meetUrl"] = meet_url
         async with session.post(
-            f"{BACKEND_URL}/uwapi/call/incoming",
+            f"{BACKEND_URL}/collassistantapi/call/incoming",
             json=payload,
             timeout=aiohttp.ClientTimeout(total=5),
         ) as resp:
@@ -180,7 +180,7 @@ async def push_meet_url(call_sid: str, meet_url: str, mobile_number: str | None 
             payload["mobileNumber"] = mobile_number
 
         async with session.post(
-            f"{BACKEND_URL}/uwapi/call/meet-url",
+            f"{BACKEND_URL}/collassistantapi/call/meet-url",
             json=payload,
             timeout=aiohttp.ClientTimeout(total=5),
         ) as resp:
@@ -210,7 +210,7 @@ async def notify_call_disconnected(
             payload["mobileNumber"] = mobile_number
 
         async with session.post(
-            f"{BACKEND_URL}/uwapi/call/disconnected",
+            f"{BACKEND_URL}/collassistantapi/call/disconnected",
             json=payload,
             timeout=aiohttp.ClientTimeout(total=5),
         ) as resp:

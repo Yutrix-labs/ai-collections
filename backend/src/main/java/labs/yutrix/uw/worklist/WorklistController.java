@@ -25,27 +25,27 @@ public class WorklistController {
      * Get all customers for the worklist table.
      * Returns list sorted by DPD (highest first) with priority calculated.
      *
-     * GET /uwapi/worklist
+     * GET /collassistantapi/worklist
      *
      * Response:
      * {
-     *   "success": true,
-     *   "message": "Worklist retrieved successfully",
-     *   "data": [
-     *     {
-     *       "agreementId": "PL-2024-00847391",
-     *       "name": "Rajesh Kumar Sharma",
-     *       "mobile": "XXXX-XXX-932",
-     *       "loanType": "Personal Loan",
-     *       "outstanding": "₹4,85,320",
-     *       "overdue": "₹73,800",
-     *       "dpd": 67,
-     *       "priority": "HIGH",
-     *       "lastContactDate": "28-Jan",
-     *       "lastContactSummary": "Callback req. Job change."
-     *     },
-     *     ...
-     *   ]
+     * "success": true,
+     * "message": "Worklist retrieved successfully",
+     * "data": [
+     * {
+     * "agreementId": "PL-2024-00847391",
+     * "name": "Rajesh Kumar Sharma",
+     * "mobile": "XXXX-XXX-932",
+     * "loanType": "Personal Loan",
+     * "outstanding": "₹4,85,320",
+     * "overdue": "₹73,800",
+     * "dpd": 67,
+     * "priority": "HIGH",
+     * "lastContactDate": "28-Jan",
+     * "lastContactSummary": "Callback req. Job change."
+     * },
+     * ...
+     * ]
      * }
      */
     @GetMapping

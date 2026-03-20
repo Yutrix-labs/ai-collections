@@ -27,7 +27,7 @@ public class CustomerController {
      * Get customer information by agreement ID.
      * Returns customer, loan, additionalDetails, and pastCommunications.
      *
-     * GET /uwapi/customer/{agreementId}
+     * GET /collassistantapi/customer/{agreementId}
      */
     @GetMapping("/{agreementId}")
     public ApiResponse<Map<String, Object>> getCustomerInfo(@PathVariable String agreementId) {
@@ -55,7 +55,7 @@ public class CustomerController {
      * Get full customer context by mobile number.
      * Used by the Python listening agent to load customer profile for AI insights.
      *
-     * GET /uwapi/customer/mobile/{mobile}/context
+     * GET /collassistantapi/customer/mobile/{mobile}/context
      */
     @GetMapping("/mobile/{mobile}/context")
     public ApiResponse<Map<String, Object>> getCustomerContextByMobile(@PathVariable String mobile) {

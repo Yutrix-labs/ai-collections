@@ -34,7 +34,7 @@ npm run lint         # ESLint
 
 ### Backend (`backend/`)
 ```bash
-./mvnw spring-boot:run              # Run Spring Boot (port 8080, context-path /uwapi)
+./mvnw spring-boot:run              # Run Spring Boot (port 8080, context-path /collassistantapi)
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev   # Run with dev profile (debug logging)
 ./mvnw test                          # Run tests
 ./mvnw clean package                 # Build JAR
@@ -60,8 +60,8 @@ LiveKit Room (audio routing)
 Listening Agent (Python) ──── Deepgram Nova-3 STT
     │                          (dual-speaker: SIP 16kHz, agent native)
     │
-    ├── POST /uwapi/transcript/push   (transcript turns)
-    ├── POST /uwapi/call/meet-url     (LiveKit Meet URL for agent)
+    ├── POST /collassistantapi/transcript/push   (transcript turns)
+    ├── POST /collassistantapi/call/meet-url     (LiveKit Meet URL for agent)
     │
     ▼
 Spring Boot Backend (Java) ──── In-memory SessionStore
@@ -81,7 +81,7 @@ Next.js Frontend
 ### Backend (Spring Boot 4)
 
 - **Package**: `labs.yutrix.uw`
-- **Base URL**: `http://localhost:8080/uwapi`
+- **Base URL**: `http://localhost:8080/collassistantapi`
 - **DB**: JPA auto-config disabled (all state is in-memory via `SessionStore`)
 - **WebSocket**: STOMP over SockJS at `/ws`, broker prefix `/topic`, app prefix `/app`
 - **API response wrapper**: `ApiResponse<T>` — all REST endpoints return `{success, message, data}`
@@ -111,7 +111,7 @@ Key modules:
 - **i18n**: next-intl v4 with locale routing (`en`, `hi`, `mr`). All pages under `src/app/[locale]/`
 - **Routing**: Uses Next.js 16 `proxy.ts` convention (not deprecated `middleware.ts`)
 - **Real-time**: `useStompClient` hook for STOMP WebSocket connection to Spring Boot
-- **REST**: Axios client in `src/lib/api/collections-api.ts` hitting `/uwapi/*` endpoints
+- **REST**: Axios client in `src/lib/api/collections-api.ts` hitting `/collassistantapi/*` endpoints
 - **LiveKit**: `@livekit/components-react` for agent audio bridge (iframe-based Meet URL)
 - **Styling**: Tailwind CSS 4 + shadcn/ui (Radix UI). Use `npx shadcn@canary` for Tailwind v4 compat
 - **Animations**: Framer Motion 12 for all component animations (no CSS `animation` in JSX)
@@ -123,7 +123,7 @@ Key modules:
 
 ### Frontend (`frontend/.env.local`)
 ```
-NEXT_PUBLIC_API_URL=http://localhost:8080/uwapi
+NEXT_PUBLIC_API_URL=http://localhost:8080/collassistantapi
 ```
 
 ### Backend (`backend/src/main/resources/application.yml`)
@@ -140,7 +140,7 @@ BACKEND_URL=http://localhost:8080
 ## Conventions
 
 - All REST responses use `ApiResponse<T>` wrapper (`{success, message, data}`)
-- Frontend connects to backend at `/uwapi` context path
+- Frontend connects to backend at `/collassistantapi` context path
 - Session lookup chain: frontend uses `sessionId`, listening agent uses `exotelCallSid`, both resolve to same `CallSession`
 - Use Lombok (`@Data`, `@RequiredArgsConstructor`, `@Builder`, `@Slf4j`) for Java boilerplate
 - Frontend i18n: all UI text in `messages/{locale}.json`, use `useTranslations()` hook

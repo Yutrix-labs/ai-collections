@@ -17,7 +17,7 @@ async def notify_call_disconnected(call_sid: str, mobile_number: str | None = No
     if mobile_number:
         payload["mobileNumber"] = mobile_number
 
-    async with session.post(f"{BACKEND_URL}/uwapi/call/disconnected", json=payload) as resp:
+    async with session.post(f"{BACKEND_URL}/collassistantapi/call/disconnected", json=payload) as resp:
         logger.info(f"Call disconnect notification sent | callSid={call_sid} reason={reason}")
 ```
 
@@ -61,7 +61,7 @@ def on_participant_disconnected(participant):
 
 **File**: `backend/src/main/java/labs/yutrix/uw/call/CallController.java`
 
-#### New Endpoint: `POST /uwapi/call/disconnected`
+#### New Endpoint: `POST /collassistantapi/call/disconnected`
 ```java
 @PostMapping("/disconnected")
 public ApiResponse<String> handleCallDisconnect(@Valid @RequestBody CallDisconnectRequest request) {
@@ -123,7 +123,7 @@ LiveKit Room fires "participant_disconnected" event
 Listening Agent (Python)
   - Gets disconnect_reason from participant
   - Maps to user-friendly reason
-  - POST /uwapi/call/disconnected
+  - POST /collassistantapi/call/disconnected
       │
       ▼
 Spring Boot Backend

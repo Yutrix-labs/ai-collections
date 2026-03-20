@@ -245,14 +245,14 @@ class CustomerServiceCopilot(BaseCopilot):
             logger.warn(f"Customer not found | callSid={self.call_sid} mobile={self.mobile_number}")
             # Push null context so FE knows customer wasn't found
             await self._push_to_java(
-                f"/uwapi/copilot/{self.call_sid}/customer-context",
+                f"/collassistantapi/copilot/{self.call_sid}/customer-context",
                 {"callSid": self.call_sid, "mobileNumber": self.mobile_number, "customerData": None},
             )
 
     async def _push_customer_context(self):
         """Push full customer data to Java → WS → FE."""
         await self._push_to_java(
-            f"/uwapi/copilot/{self.call_sid}/customer-context",
+            f"/collassistantapi/copilot/{self.call_sid}/customer-context",
             {
                 "callSid": self.call_sid,
                 "mobileNumber": self.mobile_number,
@@ -290,7 +290,7 @@ class CustomerServiceCopilot(BaseCopilot):
             )
 
             await self._push_to_java(
-                f"/uwapi/copilot/{self.call_sid}/summary",
+                f"/collassistantapi/copilot/{self.call_sid}/summary",
                 {
                     "callSid": self.call_sid,
                     "mobileNumber": self.mobile_number,
@@ -353,7 +353,7 @@ class CustomerServiceCopilot(BaseCopilot):
             "points": next_move_data.get("points", []),
             "priority": next_move_data.get("priority", "medium"),
         }
-        await self._push_to_java(f"/uwapi/copilot/{self.call_sid}/next-move", payload)
+        await self._push_to_java(f"/collassistantapi/copilot/{self.call_sid}/next-move", payload)
         logger.info(f"Next move pushed | callSid={self.call_sid} priority={payload['priority']}")
 
     # ── AI Moment 4: Disposition (on disconnect) ─────────────────────────────
@@ -395,7 +395,7 @@ class CustomerServiceCopilot(BaseCopilot):
 
             # Push to Java via disposition endpoint
             await self._push_to_java(
-                f"/uwapi/copilot/{self.call_sid}/disposition",
+                f"/collassistantapi/copilot/{self.call_sid}/disposition",
                 {
                     "callSid": self.call_sid,
                     "mobileNumber": self.mobile_number,

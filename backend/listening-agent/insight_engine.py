@@ -455,7 +455,7 @@ class InsightEngine:
         """Fetch customer profile from backend using mobile number."""
         try:
             url = (
-                f"{self.backend_url}/uwapi/customer/mobile/{self.mobile_number}/context"
+                f"{self.backend_url}/collassistantapi/customer/mobile/{self.mobile_number}/context"
             )
             async with self.http_session.get(url) as resp:
                 if resp.status == 200:
@@ -681,7 +681,7 @@ class InsightEngine:
     # ── Two-phase push helpers ────────────────────────────────────────────────
 
     async def _push_next_move(self, next_move_data: dict):
-        """Phase 1: POST next_move to /uwapi/copilot/{callSid}/next-move."""
+        """Phase 1: POST next_move to /collassistantapi/copilot/{callSid}/next-move."""
         push_start = time.time()
         try:
             payload = {
@@ -690,7 +690,7 @@ class InsightEngine:
                 "points": next_move_data.get("points", []),
                 "priority": next_move_data.get("priority", "medium"),
             }
-            url = f"{self.backend_url}/uwapi/copilot/{self.call_sid}/next-move"
+            url = f"{self.backend_url}/collassistantapi/copilot/{self.call_sid}/next-move"
             async with self.http_session.post(url, json=payload) as resp:
                 push_latency = (time.time() - push_start) * 1000
                 e2e_latency = (
@@ -715,7 +715,7 @@ class InsightEngine:
             print(f"[CopilotEngine] Error pushing next_move: {e}")
 
     async def _push_contextual_details(self, contextual_details_data: dict):
-        """Phase 1.5: POST contextual_details to /uwapi/copilot/{callSid}/contextual-details."""
+        """Phase 1.5: POST contextual_details to /collassistantapi/copilot/{callSid}/contextual-details."""
         push_start = time.time()
         try:
             payload = {
@@ -723,7 +723,7 @@ class InsightEngine:
                 "mobileNumber": self.mobile_number,
                 "details": contextual_details_data.get("details", []),
             }
-            url = f"{self.backend_url}/uwapi/copilot/{self.call_sid}/contextual-details"
+            url = f"{self.backend_url}/collassistantapi/copilot/{self.call_sid}/contextual-details"
             async with self.http_session.post(url, json=payload) as resp:
                 push_latency = (time.time() - push_start) * 1000
                 e2e_latency = (
@@ -1371,7 +1371,7 @@ class InsightEngine:
                 "insights": copilot_data.get("insights", []),
                 "disposition": copilot_data.get("disposition"),
             }
-            url = f"{self.backend_url}/uwapi/insight/push-copilot"
+            url = f"{self.backend_url}/collassistantapi/insight/push-copilot"
             async with self.http_session.post(url, json=payload) as resp:
                 if resp.status == 200:
                     nm = copilot_data["next_move"]
@@ -1846,7 +1846,7 @@ Recent conversation:
                 "summaryItems": self._summary_items,
                 "insightItems": self._ai_insights,
             }
-            url = f"{self.backend_url}/uwapi/transcript/summary"
+            url = f"{self.backend_url}/collassistantapi/transcript/summary"
             async with self.http_session.post(url, json=payload) as resp:
                 if resp.status == 200:
                     print(
