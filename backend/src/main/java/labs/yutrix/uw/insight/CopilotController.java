@@ -54,4 +54,43 @@ public class CopilotController {
         return ApiResponse.ok("Contextual details received and broadcasted");
     }
 
+    /**
+     * Customer service: Receive pre-call summary from Python agent.
+     */
+    @PostMapping("/{callId}/summary")
+    public ApiResponse<String> pushSummary(
+            @PathVariable String callId,
+            @Valid @RequestBody SummaryPushRequest request) {
+
+        log.info("Copilot summary received | callId={} summaryLen={}", callId, request.summary().length());
+        copilotService.processSummary(request);
+        return ApiResponse.ok("Summary received and broadcasted");
+    }
+
+    /**
+     * Customer service: Receive customer context from Python agent.
+     */
+    @PostMapping("/{callId}/customer-context")
+    public ApiResponse<String> pushCustomerContext(
+            @PathVariable String callId,
+            @Valid @RequestBody CustomerContextPushRequest request) {
+
+        log.info("Copilot customer-context received | callId={} hasData={}", callId, request.customerData() != null);
+        copilotService.processCustomerContext(request);
+        return ApiResponse.ok("Customer context received and broadcasted");
+    }
+
+    /**
+     * Customer service: Receive disposition from Python agent on call disconnect.
+     */
+    @PostMapping("/{callId}/disposition")
+    public ApiResponse<String> pushDisposition(
+            @PathVariable String callId,
+            @Valid @RequestBody DispositionPushRequest request) {
+
+        log.info("Copilot disposition received | callId={}", callId);
+        copilotService.processDisposition(request);
+        return ApiResponse.ok("Disposition received and broadcasted");
+    }
+
 }

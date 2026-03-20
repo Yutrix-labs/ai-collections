@@ -44,6 +44,13 @@ public class DispositionService {
     public void generateAndBroadcast(String sessionId) {
         try {
             CallSession session = sessionStore.getBySessionId(sessionId);
+
+            // Guard: skip if Python copilot already pushed disposition (customer-service mode)
+            if (session.getDispositionResult() != null) {
+                log.info("Disposition already set by Python copilot, skipping AI generation | sessionId={}", sessionId);
+                return;
+            }
+
             List<TranscriptItemDTO> transcript = transcriptService.getTranscript(sessionId);
 
             if (transcript.isEmpty()) {

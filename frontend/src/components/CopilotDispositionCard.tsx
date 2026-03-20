@@ -5,10 +5,19 @@ import type { Disposition } from '@/types/copilot.types';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 
+const DEFAULT_RESULT_OPTIONS = ['PTP', "Won't Pay", "Can't Pay", 'Wrong Number', 'Invalid Number', 'Not Reachable', 'Not Picking'];
+const DEFAULT_NEXT_ACTION_OPTIONS = ['Follow-up Call', 'Send Payment Link', 'Escalate to Supervisor', 'Legal Notice', 'No Action'];
+
 interface CopilotDispositionCardProps {
   disposition: Disposition | null;
   timestamp?: string;
   fillHeight?: boolean;
+  /** Custom result dropdown options (defaults to collections options) */
+  resultOptions?: string[];
+  /** Custom next-action dropdown options (defaults to collections options) */
+  nextActionOptions?: string[];
+  /** Results that should show the reason code field (defaults to Won't Pay, Can't Pay) */
+  reasonCodeResults?: string[];
   onOverride?: (disposition: {
     result: string;
     date: string;
@@ -19,7 +28,15 @@ interface CopilotDispositionCardProps {
   }) => void;
 }
 
-export default function CopilotDispositionCard({ disposition, timestamp, fillHeight, onOverride }: CopilotDispositionCardProps) {
+export default function CopilotDispositionCard({
+  disposition,
+  timestamp,
+  fillHeight,
+  resultOptions = DEFAULT_RESULT_OPTIONS,
+  nextActionOptions = DEFAULT_NEXT_ACTION_OPTIONS,
+  reasonCodeResults,
+  onOverride,
+}: CopilotDispositionCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     result:     disposition?.result     ?? '',
@@ -182,7 +199,7 @@ export default function CopilotDispositionCard({ disposition, timestamp, fillHei
               onChange={(e) => setFormData({ ...formData, result: e.target.value })}
               className="w-full px-3 py-2.5 text-sm border-2 border-teal-200 rounded-lg focus:border-teal-500 focus:outline-none"
             >
-              {['PTP', "Won't Pay", "Can't Pay", 'Wrong Number', 'Invalid Number', 'Not Reachable', 'Not Picking'].map(r => (
+              {resultOptions.map(r => (
                 <option key={r} value={r}>{r}</option>
               ))}
             </select>
@@ -207,11 +224,11 @@ export default function CopilotDispositionCard({ disposition, timestamp, fillHei
               className="w-full px-3 py-2.5 text-sm border-2 border-teal-200 rounded-lg focus:border-teal-500 focus:outline-none"
             >
               <option value="">Select next action</option>
-              {['Follow-up Call', 'Send Payment Link', 'Escalate to Supervisor', 'Legal Notice', 'No Action'].map(a => (
+              {nextActionOptions.map(a => (
                 <option key={a} value={a}>{a}</option>
               ))}
             </select>
-            {(formData.result === "Won't Pay" || formData.result === "Can't Pay") && (
+            {(reasonCodeResults ? reasonCodeResults.includes(formData.result) : (formData.result === "Won't Pay" || formData.result === "Can't Pay")) && (
               <input
                 type="text"
                 value={formData.reasonCode}

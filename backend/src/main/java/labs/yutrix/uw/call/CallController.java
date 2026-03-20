@@ -3,6 +3,7 @@ package labs.yutrix.uw.call;
 import jakarta.validation.Valid;
 import labs.yutrix.uw.common.ApiResponse;
 import labs.yutrix.uw.customer.CustomerContextService;
+import labs.yutrix.uw.customer.CustomerServiceDataService;
 import labs.yutrix.uw.insight.DispositionService;
 import labs.yutrix.uw.insight.PreCallNudgeService;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -24,6 +26,7 @@ public class CallController {
         private final SimpMessagingTemplate messagingTemplate;
         private final SessionStore sessionStore;
         private final CustomerContextService customerContextService;
+        private final CustomerServiceDataService customerServiceDataService;
         private final PreCallNudgeService preCallNudgeService;
         private final DispositionService dispositionService;
 
@@ -58,6 +61,48 @@ public class CallController {
                 preCallNudgeService.generateAndBroadcast(request.agreementId(), sessionId);
 
                 return ApiResponse.ok("Call initiated", session);
+        }
+
+        /**
+         * Endpoint for incoming customer service calls.
+         * Called by the Python listening agent when a SIP participant (customer) joins.
+         * Creates a session, looks up customer data, and broadcasts to frontend via STOMP.
+         */
+        @PostMapping("/incoming")
+        public ApiResponse<CallSession> incomingCall(@Valid @RequestBody IncomingCallRequest request) {
+                String sessionId = UUID.randomUUID().toString();
+
+                CallSession session = CallSession.builder()
+                                .sessionId(sessionId)
+                                .customerMobile(request.mobileNumber())
+                                .exotelCallSid(request.callSid())
+                                .meetUrl(request.meetUrl())
+                                .status("INCOMING")
+                                .startedAt(LocalDateTime.now())
+                                .build();
+
+                sessionStore.put(session);
+                log.info("Incoming call session created | sessionId={} mobile={} callSid={}",
+                                sessionId, request.mobileNumber(), request.callSid());
+
+                // Look up customer from customer-service.json by phone
+                Map<String, Object> customerData = customerServiceDataService.getByPhone(request.mobileNumber());
+
+                // Broadcast to FE via global STOMP topic
+                Map<String, Object> incomingMessage = new HashMap<>();
+                incomingMessage.put("type", "incoming-call");
+                incomingMessage.put("sessionId", sessionId);
+                incomingMessage.put("mobileNumber", request.mobileNumber());
+                incomingMessage.put("customerData", customerData);
+                if (request.meetUrl() != null && !request.meetUrl().isBlank()) {
+                        incomingMessage.put("meetUrl", request.meetUrl());
+                }
+
+                messagingTemplate.convertAndSend("/topic/agent/incoming-call", (Object) incomingMessage);
+                log.info("Incoming call broadcasted to frontend | sessionId={} hasCustomerData={}",
+                                sessionId, customerData != null);
+
+                return ApiResponse.ok("Incoming call registered", session);
         }
 
         @PostMapping("/end")

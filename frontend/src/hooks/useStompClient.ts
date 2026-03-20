@@ -14,6 +14,10 @@ export interface StompHandlers {
   onContextualDetails?: (data: ContextualDetail[]) => void;
   /** v2: Phase 2 — disposition arrives ~1500ms after customer turn (null = still listening) */
   onDisposition?: (data: Disposition | null) => void;
+  /** Customer service: pre-call AI summary */
+  onSummary?: (summary: string) => void;
+  /** Customer service: full customer data push */
+  onCustomerContext?: (data: Record<string, unknown>) => void;
   onCallStatus?: (event: CallStatusEvent) => void;
   onConversationSummary?: (data: SummaryCombinedDTO) => void;
 }
@@ -74,6 +78,10 @@ export function useStompClient() {
               handlers.onContextualDetails?.(message.data);
             } else if (message.type === 'copilot:disposition') {
               handlers.onDisposition?.(message.data);
+            } else if (message.type === 'copilot:summary') {
+              handlers.onSummary?.(message.data.summary);
+            } else if (message.type === 'copilot:customer-context') {
+              if (message.data) handlers.onCustomerContext?.(message.data);
             }
           },
         );

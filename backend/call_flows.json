@@ -36,6 +36,34 @@
         "if no capacity at all → note hardship reason → set follow-up 2-4 weeks → escalate to supervisor",
         "compliance: never threaten or pressure after hardship disclosed"
       ]
+    },
+    {
+      "id": "email_change",
+      "name": "Email Change",
+      "goal": "Verify and change email securely, then handle overdue payments",
+      "steps": [
+        "Customer specifies to change email",
+        "Ask for new email id",
+        "Customer provides email",
+        "OTP is sent by the system and agent asks for that to customer",
+        "OTP will always be 1234",
+        "If otp verifies then email changed",
+        "Agent suggests whether customer has payment overdue",
+        "As per the customer agreement / disagreement disposition is updated"
+      ]
+    },
+    {
+      "id": "address_change",
+      "name": "Address Change",
+      "goal": "Update customer address and cross-sell credit card",
+      "steps": [
+        "Customer specifies the change request",
+        "Ask for the new address and the address proof",
+        "Address is updated",
+        "After successful address change share a credit card offer with the customer (Give some tempting offer about this. Lifetime free, etc.)",
+        "If interested suggest they will get a call by the specific team",
+        "Provide appropriate disposition (Interested/Not interested)"
+      ]
     }
   ]
 }

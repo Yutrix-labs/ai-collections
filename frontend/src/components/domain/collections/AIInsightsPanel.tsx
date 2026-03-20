@@ -21,6 +21,12 @@ interface AIInsightsPanelProps {
     nextAction: string;
     reasonCode: string;
   }) => void;
+  /** Custom result options for disposition card */
+  dispositionResultOptions?: string[];
+  /** Custom next-action options for disposition card */
+  dispositionNextActionOptions?: string[];
+  /** Results that show reason code field */
+  dispositionReasonCodeResults?: string[];
 }
 
 export function AIInsightsPanel({
@@ -30,6 +36,9 @@ export function AIInsightsPanel({
   callActive,
   disposition,
   onDispositionOverride,
+  dispositionResultOptions,
+  dispositionNextActionOptions,
+  dispositionReasonCodeResults,
 }: AIInsightsPanelProps) {
   const t = useTranslations("insights");
   const [showInsightsAfterCall, setShowInsightsAfterCall] = useState(false);
@@ -77,6 +86,9 @@ export function AIInsightsPanel({
             disposition={disposition}
             onOverride={onDispositionOverride}
             fillHeight
+            resultOptions={dispositionResultOptions}
+            nextActionOptions={dispositionNextActionOptions}
+            reasonCodeResults={dispositionReasonCodeResults}
           />
         </div>
       </div>

@@ -106,7 +106,29 @@ export interface CopilotDispositionMessage {
   data: Disposition | null;
 }
 
+/**
+ * Pre-call summary WS message (customer service).
+ * Contains AI-generated 2-3 sentence summary of the customer's situation.
+ */
+export interface CopilotSummaryMessage {
+  type: 'copilot:summary';
+  sessionId: string;
+  data: { summary: string };
+}
+
+/**
+ * Customer context WS message (customer service).
+ * Full customer data object from customer-service.json.
+ */
+export interface CopilotCustomerContextMessage {
+  type: 'copilot:customer-context';
+  sessionId: string;
+  data: Record<string, unknown> | null;
+}
+
 export type CopilotWsMessage =
   | CopilotNextMoveMessage
   | CopilotContextualDetailsMessage
-  | CopilotDispositionMessage;
+  | CopilotDispositionMessage
+  | CopilotSummaryMessage
+  | CopilotCustomerContextMessage;

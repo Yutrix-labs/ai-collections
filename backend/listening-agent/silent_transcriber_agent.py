@@ -18,7 +18,8 @@ from livekit.agents import (
 from livekit.agents.stt import SpeechEventType
 from livekit.plugins import silero, deepgram
 
-from insight_engine import InsightEngine
+from copilot.base import BaseCopilot
+from copilot.factory import create_copilot
 
 load_dotenv(".env")
 
@@ -84,14 +85,14 @@ async def get_exotel_callsid(room_name: str) -> tuple[str | None, str | None]:
                 mobile = attrs.get("sip.phoneNumber")
                 if mobile:
                     mobile_number = mobile
-                    mobile_number = "9870064932"
+                    # mobile_number = "9870064932"
                     # mobile_number = "8605319666"
-                    # mobile_number = "9767887347"
+                    mobile_number = "9767887347"
                     # mobile_number = "9769463935"
                     # mobile_number = "9767887347"
                     logger.info(
                         f"Mobile number found: {mobile_number} | participant={p.identity}"
-                    )   
+                    )
 
         if not call_sid:
             logger.warning(
@@ -137,6 +138,34 @@ async def push_transcript(
                 logger.info(f"Transcript pushed | callSid={call_sid} speaker={speaker}")
     except Exception as e:
         logger.error(f"Failed to push transcript: {e}")
+
+
+async def push_incoming_call(
+    call_sid: str, mobile_number: str, meet_url: str | None = None
+):
+    """Notify Java BE of incoming customer service call (creates session + pushes customer data to FE)."""
+    try:
+        session = await get_http_session()
+        payload = {"callSid": call_sid, "mobileNumber": mobile_number}
+        if meet_url:
+            payload["meetUrl"] = meet_url
+        async with session.post(
+            f"{BACKEND_URL}/uwapi/call/incoming",
+            json=payload,
+            timeout=aiohttp.ClientTimeout(total=5),
+        ) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                session_id = data.get("data", {}).get("sessionId", "unknown")
+                logger.info(
+                    f"Incoming call registered | callSid={call_sid} sessionId={session_id}"
+                )
+            else:
+                logger.warning(
+                    f"Backend returned {resp.status} for incoming call: {await resp.text()}"
+                )
+    except Exception as e:
+        logger.error(f"Failed to register incoming call: {e}")
 
 
 async def push_meet_url(call_sid: str, meet_url: str, mobile_number: str | None = None):
@@ -230,7 +259,7 @@ async def transcribe_sip_participant(
     participant_id: str,
     stt: inference.STT,
     call_sid: str,
-    insight_engine: InsightEngine,
+    copilot: BaseCopilot,
     mobile_number: str | None = None,
 ):
     """Transcribe audio from the SIP (customer) participant."""
@@ -273,7 +302,7 @@ async def transcribe_sip_participant(
                     await push_transcript(
                         call_sid, "customer", text, timestamp, mobile_number
                     )
-                    await insight_engine.process_utterance("customer", text, timestamp)
+                    await copilot.process_utterance("customer", text, timestamp)
         logger.info(
             f"[SIP] Transcription stream ended | participant={participant_id} | total_transcripts={transcript_count}"
         )
@@ -291,7 +320,7 @@ async def transcribe_human_agent(
     participant_id: str,
     stt: inference.STT,
     call_sid: str,
-    insight_engine: InsightEngine,
+    copilot: BaseCopilot,
     mobile_number: str | None = None,
 ):
     """Transcribe audio from the human agent participant."""
@@ -330,7 +359,7 @@ async def transcribe_human_agent(
                     await push_transcript(
                         call_sid, "agent", text, timestamp, mobile_number
                     )
-                    await insight_engine.process_utterance("agent", text, timestamp)
+                    await copilot.process_utterance("agent", text, timestamp)
         logger.info(
             f"[HUMAN] Transcription stream ended | participant={participant_id} | total_transcripts={transcript_count}"
         )
@@ -360,19 +389,22 @@ async def entrypoint(ctx: JobContext):
         f"Exotel Call SID extracted: {call_sid} | mobile={mobile_number} | room={room_name}"
     )
 
-    # Initialize AI Insight Engine
+    # Initialize copilot (collections or customer_service based on COPILOT_MODE env)
     http_session = await get_http_session()
-    insight_engine = InsightEngine(call_sid, http_session, mobile_number)
-    await insight_engine.initialize()
-    logger.info(
-        f"Insight Engine initialized | callSid={call_sid} | mobile={mobile_number}"
-    )
+    copilot = create_copilot(call_sid, http_session, mobile_number)
+    await copilot.initialize()
+    logger.info(f"Copilot initialized | callSid={call_sid} | mobile={mobile_number}")
 
     livekit_url = os.getenv("LIVEKIT_URL", "")
     token = create_meet_token(room_name, "human-agent")
     meet_url = f"https://meet.livekit.io/custom?liveKitUrl={livekit_url}&token={token}"
 
     logger.info(f"LiveKit Meet URL: {meet_url}")
+
+    # Notify backend of incoming call (customer-service mode only — creates session + pushes customer data to FE)
+    copilot_mode = os.getenv("COPILOT_MODE", "collections").lower().strip()
+    if copilot_mode == "customer_service" and mobile_number:
+        await push_incoming_call(call_sid, mobile_number, meet_url)
 
     # Push Meet URL to the Spring Boot backend (identified by callSid)
     await push_meet_url(call_sid, meet_url, mobile_number)
@@ -417,7 +449,7 @@ async def entrypoint(ctx: JobContext):
                     participant.identity,
                     stt_sip,
                     call_sid,
-                    insight_engine,
+                    copilot,
                     mobile_number,
                 )
             )
@@ -428,7 +460,7 @@ async def entrypoint(ctx: JobContext):
                     participant.identity,
                     stt_agent,
                     call_sid,
-                    insight_engine,
+                    copilot,
                     mobile_number,
                 )
             )
@@ -454,7 +486,7 @@ async def entrypoint(ctx: JobContext):
                             participant.identity,
                             stt_sip,
                             call_sid,
-                            insight_engine,
+                            copilot,
                             mobile_number,
                         )
                     )
@@ -465,7 +497,7 @@ async def entrypoint(ctx: JobContext):
                             participant.identity,
                             stt_agent,
                             call_sid,
-                            insight_engine,
+                            copilot,
                             mobile_number,
                         )
                     )
@@ -518,9 +550,12 @@ async def entrypoint(ctx: JobContext):
             else:
                 reason = "customer_disconnected"
 
-            asyncio.create_task(
-                notify_call_disconnected(call_sid, mobile_number, reason=reason)
-            )
+            async def _handle_disconnect():
+                # Generate disposition first (customer service), then notify backend
+                await copilot.on_call_end()
+                await notify_call_disconnected(call_sid, mobile_number, reason=reason)
+
+            asyncio.create_task(_handle_disconnect())
 
     logger.info(
         f"Silent multi-speaker transcriber ready | room={room_name} | callSid={call_sid}"

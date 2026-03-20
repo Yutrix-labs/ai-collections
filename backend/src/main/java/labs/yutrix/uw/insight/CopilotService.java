@@ -58,6 +58,68 @@ public class CopilotService {
                 sessionId, request.details().size());
     }
 
+    /**
+     * Process pre-call summary push (customer service).
+     * Resolves callSid/mobileNumber → sessionId, broadcasts CopilotSummaryMessage.
+     */
+    public void processSummary(SummaryPushRequest request) {
+        String sessionId = resolveSessionId(request.callSid(), request.mobileNumber());
+
+        CopilotSummaryMessage message = CopilotSummaryMessage.of(sessionId, request);
+        messagingTemplate.convertAndSend(
+                "/topic/call/" + sessionId + "/insights",
+                message
+        );
+
+        log.info("Copilot summary broadcasted | sessionId={} summaryLen={}",
+                sessionId, request.summary().length());
+    }
+
+    /**
+     * Process customer context push (customer service).
+     * Resolves callSid/mobileNumber → sessionId, broadcasts CopilotCustomerContextMessage.
+     */
+    public void processCustomerContext(CustomerContextPushRequest request) {
+        String sessionId = resolveSessionId(request.callSid(), request.mobileNumber());
+
+        CopilotCustomerContextMessage message = CopilotCustomerContextMessage.of(sessionId, request);
+        messagingTemplate.convertAndSend(
+                "/topic/call/" + sessionId + "/insights",
+                message
+        );
+
+        log.info("Copilot customer-context broadcasted | sessionId={} hasData={}",
+                sessionId, request.customerData() != null);
+    }
+
+    /**
+     * Process disposition push from Python (customer service).
+     * Resolves callSid/mobileNumber → sessionId, saves to session, broadcasts.
+     */
+    public void processDisposition(DispositionPushRequest request) {
+        String sessionId = resolveSessionId(request.callSid(), request.mobileNumber());
+
+        // Save disposition fields to session
+        CallSession session = sessionStore.getBySessionId(sessionId);
+        if (request.data() != null) {
+            session.setDispositionResult(request.data().result());
+            session.setDispositionDate(request.data().date());
+            session.setDispositionAmount(request.data().amount() != null ? String.valueOf(request.data().amount()) : null);
+            session.setDispositionNotes(request.data().notes());
+            session.setDispositionNextAction(request.data().nextAction());
+            session.setDispositionReasonCode(request.data().reason());
+        }
+
+        CopilotDispositionMessage message = CopilotDispositionMessage.of(sessionId, request);
+        messagingTemplate.convertAndSend(
+                "/topic/call/" + sessionId + "/insights",
+                message
+        );
+
+        log.info("Copilot disposition broadcasted | sessionId={} result={}",
+                sessionId, request.data() != null ? request.data().result() : "null");
+    }
+
     private String resolveSessionId(String callSid, String mobileNumber) {
         CallSession session;
         if (mobileNumber != null && !mobileNumber.isBlank()) {
