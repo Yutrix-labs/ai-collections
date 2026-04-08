@@ -9,12 +9,15 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
  * on the global topic /topic/agent/incoming-call.
  */
 export function useIncomingCall() {
-  const [incomingCall, setIncomingCall] = useState<IncomingCallMessage | null>(null);
+  const [incomingCall, setIncomingCall] = useState<IncomingCallMessage | null>(
+    null,
+  );
   const [connected, setConnected] = useState(false);
   const clientRef = useRef<Client | null>(null);
 
   useEffect(() => {
-    const wsUrl = API_BASE.replace(/^http/, "ws") + "/ws/websocket";
+    // const wsUrl = API_BASE.replace(/^http/, "ws") + "/ws/websocket";
+    const wsUrl = API_BASE.replace(/^http/, "ws") + "/ws";
 
     const client = new Client({
       brokerURL: wsUrl,

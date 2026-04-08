@@ -396,6 +396,7 @@ class InsightEngine:
         # Vertex AI configuration
         self.gcp_project_id = os.getenv("GCP_PROJECT_ID", "")
         self.gcp_location = os.getenv("GCP_LOCATION", "us-central1")
+        self.gemini_model = os.getenv("LLM_MODEL", "gemini-2.0-flash")
         self.google_application_credentials = os.getenv(
             "GOOGLE_APPLICATION_CREDENTIALS", ""
         )
@@ -408,6 +409,7 @@ class InsightEngine:
 
         # Cerebras configuration
         self.cerebras_api_key = os.getenv("CEREBRAS_API_KEY", "")
+        self.cerebras_model = os.getenv("LLM_MODEL", "llama3.1-8b")
 
         # AI provider selection
         self.ai_provider = os.getenv("AI_PROVIDER", "openai").lower()
@@ -613,7 +615,7 @@ class InsightEngine:
                 user_prompt,
                 on_next_move_ready=self._push_next_move,
                 on_contextual_details_ready=self._push_contextual_details,
-                max_tokens=max_tokens,
+                # max_tokens=max_tokens,
             )
         elif self.ai_provider == "bedrock":
             accumulated = await self._call_bedrock_api_streaming(
@@ -629,12 +631,12 @@ class InsightEngine:
                 user_prompt,
                 on_next_move_ready=self._push_next_move,
                 on_contextual_details_ready=self._push_contextual_details,
-                max_tokens=max_tokens,
+                # max_tokens=max_tokens,
             )
         elif self.ai_provider == "gemini":
             # Gemini: no streaming support yet — fallback to sequential push
             accumulated = await self._call_gemini_api_v2(
-                system_prompt, user_prompt, max_tokens=max_tokens
+                system_prompt, user_prompt
             )
             from copilot_schema import extract_next_move, extract_contextual_details
 
@@ -662,12 +664,37 @@ class InsightEngine:
         # Validate full response with Pydantic
         parse_start = time.time()
         try:
-            parse_llm_response(accumulated)
+            parsed = parse_llm_response(accumulated)
         except Exception as e:
             print(
                 f"[CopilotEngine] ❌ Pydantic validation failed: {e} | raw: {accumulated[:300]}"
             )
             return
+
+        # 🔥 PUSH INSIGHTS TO BACKEND
+        if parsed and getattr(parsed, "insights", None):
+            try:
+                insights_payload = [
+                    {
+                        "type": ins.type,
+                        "text": ins.text,
+                        "priority": ins.priority
+                    }
+                    for ins in parsed.insights
+                ]
+
+                payload = {
+                    "callSid": self.call_sid,
+                    "items": insights_payload
+                }
+
+                url = f"{self.backend_url}/uwapi/insight/push-insight"
+
+                async with self.http_session.post(url, json=payload) as resp:
+                    print(f"[CopilotEngine] 🚀 Insights push status: {resp.status} | count={len(insights_payload)}")
+
+            except Exception as e:
+                print(f"[CopilotEngine] ❌ Error pushing insights: {e}")
 
         parse_time = (time.time() - parse_start) * 1000
         llm_latency = (time.time() - llm_start) * 1000
@@ -795,7 +822,7 @@ class InsightEngine:
             token_count = 0
 
             stream = await self._cerebras_client.chat.completions.create(
-                model="gpt-oss-120b",
+                model=self.cerebras_model,
                 max_tokens=450,
                 temperature=0.3,
                 messages=[
@@ -1259,7 +1286,7 @@ class InsightEngine:
                     location=self.gcp_location,
                     credentials=credentials,
                 )
-                self._gemini_client = GenerativeModel("gemini-2.0-flash-exp")
+                self._gemini_client = GenerativeModel(self.gemini_model)
 
             combined = f"{system_prompt}\n\n{user_prompt}"
             response = await self._gemini_client.generate_content_async(
@@ -1284,7 +1311,7 @@ class InsightEngine:
                 self._cerebras_client = AsyncCerebras(api_key=self.cerebras_api_key)
 
             response = await self._cerebras_client.chat.completions.create(
-                model="llama-3.3-70b",
+                model=self.cerebras_model,
                 max_tokens=450,
                 temperature=0.3,
                 messages=[
@@ -1438,7 +1465,7 @@ class InsightEngine:
 
                 self._cerebras_client = AsyncCerebras(api_key=self.cerebras_api_key)
             response = await self._cerebras_client.chat.completions.create(
-                model="llama-3.3-70b",
+                model=self.cerebras_model,
                 max_tokens=600,
                 temperature=0.3,
                 messages=[
@@ -1568,7 +1595,7 @@ class InsightEngine:
                     location=self.gcp_location,
                     credentials=credentials,
                 )
-                self._gemini_client = GenerativeModel("gemini-2.0-flash-exp")
+                self._gemini_client = GenerativeModel(self.gemini_model)
             response = await self._gemini_client.generate_content_async(
                 contents=f"{prompt}\n\nGenerate insights for this conversation.",
                 generation_config={"temperature": 0.3, "max_output_tokens": 600},
@@ -1726,7 +1753,7 @@ Recent conversation:
 
                     self._cerebras_client = AsyncCerebras(api_key=self.cerebras_api_key)
                 resp = await self._cerebras_client.chat.completions.create(
-                    model="llama-3.3-70b",
+                    model=self.cerebras_model,
                     max_tokens=300,
                     temperature=0.2,
                     messages=[{"role": "user", "content": prompt}],
@@ -1811,7 +1838,7 @@ Recent conversation:
                         location=self.gcp_location,
                         credentials=credentials,
                     )
-                    self._gemini_client = GenerativeModel("gemini-2.0-flash-exp")
+                    self._gemini_client = GenerativeModel(self.gemini_model)
                 resp = await self._gemini_client.generate_content_async(
                     contents=prompt,
                     generation_config={"temperature": 0.2, "max_output_tokens": 300},

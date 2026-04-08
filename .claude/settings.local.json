@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep:*)",
+      "Read(//c/Fintaar/backend/ai-collections/backend/src/main/resources/**)",
+      "Bash(dir \"c:\\\\Fintaar\\\\backend\\\\ai-collections\\\\backend\\\\src\\\\main\\\\resources\\\\\")",
+      "Bash(grep -n \"from backend.app.models.call import Insight\" /c/Fintaar/backend/ai-collections/backend/listening-agent/*.py)"
+    ]
+  }
+}

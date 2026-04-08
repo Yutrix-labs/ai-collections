@@ -86,10 +86,10 @@ async def get_exotel_callsid(room_name: str) -> tuple[str | None, str | None]:
                 if mobile:
                     mobile_number = mobile
                     # mobile_number = "9870064932"
+                    mobile_number = "7838153987"
                     # mobile_number = "8605319666"
-                    mobile_number = "9767887347"
-                    # mobile_number = "9769463935"
                     # mobile_number = "9767887347"
+                    # mobile_number = "9769463935"
                     logger.info(
                         f"Mobile number found: {mobile_number} | participant={p.identity}"
                     )
@@ -130,7 +130,6 @@ async def push_transcript(
         async with session.post(
             f"{BACKEND_URL}/uwapi/transcript/push",
             json=payload,
-            timeout=aiohttp.ClientTimeout(total=5),
         ) as resp:
             if resp.status != 200:
                 logger.warning(f"Backend returned {resp.status}: {await resp.text()}")
@@ -152,7 +151,6 @@ async def push_incoming_call(
         async with session.post(
             f"{BACKEND_URL}/uwapi/call/incoming",
             json=payload,
-            timeout=aiohttp.ClientTimeout(total=5),
         ) as resp:
             if resp.status == 200:
                 data = await resp.json()
@@ -182,7 +180,6 @@ async def push_meet_url(call_sid: str, meet_url: str, mobile_number: str | None 
         async with session.post(
             f"{BACKEND_URL}/uwapi/call/meet-url",
             json=payload,
-            timeout=aiohttp.ClientTimeout(total=5),
         ) as resp:
             if resp.status != 200:
                 logger.warning(
@@ -212,7 +209,6 @@ async def notify_call_disconnected(
         async with session.post(
             f"{BACKEND_URL}/uwapi/call/disconnected",
             json=payload,
-            timeout=aiohttp.ClientTimeout(total=5),
         ) as resp:
             if resp.status != 200:
                 logger.warning(
@@ -372,7 +368,7 @@ async def transcribe_human_agent(
         )
 
 
-@server.rtc_session(agent_name="silent-transcriber")
+@server.rtc_session(agent_name="silent-transcriber-dev")
 async def entrypoint(ctx: JobContext):
     room_name = ctx.room.name
     logger.info(f"Job received | room={room_name}")
@@ -560,6 +556,22 @@ async def entrypoint(ctx: JobContext):
     logger.info(
         f"Silent multi-speaker transcriber ready | room={room_name} | callSid={call_sid}"
     )
+
+    # Keep entrypoint alive until the room disconnects so we can close the HTTP session cleanly.
+    disconnect_event = asyncio.Event()
+
+    @ctx.room.on("disconnected")
+    def _on_room_disconnected(*_):
+        disconnect_event.set()
+
+    try:
+        await disconnect_event.wait()
+    finally:
+        global _http_session
+        if _http_session and not _http_session.closed:
+            await _http_session.close()
+            _http_session = None
+        logger.info(f"HTTP session closed | room={room_name}")
 
 
 def main():

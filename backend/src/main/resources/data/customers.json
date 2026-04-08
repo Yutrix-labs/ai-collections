@@ -2,6 +2,134 @@
   {
     "customer": {
       "name": "Rajesh Kumar Sharma",
+      "mobile": "7838153987",
+      "loanType": "Personal Loan",
+      "agreementId": "PL-2024-00847392",
+      "email": "r***a@gmail.com",
+      "cifNumber": "CIF-98234571",
+      "noOfAgreements": 3,
+      "writeoff": "N",
+      "legalProceedings": null,
+      "noOfLiabilities": 3,
+      "preferredLanguage": "hi"
+    },
+    "loan": {
+      "amount": "₹8,00,000",
+      "tenure": "24 months",
+      "emiStart": "03/07/2021",
+      "emiEnd": "03/07/2031",
+      "outstanding": "₹7,10,942",
+      "overdue": "₹1,14,099",
+      "disbursementDate": "02/07/2025",
+      "interestRate": "13.0",
+      "instStartDate": "03/08/2025",
+      "instEndDate": "03/07/2027",
+      "cycleDays": "3",
+      "productOffered": "PL",
+      "noOfOdInstallments": "3",
+      "noOfOsInstallments": "19",
+      "lastReversalOn": "-",
+      "lastPaymentOn": "03/04/2025",
+      "paymentDueDate": "03/12/2025",
+      "lastReversalAmount": "0",
+      "lastPaymentAmount": "₹76,066",
+      "installmentAmount": "₹38,033",
+      "currentInstallmentNo": "5",
+      "paymentMode": "ECS"
+    },
+    "additionalDetails": {
+      "installmentNo": "5 of 24",
+      "dueDate": "03 Dec 2025",
+      "amount": "₹1,14,099",
+      "bounceCharges": "1,500",
+      "penalCharges": "3,240",
+      "dpd": 67,
+      "profession": "Accountant"
+    },
+    "paymentHistory": [
+      {
+        "month": "Dec-2025",
+        "status": "Missed",
+        "amount": 38033,
+        "dueAmount": 38033
+      },
+      {
+        "month": "Nov-2025",
+        "status": "Missed",
+        "amount": 38033,
+        "dueAmount": 38033
+      },
+      {
+        "month": "Oct-2025",
+        "status": "Missed",
+        "amount": 38033,
+        "dueAmount": 38033
+      },
+      {
+        "month": "Sep-2025",
+        "status": "Paid",
+        "amount": 38033,
+        "dueAmount": 38033
+      },
+      {
+        "month": "Aug-2025",
+        "status": "Paid",
+        "amount": 38033,
+        "dueAmount": 38033
+      }
+    ],
+    "activePolicies": [
+      {
+        "policy": "settlement_eligibility",
+        "rule": "Customer is eligible for settlement if DPD > 90 and outstanding < ₹5L"
+      },
+      {
+        "policy": "payment_plan",
+        "rule": "For DPD 60-90, offer 3-month payment plan with waiver on bounce charges"
+      },
+      {
+        "policy": "legal_notice",
+        "rule": "Legal notice can be issued if DPD > 90 and no payment in last 60 days"
+      },
+      {
+        "policy": "hardship_support",
+        "rule": "If customer reports job loss or medical emergency, escalate to retention team"
+      }
+    ],
+    "pastCommunications": [
+      {
+        "date": "12-Dec",
+        "caller": "Priya M.",
+        "summary": "Callback req. Job change.",
+        "type": "Call"
+      },
+      {
+        "date": "11-Dec",
+        "caller": "Amit R.",
+        "summary": "No answer. SMS sent.",
+        "type": "SMS"
+      },
+      {
+        "date": "5-Dec",
+        "caller": "Priya M.",
+        "summary": "₹10K PTP Dec 10. Not rcvd.",
+        "type": "Call"
+      },
+      {
+        "date": "5-Dec",
+        "caller": "System Init",
+        "summary": "Agreed month-end. ₹5K paid.",
+        "type": "Whatsapp"
+      }
+    ],
+    "callBehaviour": {
+      "callerBehaviour": "Professional, Firm",
+      "customerBehaviour": "Polite, Defensive"
+    }
+  },
+  {
+    "customer": {
+      "name": "Ritesh Kumar Sharma",
       "mobile": "9870064932",
       "loanType": "Personal Loan",
       "agreementId": "PL-2024-00847391",
@@ -47,11 +175,36 @@
       "profession": "Accountant"
     },
     "paymentHistory": [
-      { "month": "Dec-2025", "status": "Missed", "amount": 38033, "dueAmount": 38033 },
-      { "month": "Nov-2025", "status": "Missed", "amount": 38033, "dueAmount": 38033 },
-      { "month": "Oct-2025", "status": "Missed", "amount": 38033, "dueAmount": 38033 },
-      { "month": "Sep-2025", "status": "Paid", "amount": 38033, "dueAmount": 38033 },
-      { "month": "Aug-2025", "status": "Paid", "amount": 38033, "dueAmount": 38033 }
+      {
+        "month": "Dec-2025",
+        "status": "Missed",
+        "amount": 38033,
+        "dueAmount": 38033
+      },
+      {
+        "month": "Nov-2025",
+        "status": "Missed",
+        "amount": 38033,
+        "dueAmount": 38033
+      },
+      {
+        "month": "Oct-2025",
+        "status": "Missed",
+        "amount": 38033,
+        "dueAmount": 38033
+      },
+      {
+        "month": "Sep-2025",
+        "status": "Paid",
+        "amount": 38033,
+        "dueAmount": 38033
+      },
+      {
+        "month": "Aug-2025",
+        "status": "Paid",
+        "amount": 38033,
+        "dueAmount": 38033
+      }
     ],
     "activePolicies": [
       {
@@ -72,10 +225,30 @@
       }
     ],
     "pastCommunications": [
-      { "date": "12-Dec", "caller": "Priya M.", "summary": "Callback req. Job change.", "type": "Call" },
-      { "date": "11-Dec", "caller": "Amit R.", "summary": "No answer. SMS sent.", "type": "SMS" },
-      { "date": "5-Dec", "caller": "Priya M.", "summary": "₹10K PTP Dec 10. Not rcvd.", "type": "Call" },
-      { "date": "5-Dec", "caller": "System Init", "summary": "Agreed month-end. ₹5K paid.", "type": "Whatsapp" }
+      {
+        "date": "12-Dec",
+        "caller": "Priya M.",
+        "summary": "Callback req. Job change.",
+        "type": "Call"
+      },
+      {
+        "date": "11-Dec",
+        "caller": "Amit R.",
+        "summary": "No answer. SMS sent.",
+        "type": "SMS"
+      },
+      {
+        "date": "5-Dec",
+        "caller": "Priya M.",
+        "summary": "₹10K PTP Dec 10. Not rcvd.",
+        "type": "Call"
+      },
+      {
+        "date": "5-Dec",
+        "caller": "System Init",
+        "summary": "Agreed month-end. ₹5K paid.",
+        "type": "Whatsapp"
+      }
     ],
     "callBehaviour": {
       "callerBehaviour": "Professional, Firm",
@@ -129,12 +302,42 @@
       "profession": "Business Owner"
     },
     "paymentHistory": [
-      { "month": "Jan-2026", "status": "Missed", "amount": 0, "dueAmount": 22500 },
-      { "month": "Dec-2025", "status": "Missed", "amount": 0, "dueAmount": 22500 },
-      { "month": "Nov-2025", "status": "Paid", "amount": 22500, "dueAmount": 22500 },
-      { "month": "Oct-2025", "status": "Paid", "amount": 22500, "dueAmount": 22500 },
-      { "month": "Sep-2025", "status": "Paid", "amount": 22500, "dueAmount": 22500 },
-      { "month": "Aug-2025", "status": "Paid", "amount": 22500, "dueAmount": 22500 }
+      {
+        "month": "Jan-2026",
+        "status": "Missed",
+        "amount": 0,
+        "dueAmount": 22500
+      },
+      {
+        "month": "Dec-2025",
+        "status": "Missed",
+        "amount": 0,
+        "dueAmount": 22500
+      },
+      {
+        "month": "Nov-2025",
+        "status": "Paid",
+        "amount": 22500,
+        "dueAmount": 22500
+      },
+      {
+        "month": "Oct-2025",
+        "status": "Paid",
+        "amount": 22500,
+        "dueAmount": 22500
+      },
+      {
+        "month": "Sep-2025",
+        "status": "Paid",
+        "amount": 22500,
+        "dueAmount": 22500
+      },
+      {
+        "month": "Aug-2025",
+        "status": "Paid",
+        "amount": 22500,
+        "dueAmount": 22500
+      }
     ],
     "activePolicies": [
       {
@@ -151,9 +354,24 @@
       }
     ],
     "pastCommunications": [
-      { "date": "05-Feb", "caller": "Amit R.", "summary": "Called, busy. Promised callback.", "type": "Call" },
-      { "date": "25-Jan", "caller": "Amit R.", "summary": "Agreed to pay by Jan 30. Broken PTP.", "type": "Call" },
-      { "date": "12-Jan", "caller": "Priya M.", "summary": "Informed about project delay.", "type": "Call" }
+      {
+        "date": "05-Feb",
+        "caller": "Amit R.",
+        "summary": "Called, busy. Promised callback.",
+        "type": "Call"
+      },
+      {
+        "date": "25-Jan",
+        "caller": "Amit R.",
+        "summary": "Agreed to pay by Jan 30. Broken PTP.",
+        "type": "Call"
+      },
+      {
+        "date": "12-Jan",
+        "caller": "Priya M.",
+        "summary": "Informed about project delay.",
+        "type": "Call"
+      }
     ],
     "callBehaviour": {
       "callerBehaviour": "Empathetic, Persistent",
@@ -207,12 +425,42 @@
       "profession": "IT Professional"
     },
     "paymentHistory": [
-      { "month": "Jan-2026", "status": "Partial", "amount": 5000, "dueAmount": 12500 },
-      { "month": "Dec-2025", "status": "Paid", "amount": 8000, "dueAmount": 8000 },
-      { "month": "Nov-2025", "status": "Paid", "amount": 6500, "dueAmount": 6500 },
-      { "month": "Oct-2025", "status": "Paid", "amount": 10000, "dueAmount": 10000 },
-      { "month": "Sep-2025", "status": "Missed", "amount": 0, "dueAmount": 5000 },
-      { "month": "Aug-2025", "status": "Paid", "amount": 7500, "dueAmount": 7500 }
+      {
+        "month": "Jan-2026",
+        "status": "Partial",
+        "amount": 5000,
+        "dueAmount": 12500
+      },
+      {
+        "month": "Dec-2025",
+        "status": "Paid",
+        "amount": 8000,
+        "dueAmount": 8000
+      },
+      {
+        "month": "Nov-2025",
+        "status": "Paid",
+        "amount": 6500,
+        "dueAmount": 6500
+      },
+      {
+        "month": "Oct-2025",
+        "status": "Paid",
+        "amount": 10000,
+        "dueAmount": 10000
+      },
+      {
+        "month": "Sep-2025",
+        "status": "Missed",
+        "amount": 0,
+        "dueAmount": 5000
+      },
+      {
+        "month": "Aug-2025",
+        "status": "Paid",
+        "amount": 7500,
+        "dueAmount": 7500
+      }
     ],
     "activePolicies": [
       {
@@ -229,8 +477,18 @@
       }
     ],
     "pastCommunications": [
-      { "date": "10-Feb", "caller": "System", "summary": "Auto-reminder SMS sent.", "type": "SMS" },
-      { "date": "05-Feb", "caller": "System", "summary": "Payment reminder email.", "type": "Email" }
+      {
+        "date": "10-Feb",
+        "caller": "System",
+        "summary": "Auto-reminder SMS sent.",
+        "type": "SMS"
+      },
+      {
+        "date": "05-Feb",
+        "caller": "System",
+        "summary": "Payment reminder email.",
+        "type": "Email"
+      }
     ],
     "callBehaviour": {
       "callerBehaviour": "Neutral, Informative",
@@ -284,12 +542,42 @@
       "profession": "Lawyer"
     },
     "paymentHistory": [
-      { "month": "Jan-2026", "status": "Missed", "amount": 0, "dueAmount": 15000 },
-      { "month": "Dec-2025", "status": "Partial", "amount": 5000, "dueAmount": 15000 },
-      { "month": "Nov-2025", "status": "Missed", "amount": 0, "dueAmount": 15000 },
-      { "month": "Oct-2025", "status": "Missed", "amount": 0, "dueAmount": 15000 },
-      { "month": "Sep-2025", "status": "Bounced", "amount": 0, "dueAmount": 15000 },
-      { "month": "Aug-2025", "status": "Paid", "amount": 15000, "dueAmount": 15000 }
+      {
+        "month": "Jan-2026",
+        "status": "Missed",
+        "amount": 0,
+        "dueAmount": 15000
+      },
+      {
+        "month": "Dec-2025",
+        "status": "Partial",
+        "amount": 5000,
+        "dueAmount": 15000
+      },
+      {
+        "month": "Nov-2025",
+        "status": "Missed",
+        "amount": 0,
+        "dueAmount": 15000
+      },
+      {
+        "month": "Oct-2025",
+        "status": "Missed",
+        "amount": 0,
+        "dueAmount": 15000
+      },
+      {
+        "month": "Sep-2025",
+        "status": "Bounced",
+        "amount": 0,
+        "dueAmount": 15000
+      },
+      {
+        "month": "Aug-2025",
+        "status": "Paid",
+        "amount": 15000,
+        "dueAmount": 15000
+      }
     ],
     "activePolicies": [
       {
@@ -310,10 +598,30 @@
       }
     ],
     "pastCommunications": [
-      { "date": "02-Feb", "caller": "Suresh K.", "summary": "Unreachable. Field visit recommended.", "type": "Call" },
-      { "date": "20-Jan", "caller": "Priya M.", "summary": "Customer stated financial crisis.", "type": "Call" },
-      { "date": "10-Jan", "caller": "Amit R.", "summary": "No response to repeated calls.", "type": "Call" },
-      { "date": "28-Dec", "caller": "Priya M.", "summary": "Part payment of ₹5k received.", "type": "Field Visit" }
+      {
+        "date": "02-Feb",
+        "caller": "Suresh K.",
+        "summary": "Unreachable. Field visit recommended.",
+        "type": "Call"
+      },
+      {
+        "date": "20-Jan",
+        "caller": "Priya M.",
+        "summary": "Customer stated financial crisis.",
+        "type": "Call"
+      },
+      {
+        "date": "10-Jan",
+        "caller": "Amit R.",
+        "summary": "No response to repeated calls.",
+        "type": "Call"
+      },
+      {
+        "date": "28-Dec",
+        "caller": "Priya M.",
+        "summary": "Part payment of ₹5k received.",
+        "type": "Field Visit"
+      }
     ],
     "callBehaviour": {
       "callerBehaviour": "Assertive, Escalation-ready",
