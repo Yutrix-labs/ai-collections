@@ -159,8 +159,8 @@ def parse_llm_response(raw: str) -> CopilotResponse:
     Strips markdown fences if present, then validates with Pydantic.
     Raises ValidationError on bad output.
     """
-    # cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw.strip(), flags=re.MULTILINE)
-    # cleaned = cleaned.strip()
+    cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw.strip(), flags=re.MULTILINE)
+    cleaned = cleaned.strip()
 
     # 🔥 Improved cleaning
     cleaned = re.sub(r"```(?:json)?", "", raw, flags=re.IGNORECASE)  # remove ```json anywhere

@@ -12,6 +12,7 @@ v2: Simplified two-output copilot (next_move + disposition only).
 import asyncio
 import hashlib
 import json
+import logging
 import os
 import re
 import time
@@ -20,6 +21,14 @@ from typing import Callable, Dict, List, Optional
 
 from call_flow_loader import format_flow_text, select_flow
 from toon_util import json_to_toon
+
+# Suppress noisy third-party debug logs
+logging.getLogger("hpack.hpack").setLevel(logging.WARNING)
+logging.getLogger("hpack.table").setLevel(logging.WARNING)
+logging.getLogger("cerebras.cloud.sdk").setLevel(logging.WARNING)
+logging.getLogger("cerebras.cloud.sdk._base_client").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # ── Transcript preprocessing constants ─────────────────────────────────────
 MAX_TRANSCRIPT_TURNS = 8
@@ -37,6 +46,131 @@ FILLER_PATTERNS = re.compile(
 
 # Feature flag: set COPILOT_V2_ENABLED=false to fall back to old single-push flow
 COPILOT_V2_ENABLED = os.getenv("COPILOT_V2_ENABLED", "true").lower() == "true"
+
+# ── Cerebras JSON schema for structured output ────────────────────────────
+# Mirrors the compressed keys the LLM prompt instructs (points, conf, amt, next).
+# Pydantic normalizes these to full field names after parsing.
+_CEREBRAS_RESPONSE_FORMAT = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "copilot_response",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "next_move": {
+                    "type": "object",
+                    "properties": {
+                        "points": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "minItems": 1,
+                            "maxItems": 2,
+                        },
+                        "priority": {
+                            "type": "string",
+                            "enum": ["high", "mid", "low"],
+                        },
+                    },
+                    "required": ["points", "priority"],
+                    "additionalProperties": False,
+                },
+                "contextual_details": {
+                    "anyOf": [
+                        {"type": "null"},
+                        {
+                            "type": "object",
+                            "properties": {
+                                "details": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "label": {"type": "string", "maxLength": 18},
+                                            "value": {"type": "string", "maxLength": 20},
+                                            "highlight": {"type": "boolean"},
+                                        },
+                                        "required": ["label", "value", "highlight"],
+                                        "additionalProperties": False,
+                                    },
+                                    "minItems": 1,
+                                    "maxItems": 5,
+                                }
+                            },
+                            "required": ["details"],
+                            "additionalProperties": False,
+                        },
+                    ]
+                },
+                "insights": {
+                    "anyOf": [
+                        {"type": "null"},
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["intent", "suggestion", "policy", "alert", "sentiment"],
+                                    },
+                                    "text": {"type": "string", "maxLength": 250},
+                                    "priority": {
+                                        "type": "string",
+                                        "enum": ["high", "medium", "low"],
+                                    },
+                                    "reasoning": {"type": "string"},
+                                },
+                                "required": ["type", "text", "priority"],
+                                "additionalProperties": False,
+                            },
+                            "maxItems": 3,
+                        },
+                    ]
+                },
+                "disposition": {
+                    "anyOf": [
+                        {"type": "null"},
+                        {
+                            "type": "object",
+                            "properties": {
+                                "result": {
+                                    "type": "string",
+                                    "enum": [
+                                        "PTP",
+                                        "Won't Pay",
+                                        "Can't Pay",
+                                        "Wrong Number",
+                                        "Invalid Number",
+                                        "Not Reachable",
+                                        "Not Picking",
+                                    ],
+                                },
+                                "conf": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+                                "date": {
+                                    "anyOf": [
+                                        {"type": "null"},
+                                        {"type": "string", "pattern": r"^\d{4}-\d{2}-\d{2}$"},
+                                    ]
+                                },
+                                "amt": {"anyOf": [{"type": "null"}, {"type": "number"}]},
+                                "reason": {"anyOf": [{"type": "null"}, {"type": "string"}]},
+                                "notes": {"type": "string", "maxLength": 150},
+                                "next": {
+                                    "type": "string",
+                                    "enum": ["Follow-up", "Link", "Supervisor", "Legal", "None"],
+                                },
+                            },
+                            "required": ["result", "conf", "date", "amt", "reason", "notes", "next"],
+                            "additionalProperties": False,
+                        },
+                    ]
+                },
+            },
+            "required": ["next_move", "contextual_details", "insights", "disposition"],
+            "additionalProperties": False,
+        },
+    },
+}
 
 # ── Latency Optimization Helpers ──────────────────────────────────────────
 
@@ -396,7 +530,7 @@ class InsightEngine:
         # Vertex AI configuration
         self.gcp_project_id = os.getenv("GCP_PROJECT_ID", "")
         self.gcp_location = os.getenv("GCP_LOCATION", "us-central1")
-        self.gemini_model = os.getenv("LLM_MODEL", "gemini-2.0-flash")
+        self.gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
         self.google_application_credentials = os.getenv(
             "GOOGLE_APPLICATION_CREDENTIALS", ""
         )
@@ -409,7 +543,7 @@ class InsightEngine:
 
         # Cerebras configuration
         self.cerebras_api_key = os.getenv("CEREBRAS_API_KEY", "")
-        self.cerebras_model = os.getenv("LLM_MODEL", "llama3.1-8b")
+        self.cerebras_model = os.getenv("CEREBRAS_MODEL", "")
 
         # AI provider selection
         self.ai_provider = os.getenv("AI_PROVIDER", "openai").lower()
@@ -663,6 +797,9 @@ class InsightEngine:
 
         # Validate full response with Pydantic
         parse_start = time.time()
+        if not accumulated or not accumulated.strip():
+            print("[CopilotEngine] ❌ Skipping parse — empty response from LLM")
+            return
         try:
             parsed = parse_llm_response(accumulated)
         except Exception as e:
@@ -685,10 +822,11 @@ class InsightEngine:
 
                 payload = {
                     "callSid": self.call_sid,
+                    "mobileNumber": self.mobile_number,
                     "items": insights_payload
                 }
 
-                url = f"{self.backend_url}/uwapi/insight/push-insight"
+                url = f"{self.backend_url}/uwapi/insight/push"
 
                 async with self.http_session.post(url, json=payload) as resp:
                     print(f"[CopilotEngine] 🚀 Insights push status: {resp.status} | count={len(insights_payload)}")
@@ -806,6 +944,21 @@ class InsightEngine:
                     await on_contextual_details_ready(cd)
             return mock
 
+        # gpt-oss-120b has inconsistent streaming behaviour — use non-streaming path directly
+        if self.cerebras_model == "gpt-oss-120b":
+            print(f"[CopilotEngine] ⚡ {self.cerebras_model} → non-streaming (streaming unreliable for this model)")
+            accumulated = await self._call_cerebras_api_v2(system_prompt, user_prompt)
+            if not accumulated:
+                print("[CopilotEngine] ❌ Empty response from Cerebras non-streaming, aborting")
+                return ""
+            nm_dict = extract_next_move(accumulated)
+            if nm_dict and on_next_move_ready:
+                await on_next_move_ready(nm_dict)
+            cd_dict = extract_contextual_details(accumulated)
+            if cd_dict and on_contextual_details_ready:
+                await on_contextual_details_ready(cd_dict)
+            return accumulated
+
         try:
             if self._cerebras_client is None:
                 from cerebras.cloud.sdk import AsyncCerebras
@@ -821,6 +974,9 @@ class InsightEngine:
             t_contextual_details_complete = None
             token_count = 0
 
+            # Note: response_format is intentionally omitted for stream=True —
+            # Cerebras returns content-type:application/json (non-SSE) when both
+            # are set together, causing the SDK to yield zero chunks.
             stream = await self._cerebras_client.chat.completions.create(
                 model=self.cerebras_model,
                 max_tokens=450,
@@ -833,7 +989,8 @@ class InsightEngine:
             )
 
             async for chunk in stream:
-                delta = chunk.choices[0].delta.content
+                delta = chunk.choices[0].delta.content if chunk.choices else None
+                print(f"[CopilotEngine] 🔹 chunk | delta={repr(delta)}")
                 if delta:
                     if t_first_token is None:
                         t_first_token = time.perf_counter()
@@ -866,6 +1023,30 @@ class InsightEngine:
                             )
 
             t_end = time.perf_counter()
+
+            # Fallback: if stream yielded nothing, retry as non-streaming
+            if not accumulated:
+                print("[CopilotEngine] ⚠️ Stream returned empty — falling back to non-streaming Cerebras call")
+                response = await self._cerebras_client.chat.completions.create(
+                    model=self.cerebras_model,
+                    max_tokens=450,
+                    temperature=0.3,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    response_format=_CEREBRAS_RESPONSE_FORMAT,
+                )
+                accumulated = response.choices[0].message.content or ""
+                print(f"[CopilotEngine] 🔁 Fallback response ({len(accumulated)} chars): {accumulated[:200]}")
+                # Fire callbacks from the complete response
+                if accumulated:
+                    nm_dict = extract_next_move(accumulated)
+                    if nm_dict and on_next_move_ready and not nm_fired:
+                        await on_next_move_ready(nm_dict)
+                    cd_dict = extract_contextual_details(accumulated)
+                    if cd_dict and on_contextual_details_ready and not cd_fired:
+                        await on_contextual_details_ready(cd_dict)
 
             # Latency breakdown
             input_token_estimate = len((system_prompt + user_prompt).split()) * 1.3
@@ -1299,7 +1480,7 @@ class InsightEngine:
             return ""
 
     async def _call_cerebras_api_v2(self, system_prompt: str, user_prompt: str) -> str:
-        """Call Cerebras with separate system/user prompts (v2 schema, non-streaming)."""
+        """Call Cerebras non-streaming (safe extraction for gpt-oss-120b and fallback path)."""
         if not self.cerebras_api_key:
             print("[InsightEngine] No CEREBRAS_API_KEY, returning mock v2 response")
             return '{"next_move":{"points":["Confirm customer identity","Reference loan account"],"priority":"high"},"disposition":null}'
@@ -1310,18 +1491,40 @@ class InsightEngine:
 
                 self._cerebras_client = AsyncCerebras(api_key=self.cerebras_api_key)
 
+            is_reasoning_model = self.cerebras_model in {"gpt-oss-120b"}
+
+            extra_kwargs = {}
+            if is_reasoning_model:
+                extra_kwargs["reasoning_effort"] = "low"
+
             response = await self._cerebras_client.chat.completions.create(
                 model=self.cerebras_model,
-                max_tokens=450,
+                max_tokens=4096 if is_reasoning_model else 450,
                 temperature=0.3,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
+                stream=False,
+                response_format={"type": "json_object"} if is_reasoning_model else _CEREBRAS_RESPONSE_FORMAT,
+                **extra_kwargs,
             )
-            return response.choices[0].message.content
+
+            if not response or not response.choices:
+                print("[CopilotEngine] ❌ Empty response from Cerebras (no choices)")
+                return ""
+
+            choice = response.choices[0]
+            if hasattr(choice, "message") and choice.message:
+                return choice.message.content or ""
+            elif hasattr(choice, "text"):
+                return choice.text or ""
+            else:
+                print("[CopilotEngine] ❌ Unknown Cerebras response format")
+                return ""
+
         except Exception as e:
-            print(f"[InsightEngine] Cerebras v2 API error: {e}")
+            print(f"[CopilotEngine] ❌ Cerebras non-streaming error: {e}")
             return ""
 
     # ── Legacy path ───────────────────────────────────────────────────────────
@@ -1924,6 +2127,14 @@ Recent conversation:
             schema_dict["contextual_details"] = {
                 "details": [{"label": "<18ch field name", "value": "<20ch raw number/fact", "highlight": "bool"}]
             }
+            schema_dict["insights"] = [
+                {
+                    "type": "intent",
+                    "text": "Customer shows payment intent",
+                    "priority": "high",
+                    "reasoning": "clear commitment"
+                }
+            ]
         if include_disposition:
             schema_dict["disposition"] = {
                 "result": "PTP|Won't Pay|Can't Pay|Wrong|Invalid|Not Reachable|Not Picking",
@@ -1938,6 +2149,7 @@ Recent conversation:
         system_prompt = f"""Real-time debt collection copilot. Return JSON only.
 {json.dumps(schema_dict)}
 Rules:
+insights: 1-3 NEW observations from the transcript. Use types: intent (customer intent), suggestion (agent action), policy (policy reminder), alert (risk/flag), sentiment (customer mood). Return empty array if nothing new.
 contextual_details: 3-5 items from profile relevant to last customer statement.
 STRICT FORMAT — label: short field name (max 18 chars). value: raw number/fact ONLY (max 20 chars). NEVER write sentences, analysis, or semicolons in value.
 GOOD: {{"label":"DPD","value":"67 days","highlight":true}}, {{"label":"Overdue","value":"₹73,800","highlight":true}}, {{"label":"Last Paid","value":"Dec ₹5K","highlight":false}}, {{"label":"EMI","value":"₹18,450","highlight":false}}, {{"label":"Bounce Charges","value":"₹1,500","highlight":false}}
@@ -1959,7 +2171,7 @@ Trans:
 Rules:
 - points: 1-2 cues. NOT dialogue.
 - Follow the call flow decision tree steps."""
-
+        # print(f"[InsightEngine] Built v2 prompts (system {system_prompt} chars, user {user_prompt} chars)")
         return system_prompt, user_prompt
 
 

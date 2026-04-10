@@ -85,7 +85,7 @@
       },
       {
         "policy": "payment_plan",
-        "rule": "For DPD 60-90, offer 3-month payment plan with waiver on bounce charges"
+        "rule": "For DPD 60-90, offer 7 days payment plan with waiver on bounce charges. 50% has to be paid immediately and balance payment within 7 days"
       },
       {
         "policy": "legal_notice",

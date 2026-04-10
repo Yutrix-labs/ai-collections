@@ -62,7 +62,7 @@ app:
 
 # Next-Action microservice
 next-action:
-  api-url: http://localhost:8081/nextactionapi/V1/analyse/ai-assistant-analyze
+  api-url: http://localhost:8082/nextactionapi/V1/analyse/ai-assistant-analyze
 
 # Actuator
 management:
