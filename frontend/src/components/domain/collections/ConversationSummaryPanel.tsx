@@ -157,9 +157,9 @@ export function ConversationSummaryPanel({ summaryItems, insightItems, callActiv
                   <span className="text-[0.625rem] font-extrabold text-[#94A3B8] uppercase tracking-[1px] shrink-0">{t("insightsTitle") || "AI Insights"}</span>
                   <div className="flex flex-col gap-3 overflow-y-auto pr-1 pb-2 h-full">
                     <AnimatePresence initial={false}>
-                      {insightItems.map((item) => (
+                      {insightItems.map((item, i) => (
                         <motion.div
-                          key={`i-${item.insightId || item.time}`}
+                          key={`i-${item.insightId || item.time || i}`}
                           {...fadeInUp}
                           className="flex gap-2.5 items-start"
                         >

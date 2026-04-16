@@ -7,7 +7,9 @@
       "Bash(grep -n \"from backend.app.models.call import Insight\" /c/Fintaar/backend/ai-collections/backend/listening-agent/*.py)",
       "Bash(gcloud version:*)",
       "Bash(uv run:*)",
-      "WebFetch(domain:inference-docs.cerebras.ai)"
+      "WebFetch(domain:inference-docs.cerebras.ai)",
+      "Bash(ls -la /c/Fintaar/backend/ai-collections/backend/listening-agent/*.py)",
+      "Bash(find /c/Fintaar/backend/ai-collections/backend/src/main/java -name \"*.java\" -exec grep -l \"Score\\\\|score\" {} \\\\;)"
     ]
   }
 }

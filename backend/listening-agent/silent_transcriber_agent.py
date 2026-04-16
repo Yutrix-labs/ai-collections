@@ -86,9 +86,9 @@ async def get_exotel_callsid(room_name: str) -> tuple[str | None, str | None]:
                 if mobile:
                     mobile_number = mobile
                     # mobile_number = "9870064932"
-                    mobile_number = "7838153987"
+                    # mobile_number = "7838153987"
                     # mobile_number = "8605319666"
-                    # mobile_number = "9767887347"
+                    mobile_number = "9767887347"
                     # mobile_number = "9769463935"
                     logger.info(
                         f"Mobile number found: {mobile_number} | participant={p.identity}"

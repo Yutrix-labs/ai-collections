@@ -36,6 +36,10 @@ public class CopilotService {
     private final ConcurrentHashMap<String, List<RecommendationDto>> recommendationsBySession = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, List<DataSuggestionDto>> dataSuggestionsBySession = new ConcurrentHashMap<>();
 
+    // Customer service: pre-call summary and customer data (broadcast-only fields persisted for next-action payload)
+    private final ConcurrentHashMap<String, String> preCallSummaryBySession = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, java.util.Map<String, Object>> customerDataBySession = new ConcurrentHashMap<>();
+
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     /**
@@ -103,10 +107,15 @@ public class CopilotService {
 
     /**
      * Process pre-call summary push (customer service).
-     * Resolves callSid/mobileNumber → sessionId, broadcasts CopilotSummaryMessage.
+     * Resolves callSid/mobileNumber → sessionId, stores for next-action payload, broadcasts CopilotSummaryMessage.
      */
     public void processSummary(SummaryPushRequest request) {
         String sessionId = resolveSessionId(request.callSid(), request.mobileNumber());
+
+        // Persist for post-call next-action payload
+        if (request.summary() != null) {
+            preCallSummaryBySession.put(sessionId, request.summary());
+        }
 
         CopilotSummaryMessage message = CopilotSummaryMessage.of(sessionId, request);
         messagingTemplate.convertAndSend(
@@ -120,10 +129,15 @@ public class CopilotService {
 
     /**
      * Process customer context push (customer service).
-     * Resolves callSid/mobileNumber → sessionId, broadcasts CopilotCustomerContextMessage.
+     * Resolves callSid/mobileNumber → sessionId, stores for next-action payload, broadcasts CopilotCustomerContextMessage.
      */
     public void processCustomerContext(CustomerContextPushRequest request) {
         String sessionId = resolveSessionId(request.callSid(), request.mobileNumber());
+
+        // Persist for post-call next-action payload
+        if (request.customerData() != null) {
+            customerDataBySession.put(sessionId, request.customerData());
+        }
 
         CopilotCustomerContextMessage message = CopilotCustomerContextMessage.of(sessionId, request);
         messagingTemplate.convertAndSend(
@@ -171,9 +185,19 @@ public class CopilotService {
         return dataSuggestionsBySession.getOrDefault(sessionId, List.of());
     }
 
+    public String getPreCallSummary(String sessionId) {
+        return preCallSummaryBySession.get(sessionId);
+    }
+
+    public java.util.Map<String, Object> getCustomerData(String sessionId) {
+        return customerDataBySession.get(sessionId);
+    }
+
     public void clearSession(String sessionId) {
         recommendationsBySession.remove(sessionId);
         dataSuggestionsBySession.remove(sessionId);
+        preCallSummaryBySession.remove(sessionId);
+        customerDataBySession.remove(sessionId);
     }
 
     private String resolveSessionId(String callSid, String mobileNumber) {

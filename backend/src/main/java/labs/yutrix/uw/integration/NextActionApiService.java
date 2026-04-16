@@ -78,11 +78,15 @@ public class NextActionApiService {
                 return;
             }
 
+            // Collections: build context from agreementId. Customer service: fall back to CS customer data.
             Map<String, Object> customerContext = null;
             try {
                 customerContext = customerContextService.buildContext(session.getAgreementId());
             } catch (Exception e) {
                 log.warn("[NextActionApi] Could not fetch customer context | sessionId={}", sessionId);
+            }
+            if (customerContext == null) {
+                customerContext = copilotService.getCustomerData(sessionId);
             }
 
             Integer dpd = extractDpd(customerContext);
@@ -111,6 +115,12 @@ public class NextActionApiService {
             // }
             payload.put("dataSuggestions", copilotService.getDataSuggestions(sessionId));
             payload.put("callFlows", callFlows);
+
+            // Customer service extras (null for collections calls)
+            String preCallSummary = copilotService.getPreCallSummary(sessionId);
+            payload.put("preCallSummary", preCallSummary);
+            payload.put("callMode", preCallSummary != null || copilotService.getCustomerData(sessionId) != null
+                    ? "customer_service" : "collections");
 
             String jsonPayload = objectMapper.writeValueAsString(payload);
             log.info("[NextActionApi] Sending POST request | sessionId={} payloadSize={}chars", sessionId, jsonPayload);
