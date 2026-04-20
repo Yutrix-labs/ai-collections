@@ -29,6 +29,7 @@ logging.basicConfig(level=logging.INFO)
 server = AgentServer()
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080")
+AGENT_NAME = os.getenv("AGENT_NAME", "silent-transcriber-dev")
 
 # Global aiohttp session (created lazily)
 _http_session: aiohttp.ClientSession | None = None
@@ -81,15 +82,9 @@ async def get_exotel_callsid(room_name: str) -> tuple[str | None, str | None]:
 
             # Extract mobile number from SIP headers
             if not mobile_number and attrs:
-                # Try common SIP header fields for mobile number
                 mobile = attrs.get("sip.phoneNumber")
                 if mobile:
                     mobile_number = mobile
-                    # mobile_number = "9870064932"
-                    mobile_number = "7838153987"
-                    # mobile_number = "8605319666"
-                    # mobile_number = "9767887347"
-                    # mobile_number = "9769463935"
                     logger.info(
                         f"Mobile number found: {mobile_number} | participant={p.identity}"
                     )
@@ -368,7 +363,7 @@ async def transcribe_human_agent(
         )
 
 
-@server.rtc_session(agent_name="silent-transcriber-dev")
+@server.rtc_session(agent_name=AGENT_NAME)
 async def entrypoint(ctx: JobContext):
     room_name = ctx.room.name
     logger.info(f"Job received | room={room_name}")
@@ -381,6 +376,13 @@ async def entrypoint(ctx: JobContext):
     if not call_sid:
         logger.error(f"Could not extract Exotel Call SID from room | room={room_name}")
         return
+
+    # Allow env var override for testing without a real SIP call
+    sip_mobile_override = os.getenv("SIP_MOBILE_NUMBER")
+    if sip_mobile_override:
+        mobile_number = sip_mobile_override
+        logger.info(f"Mobile number overridden by SIP_MOBILE_NUMBER env | mobile={mobile_number}")
+
     logger.info(
         f"Exotel Call SID extracted: {call_sid} | mobile={mobile_number} | room={room_name}"
     )

@@ -31,3 +31,7 @@ logging:
   level:
     labs.yutrix.uw: DEBUG
     org.springframework.web.socket: DEBUG
+
+# Next-Action microservice
+next-action:
+  api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze
