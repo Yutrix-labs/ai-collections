@@ -78,7 +78,7 @@ public class NextActionApiService {
                 return;
             }
 
-            // Collections: build context from agreementId. Customer service: fall back to CS customer data.
+            // Collections: build context from agreementId. Customer service: fall back to CS customer data (normalized).
             Map<String, Object> customerContext = null;
             try {
                 customerContext = customerContextService.buildContext(session.getAgreementId());
@@ -86,7 +86,10 @@ public class NextActionApiService {
                 log.warn("[NextActionApi] Could not fetch customer context | sessionId={}", sessionId);
             }
             if (customerContext == null) {
-                customerContext = copilotService.getCustomerData(sessionId);
+                Map<String, Object> csData = copilotService.getCustomerData(sessionId);
+                if (csData != null) {
+                    customerContext = normalizeCustomerServiceData(csData);
+                }
             }
 
             Integer dpd = extractDpd(customerContext);
@@ -157,6 +160,99 @@ public class NextActionApiService {
         if (dpd <= 60) return "31-60 DPD";
         if (dpd <= 90) return "61-90 DPD";
         return "90+ DPD";
+    }
+
+    /**
+     * Normalize customer-service.json format (profile/loans[]/complaints[]/...)
+     * to the collections shape (customer/additional/loan/payment_history/...) so
+     * the next-action engine receives a consistent structure regardless of call mode.
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> normalizeCustomerServiceData(Map<String, Object> csData) {
+        Map<String, Object> profile = (Map<String, Object>) csData.getOrDefault("profile", Map.of());
+        List<Map<String, Object>> loans = (List<Map<String, Object>>) csData.getOrDefault("loans", List.of());
+        Map<String, Object> collections = (Map<String, Object>) csData.getOrDefault("collections", Map.of());
+        List<Map<String, Object>> interactionHistory = (List<Map<String, Object>>) csData.getOrDefault("interactionHistory", List.of());
+
+        // Primary loan: highest DPD, fallback to first
+        Map<String, Object> primaryLoan = loans.stream()
+                .max(java.util.Comparator.comparingInt(l -> {
+                    Object dpd = l.get("dpd");
+                    return dpd instanceof Number ? ((Number) dpd).intValue() : 0;
+                }))
+                .orElse(Map.of());
+
+        int dpd = primaryLoan.containsKey("dpd") ? ((Number) primaryLoan.get("dpd")).intValue() : 0;
+        Object overduePrimary = primaryLoan.getOrDefault("overdueAmount",
+                collections.getOrDefault("totalOverdue", 0));
+        Number overdue = overduePrimary instanceof Number ? (Number) overduePrimary : 0;
+        Object emiPrimary = primaryLoan.getOrDefault("emiAmount",
+                primaryLoan.getOrDefault("minimumDue", 0));
+        Number emi = emiPrimary instanceof Number ? (Number) emiPrimary : 0;
+        Object outstandingPrimary = primaryLoan.getOrDefault("outstandingAmount",
+                primaryLoan.getOrDefault("currentOutstanding", 0));
+        Number outstanding = outstandingPrimary instanceof Number ? (Number) outstandingPrimary : 0;
+        Object sanctionedPrimary = primaryLoan.getOrDefault("sanctionedAmount", 0);
+        Number sanctioned = sanctionedPrimary instanceof Number ? (Number) sanctionedPrimary : 0;
+
+        // payment_history
+        List<Map<String, Object>> paymentHistory = new ArrayList<>();
+        List<Map<String, Object>> rawPayments = (List<Map<String, Object>>) primaryLoan.getOrDefault("paymentHistory", List.of());
+        for (Map<String, Object> h : rawPayments) {
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("month", h.getOrDefault("date", ""));
+            entry.put("status", h.getOrDefault("status", ""));
+            entry.put("amount", h.getOrDefault("amount", 0));
+            entry.put("dueAmount", emi);
+            paymentHistory.add(entry);
+        }
+
+        // past_communications
+        List<Map<String, Object>> pastComms = new ArrayList<>();
+        for (Map<String, Object> h : interactionHistory) {
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("date", h.getOrDefault("date", ""));
+            entry.put("caller", h.getOrDefault("handledBy", ""));
+            entry.put("summary", h.getOrDefault("summary", ""));
+            entry.put("type", h.getOrDefault("channel", "Call"));
+            pastComms.add(entry);
+        }
+
+        Map<String, Object> customerNode = new HashMap<>();
+        customerNode.put("name", profile.get("name"));
+        customerNode.put("mobile", profile.get("phone"));
+        customerNode.put("loanType", primaryLoan.get("loanType"));
+        customerNode.put("agreementId", primaryLoan.get("agreementId"));
+        customerNode.put("email", profile.get("email"));
+        customerNode.put("cifNumber", profile.get("customerId"));
+        customerNode.put("noOfAgreements", loans.size());
+        customerNode.put("preferredLanguage", "en");
+
+        Map<String, Object> additional = new HashMap<>();
+        additional.put("dpd", dpd);
+        additional.put("amount", overdue.doubleValue() > 0 ? String.valueOf(overdue) : null);
+        additional.put("dueDate", primaryLoan.getOrDefault("nextDueDate", primaryLoan.get("dueDate")));
+        additional.put("bounceCharges", null);
+        additional.put("penalCharges", null);
+
+        Map<String, Object> loanNode = new HashMap<>();
+        loanNode.put("amount", sanctioned.doubleValue() > 0 ? "₹" + String.format("%,d", sanctioned.longValue()) : null);
+        loanNode.put("tenure", primaryLoan.get("tenure"));
+        loanNode.put("outstanding", outstanding.doubleValue() > 0 ? "₹" + String.format("%,d", outstanding.longValue()) : null);
+        loanNode.put("overdue", overdue.doubleValue() > 0 ? "₹" + String.format("%,d", overdue.longValue()) : null);
+        loanNode.put("disbursementDate", primaryLoan.get("disbursementDate"));
+        loanNode.put("installmentAmount", emi.doubleValue() > 0 ? String.valueOf(emi) : null);
+        loanNode.put("paymentMode", null);
+        loanNode.put("lastPaymentOn", null);
+
+        Map<String, Object> normalized = new HashMap<>();
+        normalized.put("customer", customerNode);
+        normalized.put("additional", additional);
+        normalized.put("loan", loanNode);
+        normalized.put("payment_history", paymentHistory);
+        normalized.put("active_policies", List.of());
+        normalized.put("past_communications", pastComms);
+        return normalized;
     }
 
     @SuppressWarnings("unchecked")

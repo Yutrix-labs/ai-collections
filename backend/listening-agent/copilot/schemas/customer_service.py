@@ -21,8 +21,15 @@ class NextMove(BaseModel):
         return [p[:50] for p in v]
 
 
+class Insight(BaseModel):
+    type: str   # intent | sentiment | alert | suggestion
+    text: str = Field(..., max_length=120)
+    priority: Priority
+
+
 class CopilotResponse(BaseModel):
     next_move: NextMove
+    insights: list[Insight] = Field(default_factory=list)
 
 
 class PreCallSummaryResponse(BaseModel):

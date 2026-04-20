@@ -86,9 +86,9 @@ async def get_exotel_callsid(room_name: str) -> tuple[str | None, str | None]:
                 if mobile:
                     mobile_number = mobile
                     # mobile_number = "9870064932"
-                    # mobile_number = "7838153987"
+                    mobile_number = "7838153987"
                     # mobile_number = "8605319666"
-                    mobile_number = "9767887347"
+                    # mobile_number = "9767887347"
                     # mobile_number = "9769463935"
                     logger.info(
                         f"Mobile number found: {mobile_number} | participant={p.identity}"
@@ -385,22 +385,22 @@ async def entrypoint(ctx: JobContext):
         f"Exotel Call SID extracted: {call_sid} | mobile={mobile_number} | room={room_name}"
     )
 
+    livekit_url = os.getenv("LIVEKIT_URL", "")
+    token = create_meet_token(room_name, "human-agent")
+    meet_url = f"https://meet.livekit.io/custom?liveKitUrl={livekit_url}&token={token}"
+    logger.info(f"LiveKit Meet URL: {meet_url}")
+
+    # Notify backend of incoming call BEFORE copilot.initialize() so the Java session exists
+    # when customer context + pre-call summary are pushed (they resolve by mobileNumber).
+    copilot_mode = os.getenv("COPILOT_MODE", "collections").lower().strip()
+    if copilot_mode == "customer_service" and mobile_number:
+        await push_incoming_call(call_sid, mobile_number, meet_url)
+
     # Initialize copilot (collections or customer_service based on COPILOT_MODE env)
     http_session = await get_http_session()
     copilot = create_copilot(call_sid, http_session, mobile_number)
     await copilot.initialize()
     logger.info(f"Copilot initialized | callSid={call_sid} | mobile={mobile_number}")
-
-    livekit_url = os.getenv("LIVEKIT_URL", "")
-    token = create_meet_token(room_name, "human-agent")
-    meet_url = f"https://meet.livekit.io/custom?liveKitUrl={livekit_url}&token={token}"
-
-    logger.info(f"LiveKit Meet URL: {meet_url}")
-
-    # Notify backend of incoming call (customer-service mode only — creates session + pushes customer data to FE)
-    copilot_mode = os.getenv("COPILOT_MODE", "collections").lower().strip()
-    if copilot_mode == "customer_service" and mobile_number:
-        await push_incoming_call(call_sid, mobile_number, meet_url)
 
     # Push Meet URL to the Spring Boot backend (identified by callSid)
     await push_meet_url(call_sid, meet_url, mobile_number)
