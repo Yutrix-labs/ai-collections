@@ -36,7 +36,7 @@ export function useStompClient() {
   const connect = useCallback((sessionId: string, handlers: StompHandlers) => {
     clientRef.current?.deactivate();
 
-    const wsUrl = API_BASE.replace(/^http/, "ws") + "/ws/websocket";
+    const wsUrl = API_BASE.replace(/^http/, "ws") + "/ws";
 
     const client = new Client({
       brokerURL: wsUrl,

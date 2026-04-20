@@ -60,6 +60,10 @@ app:
   cors:
     allowed-origins: http://localhost:3000,https://aiassistant.yutrix.io
 
+# Next-Action microservice
+next-action:
+  api-url: http://localhost:8082/nextactionapi/V1/analyse/ai-assistant-analyze
+
 # Actuator
 management:
   endpoints:

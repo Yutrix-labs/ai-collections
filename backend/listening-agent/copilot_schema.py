@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import re
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -128,12 +128,20 @@ class Disposition(BaseModel):
         return self
 
 
+class Insight(BaseModel):
+    type: str
+    text: str
+    priority: str
+    reasoning: Optional[str] = None
+
+
 class CopilotResponse(BaseModel):
     next_move: NextMove
     contextual_details: Optional[list[ContextualDetail]] = Field(
         None, alias="contextual_details_list"
     )
     disposition: Optional[Disposition] = None
+    insights: List[Insight] = []
 
     @model_validator(mode="before")
     @classmethod
@@ -153,6 +161,15 @@ def parse_llm_response(raw: str) -> CopilotResponse:
     """
     cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw.strip(), flags=re.MULTILINE)
     cleaned = cleaned.strip()
+
+    # 🔥 Improved cleaning
+    cleaned = re.sub(r"```(?:json)?", "", raw, flags=re.IGNORECASE)  # remove ```json anywhere
+    cleaned = cleaned.replace("```", "").strip()
+
+    # Extract only JSON block (fix trailing text issue)
+    match = re.search(r"\{.*\}", cleaned, re.DOTALL)
+    if match:
+        cleaned = match.group(0).strip()
     return CopilotResponse.model_validate_json(cleaned)
 
 

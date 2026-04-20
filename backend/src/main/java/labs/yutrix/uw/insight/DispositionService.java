@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import labs.yutrix.uw.call.CallSession;
 import labs.yutrix.uw.call.SessionStore;
 import labs.yutrix.uw.customer.CustomerContextService;
+import labs.yutrix.uw.integration.NextActionApiService;
 import labs.yutrix.uw.transcript.TranscriptItemDTO;
 import labs.yutrix.uw.transcript.TranscriptService;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,7 @@ public class DispositionService {
     private final SessionStore sessionStore;
     private final CustomerContextService customerContextService;
     private final SimpMessagingTemplate messagingTemplate;
-
+    private final NextActionApiService nextActionApiService;
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -45,9 +46,17 @@ public class DispositionService {
         try {
             CallSession session = sessionStore.getBySessionId(sessionId);
 
+            // Guard: only one thread runs disposition per call
+            // (/call/end and /call/disconnected can both trigger this concurrently)
+            if (!session.getDispositionFired().compareAndSet(false, true)) {
+                log.info("Disposition already running for this session, skipping | sessionId={}", sessionId);
+                return;
+            }
+
             // Guard: skip if Python copilot already pushed disposition (customer-service mode)
             if (session.getDispositionResult() != null) {
                 log.info("Disposition already set by Python copilot, skipping AI generation | sessionId={}", sessionId);
+                nextActionApiService.analyzeCallAsync(sessionId);
                 return;
             }
 
@@ -56,6 +65,7 @@ public class DispositionService {
             if (transcript.isEmpty()) {
                 log.warn("No transcript found for disposition generation | sessionId={}", sessionId);
                 broadcastDisposition(sessionId, null);
+                nextActionApiService.analyzeCallAsync(sessionId);
                 return;
             }
 
@@ -100,9 +110,13 @@ public class DispositionService {
                 broadcastDisposition(sessionId, null);
             }
 
+            // Fire next-action microservice after disposition is complete (or attempted)
+            nextActionApiService.analyzeCallAsync(sessionId);
+
         } catch (Exception e) {
             log.error("Disposition generation failed | sessionId={}", sessionId, e);
             broadcastDisposition(sessionId, null);
+            nextActionApiService.analyzeCallAsync(sessionId);
         }
     }
 
