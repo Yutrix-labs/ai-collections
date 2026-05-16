@@ -75,7 +75,8 @@ jobs:
         run: |
           echo "$KUBECONFIG_B64" | base64 -d > /tmp/kubeconfig
           export KUBECONFIG=/tmp/kubeconfig
+          kubectl apply -f k8s/listening-agent/authz-policy.yaml
           kubectl apply -f k8s/listening-agent/deployment.yaml
           kubectl rollout status deployment/listening-agent \
             --namespace app-services \
-            --timeout=120s
+            --timeout=600s

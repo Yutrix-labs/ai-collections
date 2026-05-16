@@ -77,6 +77,8 @@ jobs:
         run: |
           echo "$KUBECONFIG_B64" | base64 -d > /tmp/kubeconfig
           export KUBECONFIG=/tmp/kubeconfig
+          kubectl apply -f k8s/backend/peer-auth.yaml
+          kubectl apply -f k8s/backend/authz-policy.yaml
           kubectl apply -f k8s/backend/deployment.yaml
           kubectl rollout status deployment/backend \
             --namespace app-services \

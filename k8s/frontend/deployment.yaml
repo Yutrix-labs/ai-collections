@@ -16,6 +16,9 @@ spec:
     metadata:
       labels:
         app: frontend
+      annotations:
+        sidecar.istio.io/proxyCPU: "10m"
+        sidecar.istio.io/proxyMemory: "64Mi"
     spec:
       imagePullSecrets:
         - name: ghcr-pull-secret
@@ -40,7 +43,7 @@ spec:
             failureThreshold: 3
           resources:
             requests:
-              cpu: "100m"
+              cpu: "10m"
               memory: "256Mi"
             limits:
               cpu: "500m"
