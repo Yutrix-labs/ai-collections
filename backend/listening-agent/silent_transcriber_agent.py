@@ -29,6 +29,7 @@ logging.basicConfig(level=logging.INFO)
 server = AgentServer()
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080")
+AGENT_NAME = os.getenv("AGENT_NAME", "silent-transcriber-dev")
 
 # Global aiohttp session (created lazily)
 _http_session: aiohttp.ClientSession | None = None
@@ -81,15 +82,9 @@ async def get_exotel_callsid(room_name: str) -> tuple[str | None, str | None]:
 
             # Extract mobile number from SIP headers
             if not mobile_number and attrs:
-                # Try common SIP header fields for mobile number
                 mobile = attrs.get("sip.phoneNumber")
                 if mobile:
                     mobile_number = mobile
-                    # mobile_number = "9870064932"
-                    # mobile_number = "8605319666"
-                    mobile_number = "9767887347"
-                    # mobile_number = "9769463935"
-                    # mobile_number = "9767887347"
                     logger.info(
                         f"Mobile number found: {mobile_number} | participant={p.identity}"
                     )
@@ -130,7 +125,6 @@ async def push_transcript(
         async with session.post(
             f"{BACKEND_URL}/collassistantapi/transcript/push",
             json=payload,
-            timeout=aiohttp.ClientTimeout(total=5),
         ) as resp:
             if resp.status != 200:
                 logger.warning(f"Backend returned {resp.status}: {await resp.text()}")
@@ -152,7 +146,6 @@ async def push_incoming_call(
         async with session.post(
             f"{BACKEND_URL}/collassistantapi/call/incoming",
             json=payload,
-            timeout=aiohttp.ClientTimeout(total=5),
         ) as resp:
             if resp.status == 200:
                 data = await resp.json()
@@ -182,7 +175,6 @@ async def push_meet_url(call_sid: str, meet_url: str, mobile_number: str | None 
         async with session.post(
             f"{BACKEND_URL}/collassistantapi/call/meet-url",
             json=payload,
-            timeout=aiohttp.ClientTimeout(total=5),
         ) as resp:
             if resp.status != 200:
                 logger.warning(
@@ -212,7 +204,6 @@ async def notify_call_disconnected(
         async with session.post(
             f"{BACKEND_URL}/collassistantapi/call/disconnected",
             json=payload,
-            timeout=aiohttp.ClientTimeout(total=5),
         ) as resp:
             if resp.status != 200:
                 logger.warning(
@@ -372,7 +363,7 @@ async def transcribe_human_agent(
         )
 
 
-@server.rtc_session(agent_name="silent-transcriber")
+@server.rtc_session(agent_name=AGENT_NAME)
 async def entrypoint(ctx: JobContext):
     room_name = ctx.room.name
     logger.info(f"Job received | room={room_name}")
@@ -385,26 +376,33 @@ async def entrypoint(ctx: JobContext):
     if not call_sid:
         logger.error(f"Could not extract Exotel Call SID from room | room={room_name}")
         return
+
+    # Allow env var override for testing without a real SIP call
+    sip_mobile_override = os.getenv("SIP_MOBILE_NUMBER")
+    if sip_mobile_override:
+        mobile_number = sip_mobile_override
+        logger.info(f"Mobile number overridden by SIP_MOBILE_NUMBER env | mobile={mobile_number}")
+
     logger.info(
         f"Exotel Call SID extracted: {call_sid} | mobile={mobile_number} | room={room_name}"
     )
+
+    livekit_url = os.getenv("LIVEKIT_URL", "")
+    token = create_meet_token(room_name, "human-agent")
+    meet_url = f"https://meet.livekit.io/custom?liveKitUrl={livekit_url}&token={token}"
+    logger.info(f"LiveKit Meet URL: {meet_url}")
+
+    # Notify backend of incoming call BEFORE copilot.initialize() so the Java session exists
+    # when customer context + pre-call summary are pushed (they resolve by mobileNumber).
+    copilot_mode = os.getenv("COPILOT_MODE", "collections").lower().strip()
+    if copilot_mode == "customer_service" and mobile_number:
+        await push_incoming_call(call_sid, mobile_number, meet_url)
 
     # Initialize copilot (collections or customer_service based on COPILOT_MODE env)
     http_session = await get_http_session()
     copilot = create_copilot(call_sid, http_session, mobile_number)
     await copilot.initialize()
     logger.info(f"Copilot initialized | callSid={call_sid} | mobile={mobile_number}")
-
-    livekit_url = os.getenv("LIVEKIT_URL", "")
-    token = create_meet_token(room_name, "human-agent")
-    meet_url = f"https://meet.livekit.io/custom?liveKitUrl={livekit_url}&token={token}"
-
-    logger.info(f"LiveKit Meet URL: {meet_url}")
-
-    # Notify backend of incoming call (customer-service mode only — creates session + pushes customer data to FE)
-    copilot_mode = os.getenv("COPILOT_MODE", "collections").lower().strip()
-    if copilot_mode == "customer_service" and mobile_number:
-        await push_incoming_call(call_sid, mobile_number, meet_url)
 
     # Push Meet URL to the Spring Boot backend (identified by callSid)
     await push_meet_url(call_sid, meet_url, mobile_number)
@@ -560,6 +558,22 @@ async def entrypoint(ctx: JobContext):
     logger.info(
         f"Silent multi-speaker transcriber ready | room={room_name} | callSid={call_sid}"
     )
+
+    # Keep entrypoint alive until the room disconnects so we can close the HTTP session cleanly.
+    disconnect_event = asyncio.Event()
+
+    @ctx.room.on("disconnected")
+    def _on_room_disconnected(*_):
+        disconnect_event.set()
+
+    try:
+        await disconnect_event.wait()
+    finally:
+        global _http_session
+        if _http_session and not _http_session.closed:
+            await _http_session.close()
+            _http_session = None
+        logger.info(f"HTTP session closed | room={room_name}")
 
 
 def main():

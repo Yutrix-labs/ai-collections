@@ -23,6 +23,7 @@ from copilot.base import BaseCopilot
 from copilot.schemas.customer_service import (
     CopilotResponse,
     DispositionResponse,
+    Insight,
     PreCallSummaryResponse,
 )
 
@@ -48,10 +49,15 @@ PRECALL_SYSTEM_PROMPT = (
 
 COPILOT_SYSTEM_PROMPT = (
     "You are a real-time copilot for a bank customer service agent on a live call. "
-    "Your job: tell the agent what to do or ask NEXT.\n\n"
-    "OUTPUT:\n"
+    "Your job: tell the agent what to do or ask NEXT, and flag key observations.\n\n"
+    "OUTPUT — next_move:\n"
     "- 1-2 bullet points: actionable steps, clarifying questions, or solutions. Max 50 chars each.\n"
     "- Priority: high (urgent/blocker), medium (important), low (informational).\n\n"
+    "OUTPUT — insights (0-2 items, only when meaningful):\n"
+    "- type: 'intent' (customer's main request), 'sentiment' (customer mood: positive/neutral/negative), "
+    "'alert' (urgency, compliance, or unresolved issue), 'suggestion' (additional item agent should raise).\n"
+    "- text: max 120 chars, factual and specific.\n"
+    "- priority: high/medium/low.\n\n"
     "BEHAVIOR:\n"
     "- Empty/greeting transcript: suggest opening based on pending items or known issues.\n"
     "- Customer states a problem: suggest resolution steps or clarifying questions to diagnose faster.\n"
@@ -81,6 +87,86 @@ DISPOSITION_SYSTEM_PROMPT = (
     "- If transcript is very short or call dropped early, result should be 'Not Resolved' "
     "with low confidence."
 )
+
+
+# ── Context normalizer ───────────────────────────────────────────────────────
+
+def _normalize_customer_context(customer: dict) -> dict:
+    """
+    Map customer-service.json structure to the same shape as
+    CustomerContextService.buildContext() so the next-action engine receives
+    a consistent customerContext regardless of call mode.
+
+    Collections shape:
+      customer, additional, loan, payment_history, active_policies, past_communications
+    """
+    profile = customer.get("profile", {})
+    loans = customer.get("loans", [])
+    collections_data = customer.get("collections", {})
+
+    # Primary loan: highest DPD (most urgent), fallback to first loan
+    primary_loan = max(loans, key=lambda l: l.get("dpd", 0)) if loans else {}
+
+    dpd = primary_loan.get("dpd", 0)
+    overdue = primary_loan.get("overdueAmount", collections_data.get("totalOverdue", 0))
+    emi = primary_loan.get("emiAmount", primary_loan.get("minimumDue", 0))
+    outstanding = primary_loan.get("outstandingAmount", primary_loan.get("currentOutstanding", 0))
+    sanctioned = primary_loan.get("sanctionedAmount", 0)
+
+    # payment_history: {date, amount, status} → {month, status, amount, dueAmount}
+    payment_history = [
+        {
+            "month": h.get("date", ""),
+            "status": h.get("status", ""),
+            "amount": h.get("amount", 0),
+            "dueAmount": emi,
+        }
+        for h in primary_loan.get("paymentHistory", [])
+    ]
+
+    # past_communications: interactionHistory → {date, caller, summary, type}
+    past_communications = [
+        {
+            "date": h.get("date", ""),
+            "caller": h.get("handledBy", ""),
+            "summary": h.get("summary", ""),
+            "type": h.get("channel", "Call"),
+        }
+        for h in customer.get("interactionHistory", [])
+    ]
+
+    return {
+        "customer": {
+            "name": profile.get("name"),
+            "mobile": profile.get("phone"),
+            "loanType": primary_loan.get("loanType"),
+            "agreementId": primary_loan.get("agreementId"),
+            "email": profile.get("email"),
+            "cifNumber": profile.get("customerId"),
+            "noOfAgreements": len(loans),
+            "preferredLanguage": "en",
+        },
+        "additional": {
+            "dpd": dpd,
+            "amount": str(overdue) if overdue else None,
+            "dueDate": primary_loan.get("nextDueDate") or primary_loan.get("dueDate"),
+            "bounceCharges": None,
+            "penalCharges": None,
+        },
+        "loan": {
+            "amount": f"₹{sanctioned:,}" if sanctioned else None,
+            "tenure": primary_loan.get("tenure"),
+            "outstanding": f"₹{outstanding:,}" if outstanding else None,
+            "overdue": f"₹{overdue:,}" if overdue else None,
+            "disbursementDate": primary_loan.get("disbursementDate"),
+            "installmentAmount": str(emi) if emi else None,
+            "paymentMode": None,
+            "lastPaymentOn": None,
+        },
+        "payment_history": payment_history,
+        "active_policies": [],
+        "past_communications": past_communications,
+    }
 
 
 # ── Helper functions ─────────────────────────────────────────────────────────
@@ -158,7 +244,9 @@ def _build_copilot_user_prompt(customer: dict, precall_summary: str, transcript:
         f"{chr(10).join(transcript_lines) if transcript_lines else 'No conversation yet.'}\n\n"
         f'Respond with JSON only:\n'
         f'{{"next_move": {{"points": ["<point 1, max 50 chars>", "<point 2, max 50 chars>"], '
-        f'"priority": "high|medium|low"}}}}'
+        f'"priority": "high|medium|low"}}, '
+        f'"insights": [{{"type": "intent|sentiment|alert|suggestion", "text": "<max 120 chars>", '
+        f'"priority": "high|medium|low"}}]}}'
     )
 
 
@@ -250,7 +338,7 @@ class CustomerServiceCopilot(BaseCopilot):
             )
 
     async def _push_customer_context(self):
-        """Push full customer data to Java → WS → FE."""
+        """Push original customer data to Java → WS → FE. Normalization happens in Java for next-action payload."""
         await self._push_to_java(
             f"/collassistantapi/copilot/{self.call_sid}/customer-context",
             {
@@ -320,7 +408,7 @@ class CustomerServiceCopilot(BaseCopilot):
             await self._generate_and_push_next_move()
 
     async def _generate_and_push_next_move(self):
-        """Stream Bedrock to generate next_move, push as soon as JSON completes."""
+        """Stream Bedrock to generate next_move (early push) + insights (after full response)."""
         if not self.customer_data:
             return
 
@@ -336,14 +424,56 @@ class CustomerServiceCopilot(BaseCopilot):
                 system_prompt=COPILOT_SYSTEM_PROMPT,
                 user_prompt=user_prompt,
                 on_next_move_ready=self._push_next_move,
-                max_tokens=200,
+                max_tokens=350,
             )
 
             latency = (time.monotonic() - start) * 1000
             logger.info(f"Live copilot completed | callSid={self.call_sid} latency={latency:.0f}ms")
 
+            # Extract insights from the full response and push to /uwapi/insight/push
+            await self._extract_and_push_insights(accumulated)
+
         except Exception as e:
             logger.error(f"Live copilot failed | callSid={self.call_sid} error={e}")
+
+    async def _extract_and_push_insights(self, accumulated: str):
+        """Parse insights from the full LLM response and push to Java insight endpoint."""
+        try:
+            match = re.search(r'"insights"\s*:\s*(\[.*?\])', accumulated, re.DOTALL)
+            if not match:
+                return
+            raw_insights = json.loads(match.group(1))
+            if not raw_insights:
+                return
+
+            ts = time.strftime("%H:%M:%S")
+            items = [
+                {
+                    "insightId": None,
+                    "type": ins.get("type", "suggestion"),
+                    "text": ins.get("text", "")[:120],
+                    "priority": ins.get("priority", "medium"),
+                    "reasoning": None,
+                    "source_layer": "customer-service-copilot",
+                    "time": ts,
+                    "disposition": None,
+                }
+                for ins in raw_insights
+                if ins.get("text")
+            ]
+            if not items:
+                return
+
+            payload = {
+                "callSid": self.call_sid,
+                "mobileNumber": self.mobile_number,
+                "items": items,
+            }
+            await self._push_to_java("/uwapi/insight/push", payload)
+            logger.info(f"Insights pushed | callSid={self.call_sid} count={len(items)}")
+
+        except Exception as e:
+            logger.error(f"Insight push failed | callSid={self.call_sid} error={e}")
 
     async def _push_next_move(self, next_move_data: dict):
         """Push next_move to Java via existing endpoint."""

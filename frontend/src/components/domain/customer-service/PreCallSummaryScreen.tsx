@@ -104,8 +104,14 @@ export function PreCallSummaryScreen({
   customerData,
   countdown,
 }: PreCallSummaryScreenProps) {
-  const { profile, savingsAccount, loans, complaints, pendingRequests, interactionHistory } =
-    customerData;
+  const {
+    profile,
+    savingsAccount,
+    loans = [],
+    complaints = [],
+    pendingRequests = [],
+    interactionHistory = [],
+  } = customerData;
 
   const activeComplaints = complaints.filter((c) => c.status !== "Resolved");
 

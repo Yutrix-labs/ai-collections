@@ -3,7 +3,10 @@
     "allow": [
       "Bash(Get-ChildItem -Path 'c:\\\\yutrix\\\\backend\\\\ai-collections' -Directory)",
       "Bash(Select-Object -ExpandProperty Name)",
-      "PowerShell(head -100)"
+      "PowerShell(head -100)",
+      "Bash(python3 -c \"import paramiko; print\\('paramiko ok'\\)\")",
+      "Bash(python3 -m pip install paramiko -q)",
+      "Bash(git add *)"
     ]
   }
 }
