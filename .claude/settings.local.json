@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path 'c:\\\\yutrix\\\\backend\\\\ai-collections' -Directory)",
+      "Bash(Select-Object -ExpandProperty Name)",
+      "PowerShell(head -100)"
+    ]
+  }
+}

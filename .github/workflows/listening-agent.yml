@@ -5,6 +5,7 @@ on:
     branches: [master]
     paths:
       - "backend/listening-agent/**"
+      - "k8s/listening-agent/**"
       - ".github/workflows/listening-agent.yml"
   pull_request:
     branches: [master]
@@ -19,13 +20,18 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      image: ${{ steps.image.outputs.ref }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set lowercase image name
+      - name: Set image reference
         id: image
-        run: echo "name=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/listening-agent" >> $GITHUB_OUTPUT
+        run: |
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "ref=ghcr.io/${REPO}/listening-agent:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "latest=ghcr.io/${REPO}/listening-agent:latest"         >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -43,26 +49,33 @@ jobs:
           context: ./backend
           file: ./backend/listening-agent/Dockerfile
           push: ${{ github.ref == 'refs/heads/master' && github.event_name == 'push' }}
-          tags: ${{ steps.image.outputs.name }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: |
+            ${{ steps.image.outputs.ref }}
+            ${{ steps.image.outputs.latest }}
+          cache-from: type=registry,ref=${{ steps.image.outputs.latest }}
+          cache-to: type=inline
 
   deploy:
-    name: Deploy to VPS
+    name: Deploy to K8s
     needs: build-push
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
 
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          script: |
-            cd /opt/deployment/code-base/ai-collections
-            git pull origin master
-            docker compose pull listening-agent
-            docker compose up -d listening-agent
+      - uses: actions/checkout@v4
+
+      - name: Pin image to SHA in manifest
+        run: |
+          sed -i "s|image: ghcr.io/yutrix-labs/ai-collections/listening-agent:.*|image: ${{ needs.build-push.outputs.image }}|" \
+            k8s/listening-agent/deployment.yaml
+
+      - name: Deploy
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+        run: |
+          echo "$KUBECONFIG_B64" | base64 -d > /tmp/kubeconfig
+          export KUBECONFIG=/tmp/kubeconfig
+          kubectl apply -f k8s/listening-agent/deployment.yaml
+          kubectl rollout status deployment/listening-agent \
+            --namespace app-services \
+            --timeout=120s

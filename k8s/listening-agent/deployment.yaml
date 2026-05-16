@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: listening-agent
+  namespace: app-services
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: listening-agent
+  namespace: app-services
+  labels:
+    app: listening-agent
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: listening-agent
+  template:
+    metadata:
+      labels:
+        app: listening-agent
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "listening-agent"
+        vault.hashicorp.com/agent-inject-secret-config: "secret/data/app-services/listening-agent/config"
+        vault.hashicorp.com/agent-requests-cpu: "50m"
+        vault.hashicorp.com/agent-limits-cpu: "100m"
+        vault.hashicorp.com/agent-requests-memory: "64Mi"
+        vault.hashicorp.com/agent-limits-memory: "128Mi"
+        # Main env-var secrets file
+        vault.hashicorp.com/agent-inject-template-config: |
+          {{- with secret "secret/data/app-services/listening-agent/config" -}}
+          LIVEKIT_URL="{{ .Data.data.livekit_url }}"
+          LIVEKIT_API_KEY="{{ .Data.data.livekit_api_key }}"
+          LIVEKIT_API_SECRET="{{ .Data.data.livekit_api_secret }}"
+          DEEPGRAM_API_KEY="{{ .Data.data.deepgram_api_key }}"
+          ANTHROPIC_API_KEY="{{ .Data.data.anthropic_api_key }}"
+          OPENAI_API_KEY="{{ .Data.data.openai_api_key }}"
+          AWS_ACCESS_KEY_ID="{{ .Data.data.aws_access_key_id }}"
+          AWS_SECRET_ACCESS_KEY="{{ .Data.data.aws_secret_access_key }}"
+          AWS_REGION="{{ .Data.data.aws_region }}"
+          GCP_PROJECT_ID="{{ .Data.data.gcp_project_id }}"
+          GCP_LOCATION="{{ .Data.data.gcp_location }}"
+          GEMINI_MODEL="{{ .Data.data.gemini_model }}"
+          CEREBRAS_API_KEY="{{ .Data.data.cerebras_api_key }}"
+          CEREBRAS_MODEL="{{ .Data.data.cerebras_model }}"
+          AI_PROVIDER="{{ .Data.data.ai_provider }}"
+          COPILOT_MODE="{{ .Data.data.copilot_mode }}"
+          AGENT_NAME="{{ .Data.data.agent_name }}"
+          SIP_MOBILE_NUMBER="{{ .Data.data.sip_mobile_number }}"
+          GOOGLE_APPLICATION_CREDENTIALS="/vault/secrets/gcp-sa.json"
+          {{- end }}
+        # GCP service account JSON injected as a file
+        vault.hashicorp.com/agent-inject-secret-gcp-sa.json: "secret/data/app-services/listening-agent/gcp-sa"
+        vault.hashicorp.com/agent-inject-template-gcp-sa.json: |
+          {{- with secret "secret/data/app-services/listening-agent/gcp-sa" -}}
+          {{ .Data.data.json }}
+          {{- end }}
+    spec:
+      serviceAccountName: listening-agent
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: listening-agent
+          image: ghcr.io/yutrix-labs/ai-collections/listening-agent:latest
+          # Source Vault secrets before starting the agent
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              if [ -f /vault/secrets/config ]; then
+                set -a; . /vault/secrets/config; set +a
+              fi
+              exec /bin/uv run listening-agent start
+          env:
+            # BACKEND_URL is not secret — use cluster-internal DNS
+            - name: BACKEND_URL
+              value: "http://backend.app-services.svc.cluster.local:8080"
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"

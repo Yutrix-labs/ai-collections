@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backend
+  namespace: app-services
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: app-services
+  labels:
+    app: backend
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate   # single-node — avoids two pods competing for vault lease
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "backend"
+        vault.hashicorp.com/agent-inject-secret-config: "secret/data/app-services/backend/config"
+        vault.hashicorp.com/agent-requests-cpu: "50m"
+        vault.hashicorp.com/agent-limits-cpu: "100m"
+        vault.hashicorp.com/agent-requests-memory: "64Mi"
+        vault.hashicorp.com/agent-limits-memory: "128Mi"
+        vault.hashicorp.com/agent-inject-template-config: |
+          {{- with secret "secret/data/app-services/backend/config" -}}
+          AWS_ACCESS_KEY_ID={{ .Data.data.aws_access_key_id }}
+          AWS_SECRET_ACCESS_KEY={{ .Data.data.aws_secret_access_key }}
+          AWS_REGION={{ .Data.data.aws_region }}
+          OPENAI_API_KEY={{ .Data.data.openai_api_key }}
+          GCP_PROJECT_ID={{ .Data.data.gcp_project_id }}
+          GCP_LOCATION={{ .Data.data.gcp_location }}
+          EXOTEL_ACCOUNT_SID={{ .Data.data.exotel_account_sid }}
+          EXOTEL_AUTH_KEY={{ .Data.data.exotel_auth_key }}
+          EXOTEL_AUTH_TOKEN={{ .Data.data.exotel_auth_token }}
+          EXOTEL_CALLER_ID={{ .Data.data.exotel_caller_id }}
+          LIVEKIT_URL={{ .Data.data.livekit_url }}
+          LIVEKIT_API_KEY={{ .Data.data.livekit_api_key }}
+          LIVEKIT_API_SECRET={{ .Data.data.livekit_api_secret }}
+          {{- end }}
+    spec:
+      serviceAccountName: backend
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: backend
+          image: ghcr.io/yutrix-labs/ai-collections/backend:latest
+          # Source Vault secrets before starting the JVM
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              if [ -f /vault/secrets/config ]; then
+                set -a; . /vault/secrets/config; set +a
+              fi
+              exec java -jar app.jar
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /collassistantapi/actuator/health
+              port: 8080
+            initialDelaySeconds: 90
+            periodSeconds: 15
+            failureThreshold: 4
+          readinessProbe:
+            httpGet:
+              path: /collassistantapi/actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "300m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: app-services
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8080
+      targetPort: 8080

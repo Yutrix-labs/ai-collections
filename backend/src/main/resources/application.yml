@@ -6,9 +6,9 @@ spring:
   ai:
     bedrock:
       aws:
-        region: ap-south-1
-        access-key: AKIASDPOMNPVVR2M2PIW
-        secret-key: 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
+        region: ${AWS_REGION:ap-south-1}
+        access-key: ${AWS_ACCESS_KEY_ID}
+        secret-key: ${AWS_SECRET_ACCESS_KEY}
       converse:
         chat:
           options:
@@ -16,7 +16,7 @@ spring:
             temperature: 0.3
             max-tokens: 600
     openai:
-      api-key: sk-proj-VfELibCuYLPtxyVTfZ8Stuov2cWtnQR69c7nffDaa8UNMJNaZeZhaThBSPVKtHw4nP21uD94wvT3BlbkFJ6-UFO1NtPC9JJE9mgbpYdPzKT0W0QlAQhym0nnjGoXVse3M3O1BQwaqcIAg1F8kZUPc9CYtUQAZ
+      api-key: ${OPENAI_API_KEY}
       chat:
         options:
           model: gpt-4o-mini
@@ -39,10 +39,10 @@ server:
 # Exotel Click2Call
 exotel:
   subdomain: api.in.exotel.com
-  account-sid: fintaar2m
-  auth-key: d842fcade85285ab94b01b5769e84aadce61ae656320f2e1
-  auth-token: 5102f8bd375bce451f009c4b98a1fdad6fd83386c69eba75
-  caller-id: 02247790123
+  account-sid: ${EXOTEL_ACCOUNT_SID:fintaar2m}
+  auth-key: ${EXOTEL_AUTH_KEY}
+  auth-token: ${EXOTEL_AUTH_TOKEN}
+  caller-id: ${EXOTEL_CALLER_ID:02247790123}
   call-type: trans
   time-limit: 600
   record: true
@@ -51,9 +51,9 @@ exotel:
 
 # LiveKit
 livekit:
-  url: wss://test125-h4h82mth.livekit.cloud
-  api-key: APInXwLysngAB2W
-  api-secret: eGhv62IbKuM9dkX2gNSVSbYiddDIBefYSpMareRKDVRA
+  url: ${LIVEKIT_URL}
+  api-key: ${LIVEKIT_API_KEY}
+  api-secret: ${LIVEKIT_API_SECRET}
 
 # CORS
 app:
