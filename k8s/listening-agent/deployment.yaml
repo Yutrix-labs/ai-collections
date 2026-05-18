@@ -80,6 +80,14 @@ spec:
             # BACKEND_URL is not secret — use cluster-internal DNS
             - name: BACKEND_URL
               value: "http://backend.app-services.svc.cluster.local:8080"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+            timeoutSeconds: 10
           resources:
             requests:
               cpu: "10m"
