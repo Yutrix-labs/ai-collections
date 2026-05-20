@@ -20,13 +20,13 @@ server:
 
 exotel:
   subdomain: api.in.exotel.com
-  account-sid: ${EXOTEL_ACCOUNT_SID}
+  account-sid: ${EXOTEL_ACCOUNT_SID:fintaar2m}
   auth-key: ${EXOTEL_AUTH_KEY}
   auth-token: ${EXOTEL_AUTH_TOKEN}
-  caller-id: ${EXOTEL_CALLER_ID}
+  caller-id: ${EXOTEL_CALLER_ID:02247790125}
 
 livekit:
-  url: ${LIVEKIT_URL}
+  url: ${LIVEKIT_URL:wss://test125-h4h82mth.livekit.cloud}
   api-key: ${LIVEKIT_API_KEY}
   api-secret: ${LIVEKIT_API_SECRET}
 
@@ -36,3 +36,8 @@ app:
 
 next-action:
   api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze
+
+logging:
+  level:
+    labs.yutrix.uw: DEBUG
+    org.springframework.web.socket: DEBUG
