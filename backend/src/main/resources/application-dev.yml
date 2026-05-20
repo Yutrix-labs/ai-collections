@@ -1,37 +1,43 @@
 spring:
-  application:
-    name: ai-collections
+  ai:
+    bedrock:
+      aws:
+        region: ${AWS_REGION}
+        access-key: ${AWS_ACCESS_KEY_ID}
+        secret-key: ${AWS_SECRET_ACCESS_KEY}
+    openai:
+      api-key: ${OPENAI_API_KEY}
+    vertex:
+      ai:
+        gemini:
+          project-id: ${GCP_PROJECT_ID}
+          location: ${GCP_LOCATION}
 
 server:
   port: 8080
   servlet:
     context-path: /collassistantapi
 
-# Exotel Click2Call (staging)
 exotel:
   subdomain: api.in.exotel.com
-  account-sid: fintaar2m
-  auth-key: d842fcade85285ab94b01b5769e84aadce61ae656320f2e1
-  auth-token: 5102f8bd375bce451f009c4b98a1fdad6fd83386c69eba75
-  caller-id: 02247790125
+  account-sid: ${EXOTEL_ACCOUNT_SID:fintaar2m}
+  auth-key: ${EXOTEL_AUTH_KEY}
+  auth-token: ${EXOTEL_AUTH_TOKEN}
+  caller-id: ${EXOTEL_CALLER_ID:02247790125}
 
-# LiveKit (staging)
 livekit:
-  url: wss://test125-h4h82mth.livekit.cloud
-  api-key: APInXwLysngAB2W
-  api-secret: eGhv62IbKuM9dkX2gNSVSbYiddDIBefYSpMareRKDVRA
+  url: ${LIVEKIT_URL:wss://test125-h4h82mth.livekit.cloud}
+  api-key: ${LIVEKIT_API_KEY}
+  api-secret: ${LIVEKIT_API_SECRET}
 
-# CORS (staging - update with actual domain)
 app:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+    allowed-origins: https://aiassistant.yutrix.io
 
-# Logging
+next-action:
+  api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze
+
 logging:
   level:
     labs.yutrix.uw: DEBUG
     org.springframework.web.socket: DEBUG
-
-# Next-Action microservice
-next-action:
-  api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze

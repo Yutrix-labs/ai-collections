@@ -62,7 +62,7 @@ spec:
               if [ -f /vault/secrets/config ]; then
                 set -a; . /vault/secrets/config; set +a
               fi
-              exec java -jar app.jar
+              exec java -jar app.jar --spring.profiles.active=dev
           ports:
             - containerPort: 8080
           livenessProbe:

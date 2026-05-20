@@ -1,72 +1,43 @@
 spring:
-  application:
-    name: ai-collections
-
-  # AI config — Bedrock is primary (used for disposition generation)
   ai:
     bedrock:
       aws:
-        region: ${AWS_REGION:ap-south-1}
-        access-key: ${AWS_ACCESS_KEY_ID}
-        secret-key: ${AWS_SECRET_ACCESS_KEY}
-      converse:
-        chat:
-          options:
-            model: arn:aws:bedrock:ap-south-1:144918211563:inference-profile/global.anthropic.claude-haiku-4-5-20251001-v1:0
-            temperature: 0.3
-            max-tokens: 600
+        region: ap-south-1
+        access-key: dev-placeholder
+        secret-key: dev-placeholder
     openai:
-      api-key: ${OPENAI_API_KEY}
-      chat:
-        options:
-          model: gpt-4o-mini
-          temperature: 0.3
+      api-key: dev-placeholder
     vertex:
       ai:
         gemini:
-          project-id: ${GCP_PROJECT_ID:placeholder}
-          location: ${GCP_LOCATION:us-central1}
-          chat:
-            options:
-              model: gemini-2.0-flash
-              temperature: 0.3
+          project-id: dev-placeholder
+          location: dev-placeholder
 
 server:
   port: 8080
   servlet:
     context-path: /collassistantapi
 
-# Exotel Click2Call
 exotel:
   subdomain: api.in.exotel.com
-  account-sid: ${EXOTEL_ACCOUNT_SID:fintaar2m}
-  auth-key: ${EXOTEL_AUTH_KEY}
-  auth-token: ${EXOTEL_AUTH_TOKEN}
-  caller-id: ${EXOTEL_CALLER_ID:02247790123}
-  call-type: trans
-  time-limit: 600
-  record: true
-  recording-channels: dual
-  recording-format: mp3-hq
+  account-sid: fintaar2m
+  auth-key: d842fcade85285ab94b01b5769e84aadce61ae656320f2e1
+  auth-token: 5102f8bd375bce451f009c4b98a1fdad6fd83386c69eba75
+  caller-id: 02247790125
 
-# LiveKit
 livekit:
-  url: ${LIVEKIT_URL}
-  api-key: ${LIVEKIT_API_KEY}
-  api-secret: ${LIVEKIT_API_SECRET}
+  url: wss://test125-h4h82mth.livekit.cloud
+  api-key: APInXwLysngAB2W
+  api-secret: eGhv62IbKuM9dkX2gNSVSbYiddDIBefYSpMareRKDVRA
 
-# CORS
 app:
   cors:
-    allowed-origins: http://localhost:3000,https://aiassistant.yutrix.io
+    allowed-origins: http://localhost:3000
 
-# Next-Action microservice
 next-action:
   api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze
 
-# Actuator
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
+logging:
+  level:
+    labs.yutrix.uw: DEBUG
+    org.springframework.web.socket: DEBUG

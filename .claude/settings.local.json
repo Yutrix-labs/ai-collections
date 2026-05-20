@@ -6,7 +6,11 @@
       "PowerShell(head -100)",
       "Bash(python3 -c \"import paramiko; print\\('paramiko ok'\\)\")",
       "Bash(python3 -m pip install paramiko -q)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(python3 -)",
+      "Bash(git push *)",
+      "Bash(Remove-Item \"c:\\\\yutrix\\\\backend\\\\ai-collections\\\\backend\\\\src\\\\main\\\\resources\\\\application-.yml\")"
     ]
   }
 }
