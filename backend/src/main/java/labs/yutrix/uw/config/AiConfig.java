@@ -12,11 +12,6 @@ import software.amazon.awssdk.regions.providers.AwsRegionProvider;
 @Configuration
 public class AiConfig {
 
-    /**
-     * BedrockProxyChatModel.Builder() eagerly resolves region via DefaultAwsRegionProviderChain
-     * in its constructor — before Spring can inject anything. We must set the system property
-     * early so the SDK chain finds it.
-     */
     AiConfig(@Value("${spring.ai.bedrock.aws.region:ap-south-1}") String region) {
         if (System.getProperty("aws.region") == null && System.getenv("AWS_REGION") == null) {
             System.setProperty("aws.region", region);
