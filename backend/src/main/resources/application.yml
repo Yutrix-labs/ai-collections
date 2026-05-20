@@ -6,7 +6,7 @@ spring:
         access-key: dev-placeholder
         secret-key: dev-placeholder
     openai:
-      api-key: dev-placeholder
+      api-key: csk-cyjfp96x4f8t8ry4rk9kvrkhr2mymvhpc5dp4e5mc53dk3tx
       base-url: https://api.cerebras.ai
       chat:
         options:
