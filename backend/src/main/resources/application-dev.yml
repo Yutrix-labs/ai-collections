@@ -6,7 +6,11 @@ spring:
         access-key: ${AWS_ACCESS_KEY_ID}
         secret-key: ${AWS_SECRET_ACCESS_KEY}
     openai:
-      api-key: ${OPENAI_API_KEY}
+      api-key: ${CEREBRAS_API_KEY}
+      base-url: https://api.cerebras.ai/v1
+      chat:
+        options:
+          model: gpt-oss-120b
     vertex:
       ai:
         gemini:
