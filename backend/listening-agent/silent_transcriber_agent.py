@@ -29,7 +29,7 @@ logging.basicConfig(level=logging.INFO)
 server = AgentServer()
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080")
-AGENT_NAME = os.getenv("AGENT_NAME", "silent-transcriber-dev")
+AGENT_NAME = os.getenv("AGENT_NAME", "silent-transcriber")
 
 # Global aiohttp session (created lazily)
 _http_session: aiohttp.ClientSession | None = None
