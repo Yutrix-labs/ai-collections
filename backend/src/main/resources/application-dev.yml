@@ -7,7 +7,7 @@ spring:
         secret-key: ${AWS_SECRET_ACCESS_KEY}
     openai:
       api-key: ${CEREBRAS_API_KEY}
-      base-url: https://api.cerebras.ai/v1
+      base-url: https://api.cerebras.ai
       chat:
         options:
           model: gpt-oss-120b
