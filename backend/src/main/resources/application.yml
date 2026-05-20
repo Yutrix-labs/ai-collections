@@ -7,6 +7,10 @@ spring:
         secret-key: dev-placeholder
     openai:
       api-key: dev-placeholder
+      base-url: https://api.cerebras.ai/v1
+      chat:
+        options:
+          model: gpt-oss-120b
     vertex:
       ai:
         gemini:

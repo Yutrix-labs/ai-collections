@@ -29,7 +29,7 @@ public class AiConfig {
     }
 
     @Bean
-    ChatClient chatClient(@Qualifier("bedrockProxyChatModel") ChatModel chatModel) {
+    ChatClient chatClient(@Qualifier("openAiChatModel") ChatModel chatModel) {
         return ChatClient.builder(chatModel).build();
     }
 }

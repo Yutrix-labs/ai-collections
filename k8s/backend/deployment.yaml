@@ -38,6 +38,7 @@ spec:
           AWS_SECRET_ACCESS_KEY={{ .Data.data.aws_secret_access_key }}
           AWS_REGION={{ .Data.data.aws_region }}
           OPENAI_API_KEY={{ .Data.data.openai_api_key }}
+          CEREBRAS_API_KEY={{ .Data.data.cerebras_api_key }}
           GCP_PROJECT_ID={{ .Data.data.gcp_project_id }}
           GCP_LOCATION={{ .Data.data.gcp_location }}
           EXOTEL_ACCOUNT_SID={{ .Data.data.exotel_account_sid }}
