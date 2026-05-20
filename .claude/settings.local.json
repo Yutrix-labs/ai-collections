@@ -10,7 +10,9 @@
       "Bash(git commit -m ' *)",
       "Bash(python3 -)",
       "Bash(git push *)",
-      "Bash(Remove-Item \"c:\\\\yutrix\\\\backend\\\\ai-collections\\\\backend\\\\src\\\\main\\\\resources\\\\application-.yml\")"
+      "Bash(Remove-Item \"c:\\\\yutrix\\\\backend\\\\ai-collections\\\\backend\\\\src\\\\main\\\\resources\\\\application-.yml\")",
+      "Bash(python -c \"import paramiko; print\\('paramiko ok'\\)\")",
+      "Bash(python3)"
     ]
   }
 }
