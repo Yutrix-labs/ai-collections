@@ -154,10 +154,10 @@ def _normalize_customer_context(customer: dict) -> dict:
             "penalCharges": None,
         },
         "loan": {
-            "amount": f"₹{sanctioned:,}" if sanctioned else None,
+            "amount": f"CHF {sanctioned:,}" if sanctioned else None,
             "tenure": primary_loan.get("tenure"),
-            "outstanding": f"₹{outstanding:,}" if outstanding else None,
-            "overdue": f"₹{overdue:,}" if overdue else None,
+            "outstanding": f"CHF {outstanding:,}" if outstanding else None,
+            "overdue": f"CHF {overdue:,}" if overdue else None,
             "disbursementDate": primary_loan.get("disbursementDate"),
             "installmentAmount": str(emi) if emi else None,
             "paymentMode": None,
@@ -194,9 +194,9 @@ def _format_loan_summary(loans: list) -> str:
         outstanding = loan.get("outstandingAmount", loan.get("currentOutstanding", 0))
         dpd = loan.get("dpd", 0)
         overdue = loan.get("overdueAmount", 0)
-        line = f"{loan_type}: ₹{outstanding:,} outstanding, DPD {dpd}, Status {status}"
+        line = f"{loan_type}: CHF {outstanding:,} outstanding, DPD {dpd}, Status {status}"
         if overdue and overdue > 0:
-            line += f", Overdue ₹{overdue:,}"
+            line += f", Overdue CHF {overdue:,}"
         lines.append(line)
     return "\n".join(lines)
 
@@ -207,7 +207,7 @@ def _build_precall_user_prompt(customer: dict) -> str:
         f"--- CUSTOMER ---\n"
         f"Name: {customer['profile']['name']}\n"
         f"Segment: {customer['profile']['segment']} | "
-        f"Relationship: ₹{customer['profile']['relationshipValue']:,}\n"
+        f"Relationship: CHF {customer['profile']['relationshipValue']:,}\n"
         f"Customer Since: {customer['profile']['customerSince']}\n\n"
         f"--- LOANS ---\n{json.dumps(customer['loans'], indent=2)}\n\n"
         f"--- COLLECTIONS ---\n{json.dumps(customer['collections'], indent=2)}\n\n"
@@ -225,7 +225,7 @@ def _build_copilot_user_prompt(customer: dict, precall_summary: str, transcript:
 
     collections = customer.get("collections", {})
     collections_line = (
-        f"Status: {collections.get('collectionStatus')}, Overdue: ₹{collections.get('totalOverdue', 0):,}"
+        f"Status: {collections.get('collectionStatus')}, Overdue: CHF {collections.get('totalOverdue', 0):,}"
         if collections.get("isInCollections")
         else "No overdue."
     )

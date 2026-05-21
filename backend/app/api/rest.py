@@ -53,8 +53,8 @@ MOCK_CALL_CONTEXT = {
     "past_communications": [
         {"date": "28-Jan", "caller": "Priya M.", "summary": "Callback req. Job change."},
         {"date": "15-Jan", "caller": "Amit R.", "summary": "No answer. SMS sent."},
-        {"date": "02-Jan", "caller": "Priya M.", "summary": "₹10K PTP Jan 10. Not rcvd."},
-        {"date": "20-Dec", "caller": "Amit R.", "summary": "Agreed month-end. ₹5K paid."},
+        {"date": "02-Jan", "caller": "Priya M.", "summary": "CHF 10K PTP Jan 10. Not rcvd."},
+        {"date": "20-Dec", "caller": "Amit R.", "summary": "Agreed month-end. CHF 5K paid."},
     ],
     "initial_insights": [
         {
@@ -71,7 +71,7 @@ MOCK_CALL_CONTEXT = {
             "insight_id": "static-2",
             "call_id": "demo-call-123",
             "insight_type": "alert",
-            "text": "Broken PTP from Jan 10 — ₹10,000 not received",
+            "text": "Broken PTP from Jan 10 — CHF 10,000 not received",
             "priority": "high",
             "source_layer": "policy",
             "call_elapsed_ms": 0,
@@ -81,7 +81,7 @@ MOCK_CALL_CONTEXT = {
             "insight_id": "static-3",
             "call_id": "demo-call-123",
             "insight_type": "policy",
-            "text": "Penalty waiver up to 50% for commitments ≥ ₹50,000",
+            "text": "Penalty waiver up to 50% for commitments ≥ CHF 50,000",
             "priority": "medium",
             "source_layer": "policy",
             "call_elapsed_ms": 0,

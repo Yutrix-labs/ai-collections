@@ -1,8 +1,8 @@
 "use client";
 
-import { CheckCircle, Calendar, IndianRupee, ArrowRight, Star, Edit, Save, X } from 'lucide-react';
+import { CheckCircle, Calendar, Banknote, ArrowRight, Star, Edit, Save, X, PartyPopper } from 'lucide-react';
 import type { Disposition, PaymentScheduleEntry } from '@/types/copilot.types';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 const DEFAULT_RESULT_OPTIONS = ['PTP', "Won't Pay", "Can't Pay", 'Wrong Number', 'Invalid Number', 'Not Reachable', 'Not Picking'];
@@ -38,6 +38,12 @@ export default function CopilotDispositionCard({
   onOverride,
 }: CopilotDispositionCardProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // Show banner when AI auto-populates disposition
+  useEffect(() => {
+    if (disposition) setSaved(true);
+  }, [disposition]);
   const [formData, setFormData] = useState({
     result:     disposition?.result     ?? '',
     date:       disposition?.date       ?? '',
@@ -64,6 +70,7 @@ export default function CopilotDispositionCard({
   const handleSave = () => {
     onOverride?.(formData);
     setIsEditing(false);
+    setSaved(true);
   };
 
   const handleCancel = () => {
@@ -102,7 +109,7 @@ export default function CopilotDispositionCard({
           <div className="flex flex-col items-end gap-1.5">
             {timestamp && (
               <span className="text-[10px] text-[#94A3B8]">
-                {new Date(timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                {new Date(timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
             {!isEditing && (
@@ -135,11 +142,11 @@ export default function CopilotDispositionCard({
             {disposition.paymentSchedule && disposition.paymentSchedule.length > 0 ? (
               <div className="mb-3 flex-shrink-0">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <IndianRupee className="w-3.5 h-3.5 text-teal-600" />
+                  <Banknote className="w-3.5 h-3.5 text-teal-600" />
                   <span className="text-[10px] font-bold text-teal-600 uppercase">Payment Schedule</span>
                   {disposition.amount != null && (
                     <span className="ml-auto text-[10px] font-bold text-teal-700">
-                      Total: {'\u20B9'}{disposition.amount.toLocaleString('en-IN')}
+                      Total: CHF {disposition.amount.toLocaleString('en-US')}
                     </span>
                   )}
                 </div>
@@ -161,7 +168,7 @@ export default function CopilotDispositionCard({
                             </div>
                           </td>
                           <td className="px-3 py-2 text-right font-bold text-[#0F172A]">
-                            {'\u20B9'}{entry.amount.toLocaleString('en-IN')}
+                            CHF {entry.amount.toLocaleString('en-US')}
                           </td>
                         </tr>
                       ))}
@@ -183,10 +190,10 @@ export default function CopilotDispositionCard({
                 {disposition.amount != null && (
                   <div className="bg-white/60 p-3 rounded-lg border border-teal-100 shadow-sm">
                     <div className="flex items-center gap-1.5 mb-1">
-                      <IndianRupee className="w-3.5 h-3.5 text-teal-600" />
+                      <Banknote className="w-3.5 h-3.5 text-teal-600" />
                       <span className="text-[10px] font-bold text-teal-600 uppercase">Amount</span>
                     </div>
-                    <p className="text-sm font-bold text-[#0F172A]">{'\u20B9'}{disposition.amount.toLocaleString('en-IN')}</p>
+                    <p className="text-sm font-bold text-[#0F172A]">CHF {disposition.amount.toLocaleString('en-US')}</p>
                   </div>
                 )}
               </div>
@@ -201,13 +208,11 @@ export default function CopilotDispositionCard({
               <p className="text-sm font-bold text-[#0F172A]">{disposition.nextAction}</p>
             </div>
 
-            {/* Notes + Reasoning — fills remaining space */}
+            {/* Outcome — fills remaining space */}
             <div className="flex-1 min-h-0 overflow-auto">
-              <p className="text-xs text-[#475569] leading-relaxed">{disposition.notes}</p>
-
               {/* Reason */}
               {disposition.reason && (
-                <div className="mt-3 pt-3 border-t border-teal-100">
+                <div className="mb-3">
                   <span className="text-xs font-bold text-[#94A3B8] uppercase block mb-1">Reason</span>
                   <span className="text-2xl text-[#0F172A] font-bold leading-tight block">{disposition.reason}</span>
                 </div>
@@ -215,7 +220,7 @@ export default function CopilotDispositionCard({
 
               {/* Call Outcome reasoning */}
               {disposition.reasoning && (
-                <div className="mt-3 pt-3 border-t border-teal-100">
+                <div className={disposition.reason ? 'pt-3 border-t border-teal-100' : ''}>
                   <span className="text-xs font-bold text-teal-600 uppercase tracking-wide block mb-1.5">Call Outcome</span>
                   <p className="text-sm text-[#0F172A] leading-relaxed">{disposition.reasoning}</p>
                 </div>
@@ -259,7 +264,7 @@ export default function CopilotDispositionCard({
                 type="text"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                placeholder={'\u20B9 Amount'}
+                placeholder={'CHF Amount'}
                 className="px-3 py-2.5 text-sm border-2 border-teal-200 rounded-lg focus:border-teal-500 focus:outline-none"
               />
             </div>
@@ -292,6 +297,18 @@ export default function CopilotDispositionCard({
           </div>
         )}
       </div>
+
+      {saved && !isEditing && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border-t border-emerald-200 flex-shrink-0"
+        >
+          <PartyPopper className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <span className="text-xs font-bold text-emerald-700">Followup saved successfully</span>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

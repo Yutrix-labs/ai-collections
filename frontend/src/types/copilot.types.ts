@@ -71,7 +71,7 @@ export interface Disposition {
  */
 export interface ContextualDetail {
   label: string;       // max 30 chars, e.g., "Total Overdue", "Oct 2024"
-  value: string;       // max 50 chars, e.g., "₹73,800", "₹18,900 - Paid"
+  value: string;       // max 50 chars, e.g., "CHF 73,800", "CHF 18,900 - Paid"
   highlight?: boolean; // true = red text for critical values
 }
 

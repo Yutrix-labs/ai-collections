@@ -84,7 +84,7 @@ export function CSCustomerDetailsCard({ data }: CSCustomerDetailsCardProps) {
     { label: "Assigned Agency", value: collections.assignedAgency },
     {
       label: "Total Overdue",
-      value: collections.totalOverdue > 0 ? `\u20B9${collections.totalOverdue.toLocaleString("en-IN")}` : "\u20B90",
+      value: collections.totalOverdue > 0 ? `CHF ${collections.totalOverdue.toLocaleString("en-US")}` : "\u20B90",
       highlight: collections.totalOverdue > 0,
     },
     { label: "Last Promise", value: collections.lastPromise },
@@ -128,7 +128,7 @@ export function CSCustomerDetailsCard({ data }: CSCustomerDetailsCardProps) {
               </div>
               <div className="grid grid-cols-2">
                 <DetailCell label="Type" value={savingsAccount.accountType} bg="transparent" />
-                <DetailCell label="Balance" value={`\u20B9${savingsAccount.balance.toLocaleString("en-IN")}`} highlight bg="transparent" />
+                <DetailCell label="Balance" value={`CHF ${savingsAccount.balance.toLocaleString("en-US")}`} highlight bg="transparent" />
                 <DetailCell label="Branch" value={savingsAccount.branch} bg="rgba(0,0,0,0.02)" />
                 <DetailCell label="Recent Txns" value={savingsAccount.recentTransactions?.length || 0} bg="rgba(0,0,0,0.02)" />
               </div>
@@ -140,22 +140,22 @@ export function CSCustomerDetailsCard({ data }: CSCustomerDetailsCardProps) {
             const fields = [
               { label: "Type", value: loan.loanType },
               ...(loan.sanctionedAmount != null
-                ? [{ label: "Sanctioned", value: `\u20B9${loan.sanctionedAmount.toLocaleString("en-IN")}` }]
+                ? [{ label: "Sanctioned", value: `CHF ${loan.sanctionedAmount.toLocaleString("en-US")}` }]
                 : []),
               ...(loan.outstandingAmount != null
-                ? [{ label: "Outstanding", value: `\u20B9${loan.outstandingAmount.toLocaleString("en-IN")}` }]
+                ? [{ label: "Outstanding", value: `CHF ${loan.outstandingAmount.toLocaleString("en-US")}` }]
                 : []),
               ...(loan.emiAmount != null
-                ? [{ label: "EMI", value: `\u20B9${loan.emiAmount.toLocaleString("en-IN")}` }]
+                ? [{ label: "EMI", value: `CHF ${loan.emiAmount.toLocaleString("en-US")}` }]
                 : []),
               ...(loan.overdueAmount != null && loan.overdueAmount > 0
-                ? [{ label: "Overdue", value: `\u20B9${loan.overdueAmount.toLocaleString("en-IN")}`, highlight: true }]
+                ? [{ label: "Overdue", value: `CHF ${loan.overdueAmount.toLocaleString("en-US")}`, highlight: true }]
                 : []),
               ...(loan.dpd > 0 ? [{ label: "DPD", value: `${loan.dpd} days`, highlight: true }] : []),
               ...(loan.creditLimit != null
                 ? [
-                  { label: "Credit Limit", value: `\u20B9${loan.creditLimit.toLocaleString("en-IN")}` },
-                  { label: "Min Due", value: `\u20B9${(loan.minimumDue ?? 0).toLocaleString("en-IN")}` },
+                  { label: "Credit Limit", value: `CHF ${loan.creditLimit.toLocaleString("en-US")}` },
+                  { label: "Min Due", value: `CHF ${(loan.minimumDue ?? 0).toLocaleString("en-US")}` },
                 ]
                 : []),
             ];
@@ -208,7 +208,7 @@ export function CSCustomerDetailsCard({ data }: CSCustomerDetailsCardProps) {
           <DetailCell label="Segment" value={profile.segment} />
           <DetailCell
             label="Relationship Value"
-            value={`\u20B9${profile.relationshipValue.toLocaleString("en-IN")}`}
+            value={`CHF ${profile.relationshipValue.toLocaleString("en-US")}`}
           />
           <DetailCell label="KYC Status" value={profile.kycStatus} bg="rgba(0,0,0,0.02)" />
           <DetailCell label="Customer Since" value={profile.customerSince} bg="rgba(0,0,0,0.02)" />
