@@ -39,18 +39,29 @@ export interface NextMove {
 }
 
 /**
+ * Single entry in a split payment schedule for PTP dispositions.
+ * date is "Today" for same-day payment or "YYYY-MM-DD" for future dates.
+ */
+export interface PaymentScheduleEntry {
+  date: string;
+  amount: number;
+}
+
+/**
  * Call outcome prediction. Only non-null when the AI has a meaningful assessment.
  * date/amount are only non-null when result=PTP and customer explicitly committed.
+ * For PTP: amount = TOTAL committed (full outstanding), paymentSchedule = instalment breakdown.
  * reason is only non-null for "Won't Pay" / "Can't Pay".
  */
 export interface Disposition {
   result: DispositionResult;
   confidence: number;        // 0.0 – 1.0
-  date: string | null;       // YYYY-MM-DD
-  amount: number | null;
+  date: string | null;       // YYYY-MM-DD — first/primary payment date
+  amount: number | null;     // TOTAL committed amount (full outstanding)
   reason: ReasonCode | null;
   notes: string;             // max 150 chars
   nextAction: NextAction;
+  paymentSchedule: PaymentScheduleEntry[] | null;  // null = single lump sum
 }
 
 /**

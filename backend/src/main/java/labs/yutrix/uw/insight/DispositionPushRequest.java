@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 
+import java.util.List;
+
 /**
  * Request payload for Phase 2 push: disposition from Python listening agent.
  * Sent to POST /copilot/{callId}/disposition after full LLM response is parsed (~1500ms).
@@ -32,7 +34,14 @@ public record DispositionPushRequest(
             Double amount,
             String reason,
             String notes,
-            String nextAction
+            String nextAction,
+            List<PaymentEntry> paymentSchedule
+    ) {
+    }
+
+    public record PaymentEntry(
+            String date,    // "Today" or "YYYY-MM-DD"
+            Double amount
     ) {
     }
 }

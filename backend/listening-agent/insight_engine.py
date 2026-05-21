@@ -2155,6 +2155,7 @@ STRICT FORMAT — label: short field name (max 18 chars). value: raw number/fact
 GOOD: {{"label":"DPD","value":"67 days","highlight":true}}, {{"label":"Overdue","value":"₹73,800","highlight":true}}, {{"label":"Last Paid","value":"Dec ₹5K","highlight":false}}, {{"label":"EMI","value":"₹18,450","highlight":false}}, {{"label":"Bounce Charges","value":"₹1,500","highlight":false}}
 BAD (NEVER DO THIS): {{"value":"Aug bounced; Sep cleared; liquidity stress"}}, {{"value":"eligible for plan, not settlement"}}, {{"value":"3 missed in last 6 months"}}
 Use ONLY provided data. No fabrication. Follow the call flow decision tree steps.
+MANDATORY POLICY ENFORCEMENT: The POLICIES section in the user prompt contains hard bank policy rules. You MUST follow them exactly in every next_move suggestion. Never suggest a repayment amount, timeline, or offer that contradicts any policy rule. If a policy specifies exact payment terms (e.g. 50% today + balance in 7 days), the agent must offer exactly those terms — no flexibility, no alternatives, no exceptions.
 If the conversation indicates the customer is questioning payments, disputing amounts, or the agent needs payment context — surface payment history in contextual_details as TWO separate items: one for paid months and one for unpaid months (e.g. {{"label":"Paid Months","value":"Jun ₹5K, Aug ₹5K","highlight":false}}, {{"label":"Unpaid Months","value":"Jul ✗, Sep ✗","highlight":true}}).
 LANGUAGE: Generate next_move points and contextual_details labels in {LANGUAGE_NAMES.get(preferred_language, "English")}. Keep field values (amounts, dates, numbers) in their original format."""
 
@@ -2165,7 +2166,8 @@ LANGUAGE: Generate next_move points and contextual_details labels in {LANGUAGE_N
 Outs:{loan.get("outstanding", "")} Due:{loan.get("overdue", "")} DPD:{additional.get("dpd", 0)}d EMI:₹{additional.get("amount", "")}
 Pay:
 {payment_toon}
-Pol:{"; ".join(policy_lines)}{flow_section}
+POLICIES (MANDATORY - HARD RULES, NO EXCEPTIONS):
+{chr(10).join(policy_lines)}{flow_section}
 Trans:
 {chr(10).join(transcript_lines)}
 Rules:

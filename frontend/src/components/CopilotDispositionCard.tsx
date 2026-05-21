@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle, Calendar, IndianRupee, ArrowRight, Star, Edit, Save, X } from 'lucide-react';
-import type { Disposition } from '@/types/copilot.types';
+import type { Disposition, PaymentScheduleEntry } from '@/types/copilot.types';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 
@@ -132,7 +132,44 @@ export default function CopilotDispositionCard({
             </div>
 
             {/* PTP fields */}
-            {(disposition.date || disposition.amount) && (
+            {disposition.paymentSchedule && disposition.paymentSchedule.length > 0 ? (
+              <div className="mb-3 flex-shrink-0">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <IndianRupee className="w-3.5 h-3.5 text-teal-600" />
+                  <span className="text-[10px] font-bold text-teal-600 uppercase">Payment Schedule</span>
+                  {disposition.amount != null && (
+                    <span className="ml-auto text-[10px] font-bold text-teal-700">
+                      Total: {'\u20B9'}{disposition.amount.toLocaleString('en-IN')}
+                    </span>
+                  )}
+                </div>
+                <div className="bg-white/60 rounded-lg border border-teal-100 shadow-sm overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-teal-50/80 border-b border-teal-100">
+                        <th className="text-left px-3 py-1.5 text-[10px] font-bold text-teal-700 uppercase">Date</th>
+                        <th className="text-right px-3 py-1.5 text-[10px] font-bold text-teal-700 uppercase">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {disposition.paymentSchedule.map((entry: PaymentScheduleEntry, i: number) => (
+                        <tr key={i} className={i < disposition.paymentSchedule!.length - 1 ? 'border-b border-teal-50' : ''}>
+                          <td className="px-3 py-2">
+                            <div className="flex items-center gap-1.5 font-semibold text-[#0F172A]">
+                              <Calendar className="w-3 h-3 text-teal-500 flex-shrink-0" />
+                              {entry.date}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-right font-bold text-[#0F172A]">
+                            {'\u20B9'}{entry.amount.toLocaleString('en-IN')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (disposition.date || disposition.amount != null) && (
               <div className="grid grid-cols-2 gap-2.5 mb-3 flex-shrink-0">
                 {disposition.date && (
                   <div className="bg-white/60 p-3 rounded-lg border border-teal-100 shadow-sm">
