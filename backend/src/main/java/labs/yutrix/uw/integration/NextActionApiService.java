@@ -118,6 +118,7 @@ public class NextActionApiService {
             // }
             payload.put("dataSuggestions", copilotService.getDataSuggestions(sessionId));
             payload.put("callFlows", callFlows);
+            payload.put("disposition", buildDispositionPayload(session));
 
             // Customer service extras (null for collections calls)
             String preCallSummary = copilotService.getPreCallSummary(sessionId);
@@ -143,6 +144,28 @@ public class NextActionApiService {
         } catch (Exception e) {
             log.error("[NextActionApi] Failed to build/send payload | sessionId={}", sessionId, e);
         }
+    }
+
+    private Map<String, Object> buildDispositionPayload(CallSession session) {
+        Map<String, Object> d = new HashMap<>();
+        d.put("result", session.getDispositionResult());
+        d.put("date", session.getDispositionDate());
+        d.put("amount", session.getDispositionAmount());
+        d.put("notes", session.getDispositionNotes());
+        d.put("nextAction", session.getDispositionNextAction());
+        d.put("reason", session.getDispositionReasonCode());
+        if (session.getDispositionPaymentSchedule() != null) {
+            try {
+                d.put("paymentSchedule", objectMapper.readValue(
+                        session.getDispositionPaymentSchedule(),
+                        new TypeReference<List<Map<String, Object>>>() {}));
+            } catch (Exception e) {
+                d.put("paymentSchedule", null);
+            }
+        } else {
+            d.put("paymentSchedule", null);
+        }
+        return d;
     }
 
     @SuppressWarnings("unchecked")
