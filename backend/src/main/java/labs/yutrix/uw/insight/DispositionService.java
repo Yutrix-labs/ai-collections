@@ -135,7 +135,8 @@ public class DispositionService {
                   "reason": "Job Loss|Business Loss|Medical Issues|Issues with Bank|Wrong EMI Amount|null",
                   "notes": "max 150 chars summarizing the outcome",
                   "nextAction": "Follow-up Call|Send Payment Link|Escalate to Supervisor|Legal Notice|No Action",
-                  "paymentSchedule": [{"date": "Today or YYYY-MM-DD", "amount": numeric}, ...] or null
+                  "paymentSchedule": [{"date": "Today or YYYY-MM-DD", "amount": numeric}, ...] or null,
+                  "reasoning": "2-3 sentences explaining why this disposition was chosen"
                 }
 
                 Rules:
@@ -148,6 +149,7 @@ public class DispositionService {
                 - "reason" ONLY for "Won't Pay" or "Can't Pay".
                 - Set confidence >= 0.7 only for clear, unambiguous outcomes.
                 - Set confidence < 0.5 for ambiguous conversations.
+                - "reasoning" must always be present: explain the key signals from the transcript that led to this disposition.
                 - Use ONLY data from the transcript. NEVER fabricate amounts, dates, or details.
                 - Return ONLY the JSON object, no explanation or markdown.""";
     }
@@ -227,7 +229,8 @@ public class DispositionService {
                     node.has("reason") && !node.get("reason").isNull() ? node.get("reason").asText() : null,
                     node.has("notes") ? node.get("notes").asText() : null,
                     node.has("nextAction") ? node.get("nextAction").asText() : null,
-                    paymentSchedule
+                    paymentSchedule,
+                    node.has("reasoning") && !node.get("reasoning").isNull() ? node.get("reasoning").asText() : null
             );
         } catch (Exception e) {
             log.error("Failed to parse disposition JSON: {}", e.getMessage());
