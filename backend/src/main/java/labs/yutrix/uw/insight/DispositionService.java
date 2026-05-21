@@ -142,9 +142,9 @@ public class DispositionService {
                 - "date" and "amount" ONLY for PTP (Promise to Pay) when customer explicitly commits.
                 - For PTP: "amount" is the TOTAL committed amount (full outstanding debt the customer agrees to pay), NOT just today's instalment.
                 - For PTP: "date" is the first/primary payment date.
-                - "paymentSchedule" ONLY for PTP when the customer agrees to pay in multiple instalments across different dates.
-                  Each entry: {"date": "Today" (for same-day) or "YYYY-MM-DD", "amount": numeric}.
-                  Set to null if the customer commits to a single lump-sum payment.
+                - "paymentSchedule" is REQUIRED for PTP. If the customer agrees to pay in a single payment, set it to [{"date": first payment date or "Today", "amount": full amount}].
+                  If the customer splits payment across multiple dates, list every instalment: [{"date": "Today", "amount": X}, {"date": "YYYY-MM-DD", "amount": Y}, ...].
+                  NEVER describe payment splits only in notes — always populate paymentSchedule.
                 - "reason" ONLY for "Won't Pay" or "Can't Pay".
                 - Set confidence >= 0.7 only for clear, unambiguous outcomes.
                 - Set confidence < 0.5 for ambiguous conversations.
