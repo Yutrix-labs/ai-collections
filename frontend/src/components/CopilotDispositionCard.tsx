@@ -201,8 +201,8 @@ export default function CopilotDispositionCard({
               <p className="text-sm font-bold text-[#0F172A]">{disposition.nextAction}</p>
             </div>
 
-            {/* Notes — fills remaining space */}
-            <div className="flex-1 min-h-0">
+            {/* Notes + Reasoning — fills remaining space */}
+            <div className="flex-1 min-h-0 overflow-auto">
               <p className="text-xs text-[#475569] leading-relaxed">{disposition.notes}</p>
 
               {/* Reason */}
@@ -210,6 +210,14 @@ export default function CopilotDispositionCard({
                 <div className="mt-3 pt-3 border-t border-teal-100">
                   <span className="text-xs font-bold text-[#94A3B8] uppercase block mb-1">Reason</span>
                   <span className="text-2xl text-[#0F172A] font-bold leading-tight block">{disposition.reason}</span>
+                </div>
+              )}
+
+              {/* Call Outcome reasoning */}
+              {disposition.reasoning && (
+                <div className="mt-3 pt-3 border-t border-teal-100">
+                  <span className="text-xs font-bold text-teal-600 uppercase tracking-wide block mb-1.5">Call Outcome</span>
+                  <p className="text-sm text-[#0F172A] leading-relaxed">{disposition.reasoning}</p>
                 </div>
               )}
             </div>

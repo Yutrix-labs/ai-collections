@@ -62,6 +62,7 @@ export interface Disposition {
   notes: string;             // max 150 chars
   nextAction: NextAction;
   paymentSchedule: PaymentScheduleEntry[] | null;  // null = single lump sum
+  reasoning: string | null;  // AI explanation of why this disposition was chosen
 }
 
 /**

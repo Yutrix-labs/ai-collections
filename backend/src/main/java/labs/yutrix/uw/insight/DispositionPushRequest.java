@@ -35,7 +35,8 @@ public record DispositionPushRequest(
             String reason,
             String notes,
             String nextAction,
-            List<PaymentEntry> paymentSchedule
+            List<PaymentEntry> paymentSchedule,
+            String reasoning
     ) {
     }
 
