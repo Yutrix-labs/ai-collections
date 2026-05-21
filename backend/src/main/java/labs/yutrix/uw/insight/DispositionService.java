@@ -15,6 +15,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -133,11 +134,17 @@ public class DispositionService {
                   "amount": numeric_or_null,
                   "reason": "Job Loss|Business Loss|Medical Issues|Issues with Bank|Wrong EMI Amount|null",
                   "notes": "max 150 chars summarizing the outcome",
-                  "nextAction": "Follow-up Call|Send Payment Link|Escalate to Supervisor|Legal Notice|No Action"
+                  "nextAction": "Follow-up Call|Send Payment Link|Escalate to Supervisor|Legal Notice|No Action",
+                  "paymentSchedule": [{"date": "Today or YYYY-MM-DD", "amount": numeric}, ...] or null
                 }
 
                 Rules:
                 - "date" and "amount" ONLY for PTP (Promise to Pay) when customer explicitly commits.
+                - For PTP: "amount" is the TOTAL committed amount (full outstanding debt the customer agrees to pay), NOT just today's instalment.
+                - For PTP: "date" is the first/primary payment date.
+                - "paymentSchedule" ONLY for PTP when the customer agrees to pay in multiple instalments across different dates.
+                  Each entry: {"date": "Today" (for same-day) or "YYYY-MM-DD", "amount": numeric}.
+                  Set to null if the customer commits to a single lump-sum payment.
                 - "reason" ONLY for "Won't Pay" or "Can't Pay".
                 - Set confidence >= 0.7 only for clear, unambiguous outcomes.
                 - Set confidence < 0.5 for ambiguous conversations.
@@ -200,6 +207,18 @@ public class DispositionService {
             cleaned = cleaned.substring(start, end + 1);
 
             JsonNode node = objectMapper.readTree(cleaned);
+
+            List<DispositionPushRequest.PaymentEntry> paymentSchedule = null;
+            if (node.has("paymentSchedule") && node.get("paymentSchedule").isArray()) {
+                paymentSchedule = new ArrayList<>();
+                for (JsonNode entry : node.get("paymentSchedule")) {
+                    paymentSchedule.add(new DispositionPushRequest.PaymentEntry(
+                            entry.has("date") ? entry.get("date").asText() : null,
+                            entry.has("amount") && !entry.get("amount").isNull() ? entry.get("amount").asDouble() : null
+                    ));
+                }
+            }
+
             return new DispositionPushRequest.DispositionPayload(
                     node.has("result") ? node.get("result").asText() : null,
                     node.has("confidence") ? node.get("confidence").asDouble() : 0.0,
@@ -207,7 +226,8 @@ public class DispositionService {
                     node.has("amount") && !node.get("amount").isNull() ? node.get("amount").asDouble() : null,
                     node.has("reason") && !node.get("reason").isNull() ? node.get("reason").asText() : null,
                     node.has("notes") ? node.get("notes").asText() : null,
-                    node.has("nextAction") ? node.get("nextAction").asText() : null
+                    node.has("nextAction") ? node.get("nextAction").asText() : null,
+                    paymentSchedule
             );
         } catch (Exception e) {
             log.error("Failed to parse disposition JSON: {}", e.getMessage());
@@ -222,6 +242,13 @@ public class DispositionService {
         session.setDispositionNotes(payload.notes());
         session.setDispositionNextAction(payload.nextAction());
         session.setDispositionReasonCode(payload.reason());
+        if (payload.paymentSchedule() != null) {
+            try {
+                session.setDispositionPaymentSchedule(objectMapper.writeValueAsString(payload.paymentSchedule()));
+            } catch (Exception e) {
+                log.warn("Failed to serialize paymentSchedule | sessionId={}", session.getSessionId(), e);
+            }
+        }
     }
 
     private void broadcastDisposition(String sessionId, DispositionPushRequest.DispositionPayload payload) {

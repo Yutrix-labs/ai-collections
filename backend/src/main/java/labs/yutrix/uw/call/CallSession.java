@@ -30,6 +30,7 @@ public class CallSession {
     private String dispositionNotes;
     private String dispositionNextAction;
     private String dispositionReasonCode;
+    private String dispositionPaymentSchedule; // JSON: [{date, amount}, ...]
 
     // Prevents disposition from running more than once per call
     // (both /call/end and /call/disconnected can trigger disposition flow concurrently)
