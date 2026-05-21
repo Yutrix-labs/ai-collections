@@ -92,7 +92,7 @@
         "date": "2025-03-17",
         "channel": "Phone",
         "topic": "Credit Card Billing Dispute",
-        "summary": "Customer disputed a charge of ₹3,200 from an online merchant. Investigated and found it was a duplicate charge. Refund processed. Customer satisfied.",
+        "summary": "Customer disputed a charge of CHF 3,200 from an online merchant. Investigated and found it was a duplicate charge. Refund processed. Customer satisfied.",
         "status": "Resolved",
         "handledBy": "Agent Priya"
       },
@@ -118,7 +118,7 @@
         "complaintId": "CMP-2025-1182",
         "date": "2025-03-17",
         "category": "Billing Dispute",
-        "description": "Duplicate charge of ₹3,200 on credit card from online merchant",
+        "description": "Duplicate charge of CHF 3,200 on credit card from online merchant",
         "status": "Resolved",
         "resolution": "Refund processed",
         "resolvedDate": "2025-03-17"
@@ -220,7 +220,7 @@
         "date": "2025-03-17",
         "channel": "Phone",
         "topic": "Credit Card Billing Dispute",
-        "summary": "Customer disputed a charge of ₹3,200 from an online merchant. Investigated and found it was a duplicate charge. Refund processed. Customer satisfied.",
+        "summary": "Customer disputed a charge of CHF 3,200 from an online merchant. Investigated and found it was a duplicate charge. Refund processed. Customer satisfied.",
         "status": "Resolved",
         "handledBy": "Agent Priya"
       },
@@ -246,7 +246,7 @@
         "complaintId": "CMP-2025-1182",
         "date": "2025-03-17",
         "category": "Billing Dispute",
-        "description": "Duplicate charge of ₹3,200 on credit card from online merchant",
+        "description": "Duplicate charge of CHF 3,200 on credit card from online merchant",
         "status": "Resolved",
         "resolution": "Refund processed",
         "resolvedDate": "2025-03-17"
@@ -348,7 +348,7 @@
         "date": "2025-03-17",
         "channel": "Phone",
         "topic": "Credit Card Billing Dispute",
-        "summary": "Customer disputed a charge of ₹3,200 from an online merchant. Investigated and found it was a duplicate charge. Refund processed. Customer satisfied.",
+        "summary": "Customer disputed a charge of CHF 3,200 from an online merchant. Investigated and found it was a duplicate charge. Refund processed. Customer satisfied.",
         "status": "Resolved",
         "handledBy": "Agent Priya"
       },
@@ -374,7 +374,7 @@
         "complaintId": "CMP-2025-1182",
         "date": "2025-03-17",
         "category": "Billing Dispute",
-        "description": "Duplicate charge of ₹3,200 on credit card from online merchant",
+        "description": "Duplicate charge of CHF 3,200 on credit card from online merchant",
         "status": "Resolved",
         "resolution": "Refund processed",
         "resolvedDate": "2025-03-17"
@@ -600,7 +600,7 @@
         "date": "2025-02-14",
         "channel": "Email",
         "topic": "Loan Foreclosure Inquiry",
-        "summary": "Customer emailed asking for foreclosure quote for vehicle loan. Quote sent: ₹5,72,400 (principal) + ₹11,448 (2% foreclosure charge) = ₹5,83,848. Valid till March 15. Customer did not proceed.",
+        "summary": "Customer emailed asking for foreclosure quote for vehicle loan. Quote sent: CHF 5,72,400 (principal) + CHF 11,448 (2% foreclosure charge) = CHF 5,83,848. Valid till March 15. Customer did not proceed.",
         "status": "Resolved",
         "handledBy": "System Auto"
       }
@@ -610,7 +610,7 @@
         "complaintId": "CMP-2025-0843",
         "date": "2025-03-06",
         "category": "Auto-Debit Failure",
-        "description": "EMI auto-debit attempted despite insufficient balance. Customer charged ₹350 bounce fee by their bank. Wants reimbursement.",
+        "description": "EMI auto-debit attempted despite insufficient balance. Customer charged CHF 350 bounce fee by their bank. Wants reimbursement.",
         "status": "Under Review",
         "resolution": null,
         "resolvedDate": null

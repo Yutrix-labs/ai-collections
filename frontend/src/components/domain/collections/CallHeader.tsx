@@ -12,7 +12,7 @@ import { usePathname, useRouter } from "@/i18n/navigation";
 import { formatCallTime } from "@/lib/utils";
 import {
   Mic, MicOff, Globe, Check, ChevronDown,
-  PhoneCall, Bot, Phone, PhoneOff, Type,
+  PhoneCall, Bot, Phone, PhoneOff, Type, ArrowLeft,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Waveform } from "./Waveform";
@@ -65,6 +65,13 @@ export function CallHeader({
       style={{ background: `linear-gradient(135deg, ${T.navy}, #134E4A)` }}
     >
       <div className="flex items-center gap-3">
+        <button
+          onClick={() => router.push("/worklist")}
+          title="Back to worklist"
+          className="flex items-center justify-center w-[30px] h-[30px] rounded-lg bg-white/[0.08] border-0 cursor-pointer text-slate-300 transition-all duration-200 hover:bg-white/[0.16] hover:text-white"
+        >
+          <ArrowLeft size={16} />
+        </button>
         <div className="bg-teal-400/10 p-1.5 rounded-lg">
           <Bot size={20} color="#5EEAD4" strokeWidth={2.2} />
         </div>

@@ -14,12 +14,12 @@
       "preferredLanguage": "hi"
     },
     "loan": {
-      "amount": "₹8,00,000",
+      "amount": "CHF 8,00,000",
       "tenure": "24 months",
       "emiStart": "03/07/2021",
       "emiEnd": "03/07/2031",
-      "outstanding": "₹7,10,942",
-      "overdue": "₹1,14,099",
+      "outstanding": "CHF 7,10,942",
+      "overdue": "CHF 1,14,099",
       "disbursementDate": "02/07/2025",
       "interestRate": "13.0",
       "instStartDate": "03/08/2025",
@@ -32,15 +32,15 @@
       "lastPaymentOn": "03/04/2025",
       "paymentDueDate": "03/12/2025",
       "lastReversalAmount": "0",
-      "lastPaymentAmount": "₹76,066",
-      "installmentAmount": "₹38,033",
+      "lastPaymentAmount": "CHF 76,066",
+      "installmentAmount": "CHF 38,033",
       "currentInstallmentNo": "5",
       "paymentMode": "ECS"
     },
     "additionalDetails": {
       "installmentNo": "5 of 24",
       "dueDate": "03 Dec 2025",
-      "amount": "₹1,14,099",
+      "amount": "CHF 1,14,099",
       "bounceCharges": "1,500",
       "penalCharges": "3,240",
       "dpd": 67,
@@ -81,7 +81,7 @@
     "activePolicies": [
       {
         "policy": "settlement_eligibility",
-        "rule": "Customer is eligible for settlement if DPD > 90 and outstanding < ₹5L"
+        "rule": "Customer is eligible for settlement if DPD > 90 and outstanding < CHF 5L"
       },
       {
         "policy": "payment_plan",
@@ -112,13 +112,13 @@
       {
         "date": "5-Dec",
         "caller": "Priya M.",
-        "summary": "₹10K PTP Dec 10. Not rcvd.",
+        "summary": "CHF 10K PTP Dec 10. Not rcvd.",
         "type": "Call"
       },
       {
         "date": "5-Dec",
         "caller": "System Init",
-        "summary": "Agreed month-end. ₹5K paid.",
+        "summary": "Agreed month-end. CHF 5K paid.",
         "type": "Whatsapp"
       }
     ],
@@ -142,12 +142,12 @@
       "preferredLanguage": "hi"
     },
     "loan": {
-      "amount": "₹8,00,000",
+      "amount": "CHF 8,00,000",
       "tenure": "24 months",
       "emiStart": "03/07/2021",
       "emiEnd": "03/07/2031",
-      "outstanding": "₹7,10,942",
-      "overdue": "₹1,14,099",
+      "outstanding": "CHF 7,10,942",
+      "overdue": "CHF 1,14,099",
       "disbursementDate": "02/07/2025",
       "interestRate": "13.0",
       "instStartDate": "03/08/2025",
@@ -160,15 +160,15 @@
       "lastPaymentOn": "03/04/2025",
       "paymentDueDate": "03/12/2025",
       "lastReversalAmount": "0",
-      "lastPaymentAmount": "₹76,066",
-      "installmentAmount": "₹38,033",
+      "lastPaymentAmount": "CHF 76,066",
+      "installmentAmount": "CHF 38,033",
       "currentInstallmentNo": "5",
       "paymentMode": "ECS"
     },
     "additionalDetails": {
       "installmentNo": "5 of 24",
       "dueDate": "03 Dec 2025",
-      "amount": "₹1,14,099",
+      "amount": "CHF 1,14,099",
       "bounceCharges": "1,500",
       "penalCharges": "3,240",
       "dpd": 67,
@@ -209,7 +209,7 @@
     "activePolicies": [
       {
         "policy": "settlement_eligibility",
-        "rule": "Customer is eligible for settlement if DPD > 90 and outstanding < ₹5L"
+        "rule": "Customer is eligible for settlement if DPD > 90 and outstanding < CHF 5L"
       },
       {
         "policy": "payment_plan",
@@ -240,13 +240,13 @@
       {
         "date": "5-Dec",
         "caller": "Priya M.",
-        "summary": "₹10K PTP Dec 10. Not rcvd.",
+        "summary": "CHF 10K PTP Dec 10. Not rcvd.",
         "type": "Call"
       },
       {
         "date": "5-Dec",
         "caller": "System Init",
-        "summary": "Agreed month-end. ₹5K paid.",
+        "summary": "Agreed month-end. CHF 5K paid.",
         "type": "Whatsapp"
       }
     ],
@@ -270,12 +270,12 @@
       "preferredLanguage": "en"
     },
     "loan": {
-      "amount": "₹15,00,000",
+      "amount": "CHF 15,00,000",
       "tenure": "36 months",
       "emiStart": "10-Jun-2023",
       "emiEnd": "10-May-2026",
-      "outstanding": "₹4,10,000",
-      "overdue": "₹45,000",
+      "outstanding": "CHF 4,10,000",
+      "overdue": "CHF 45,000",
       "disbursementDate": "01-Jun-2023",
       "interestRate": "14.5",
       "instStartDate": "10-Jun-2023",
@@ -393,12 +393,12 @@
       "preferredLanguage": "mr"
     },
     "loan": {
-      "amount": "₹2,00,000",
+      "amount": "CHF 2,00,000",
       "tenure": "Revolving",
       "emiStart": "N/A",
       "emiEnd": "N/A",
-      "outstanding": "₹12,500",
-      "overdue": "₹12,500",
+      "outstanding": "CHF 12,500",
+      "overdue": "CHF 12,500",
       "disbursementDate": "15-Jan-2025",
       "interestRate": "36.0",
       "instStartDate": "N/A",
@@ -510,12 +510,12 @@
       "preferredLanguage": "en"
     },
     "loan": {
-      "amount": "₹5,00,000",
+      "amount": "CHF 5,00,000",
       "tenure": "60 months",
       "emiStart": "05-Jan-2022",
       "emiEnd": "05-Dec-2026",
-      "outstanding": "₹1,85,000",
-      "overdue": "₹60,000",
+      "outstanding": "CHF 1,85,000",
+      "overdue": "CHF 60,000",
       "disbursementDate": "01-Jan-2022",
       "interestRate": "12.0",
       "instStartDate": "05-Jan-2022",
@@ -619,7 +619,7 @@
       {
         "date": "28-Dec",
         "caller": "Priya M.",
-        "summary": "Part payment of ₹5k received.",
+        "summary": "Part payment of CHF 5k received.",
         "type": "Field Visit"
       }
     ],

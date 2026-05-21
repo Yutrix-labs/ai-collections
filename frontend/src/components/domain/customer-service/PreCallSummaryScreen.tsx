@@ -175,7 +175,7 @@ export function PreCallSummaryScreen({
               <InfoRow label="KYC Status" value={profile.kycStatus} />
               <InfoRow
                 label="Relationship Value"
-                value={`\u20B9${profile.relationshipValue.toLocaleString("en-IN")}`}
+                value={`CHF ${profile.relationshipValue.toLocaleString("en-US")}`}
               />
               {profile.alternatePhone && (
                 <InfoRow label="Alt. Phone" value={profile.alternatePhone} />
@@ -227,7 +227,7 @@ export function PreCallSummaryScreen({
                   </div>
                   <p className="text-[0.6rem] text-[#94A3B8] mb-1">{savingsAccount.accountNumber}</p>
 
-                  <InfoRow label="Balance" value={`\u20B9${savingsAccount.balance.toLocaleString("en-IN")}`} highlight />
+                  <InfoRow label="Balance" value={`CHF ${savingsAccount.balance.toLocaleString("en-US")}`} highlight />
                   <InfoRow label="Branch" value={savingsAccount.branch} />
                 </div>
               )}
@@ -249,25 +249,25 @@ export function PreCallSummaryScreen({
                   {loan.sanctionedAmount != null && (
                     <InfoRow
                       label="Sanctioned"
-                      value={`\u20B9${loan.sanctionedAmount.toLocaleString("en-IN")}`}
+                      value={`CHF ${loan.sanctionedAmount.toLocaleString("en-US")}`}
                     />
                   )}
                   {loan.outstandingAmount != null && (
                     <InfoRow
                       label="Outstanding"
-                      value={`\u20B9${loan.outstandingAmount.toLocaleString("en-IN")}`}
+                      value={`CHF ${loan.outstandingAmount.toLocaleString("en-US")}`}
                     />
                   )}
                   {loan.emiAmount != null && (
                     <InfoRow
                       label="EMI"
-                      value={`\u20B9${loan.emiAmount.toLocaleString("en-IN")}`}
+                      value={`CHF ${loan.emiAmount.toLocaleString("en-US")}`}
                     />
                   )}
                   {loan.overdueAmount != null && loan.overdueAmount > 0 && (
                     <InfoRow
                       label="Overdue"
-                      value={`\u20B9${loan.overdueAmount.toLocaleString("en-IN")}`}
+                      value={`CHF ${loan.overdueAmount.toLocaleString("en-US")}`}
                       highlight
                     />
                   )}
@@ -278,15 +278,15 @@ export function PreCallSummaryScreen({
                     <>
                       <InfoRow
                         label="Credit Limit"
-                        value={`\u20B9${loan.creditLimit.toLocaleString("en-IN")}`}
+                        value={`CHF ${loan.creditLimit.toLocaleString("en-US")}`}
                       />
                       <InfoRow
                         label="Current Outstanding"
-                        value={`\u20B9${(loan.currentOutstanding ?? 0).toLocaleString("en-IN")}`}
+                        value={`CHF ${(loan.currentOutstanding ?? 0).toLocaleString("en-US")}`}
                       />
                       <InfoRow
                         label="Min Due"
-                        value={`\u20B9${(loan.minimumDue ?? 0).toLocaleString("en-IN")}`}
+                        value={`CHF ${(loan.minimumDue ?? 0).toLocaleString("en-US")}`}
                       />
                     </>
                   )}
