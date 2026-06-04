@@ -127,6 +127,9 @@
     "overdue": "Overdue Details",
     "cifNumber": "CIF Number",
     "noOfAgreements": "No of Agreements",
+    "ptpFulfillment": "PTP Fulfillment",
+    "paymentProbability15d": "Payment Probability (15d)",
+    "paymentProbability30d": "Payment Probability (30d)",
     "writeoff": "Writeoff",
     "legalProceedings": "Legal Proceedings"
   },

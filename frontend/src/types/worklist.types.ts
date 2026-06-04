@@ -9,4 +9,6 @@ export interface WorklistItem {
     priority: "HIGH" | "MEDIUM" | "LOW";
     lastContactDate: string;
     lastContactSummary: string;
+    ptpBand?: "High" | "Medium" | "Low" | "Unknown" | null;
+    paymentBand?: "High" | "Medium" | "Low" | "Unknown" | null;
 }

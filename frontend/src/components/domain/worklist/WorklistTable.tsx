@@ -23,21 +23,24 @@ const rowVariants = {
   exit: { opacity: 0, x: -10, transition: { duration: 0.2 } },
 };
 
-/* ── Priority Badge ── */
-function PriorityBadge({ priority }: { priority: WorklistItem["priority"] }) {
-  const colors = {
-    HIGH: { bg: "#FEE2E2", text: "#DC2626" },   // Red-100, Red-600
-    MEDIUM: { bg: "#FEF3C7", text: "#D97706" }, // Amber-100, Amber-600
-    LOW: { bg: "#DCFCE7", text: "#16A34A" },    // Green-100, Green-600
+/* ── Likelihood Band Badge (High=green, Medium=amber, Low=red) ── */
+function BandBadge({ band }: { band?: string | null }) {
+  if (!band || band === "Unknown") {
+    return <span className="text-slate-300 text-xs">—</span>;
+  }
+  const colors: Record<string, { bg: string; text: string }> = {
+    High: { bg: "#DCFCE7", text: "#16A34A" },   // green
+    Medium: { bg: "#FEF3C7", text: "#D97706" }, // amber
+    Low: { bg: "#FEE2E2", text: "#DC2626" },    // red
   };
-  const style = colors[priority] || colors.LOW;
+  const style = colors[band] ?? colors.Low;
 
   return (
     <span
-      className="px-2 py-1 rounded-md text-[10px] font-bold tracking-wider"
+      className="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide"
       style={{ backgroundColor: style.bg, color: style.text }}
     >
-      {priority}
+      {band}
     </span>
   );
 }
@@ -74,16 +77,17 @@ export function WorklistTable() {
 
   return (
     <div className="w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-      <Table>
+      <Table className="table-fixed">
         <TableHeader className="bg-slate-50">
           <TableRow>
-            <TableHead className="w-[140px] font-bold text-slate-700">Loan App No</TableHead>
-            <TableHead className="font-bold text-slate-700">Customer Name</TableHead>
-            <TableHead className="font-bold text-slate-700">Mobile</TableHead>
-            <TableHead className="text-right font-bold text-slate-700">Amount Due</TableHead>
-            <TableHead className="text-center font-bold text-slate-700">DPD</TableHead>
-            <TableHead className="text-center font-bold text-slate-700">Status</TableHead>
-            <TableHead className="text-right font-bold text-slate-700">Action</TableHead>
+            <TableHead className="w-[13%] font-bold text-slate-700">Loan App No</TableHead>
+            <TableHead className="w-[19%] font-bold text-slate-700">Customer Name</TableHead>
+            <TableHead className="w-[12%] font-bold text-slate-700">Mobile</TableHead>
+            <TableHead className="w-[12%] text-right font-bold text-slate-700">Amount Due</TableHead>
+            <TableHead className="w-[8%] text-center font-bold text-slate-700">DPD</TableHead>
+            <TableHead className="w-[13%] text-center font-bold text-slate-700">PTP Probability</TableHead>
+            <TableHead className="w-[14%] text-center font-bold text-slate-700">Payment Probability</TableHead>
+            <TableHead className="w-[9%] text-right font-bold text-slate-700">Action</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -125,7 +129,10 @@ export function WorklistTable() {
                   </span>
                 </TableCell>
                 <TableCell className="text-center">
-                  <PriorityBadge priority={item.priority} />
+                  <BandBadge band={item.ptpBand} />
+                </TableCell>
+                <TableCell className="text-center">
+                  <BandBadge band={item.paymentBand} />
                 </TableCell>
                 <TableCell className="text-right">
                   <Button

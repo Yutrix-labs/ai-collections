@@ -120,6 +120,9 @@
     "title": "ग्राहक तपशील",
     "cifNumber": "CIF क्रमांक",
     "noOfAgreements": "करारांची संख्या",
+    "ptpFulfillment": "PTP पूर्तता",
+    "paymentProbability15d": "पेमेंट संभाव्यता (15 दिवस)",
+    "paymentProbability30d": "पेमेंट संभाव्यता (30 दिवस)",
     "writeoff": "राइट-ऑफ",
     "legalProceedings": "कायदेशीर कार्यवाही"
   },

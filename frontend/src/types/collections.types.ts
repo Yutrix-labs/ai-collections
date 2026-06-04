@@ -174,6 +174,30 @@ export interface CustomerData {
   callBehaviour?: CallBehaviour;
 }
 
+export interface PtpFactor {
+  feature: string;
+  label: string;
+  value: number | string | null;
+  impact: "positive" | "negative";
+}
+
+export interface SubScore {
+  probability: number;
+  band: "High" | "Medium" | "Low" | "Unknown" | string;
+}
+
+export interface PtpPrediction {
+  account_id?: string;
+  probability: number | null;
+  fulfilled: boolean;
+  band: "High" | "Medium" | "Low" | "Unknown" | string;
+  threshold?: number;
+  top_factors?: PtpFactor[];
+  payment_probability_15d?: SubScore | null;
+  payment_probability_30d?: SubScore | null;
+  model_version?: string;
+}
+
 export interface EndCallParams {
   sessionId: string;
   result: string;

@@ -157,7 +157,9 @@ public class WorklistService {
                 dpd,
                 priority,
                 lastContactDate,
-                lastContactSummary
+                lastContactSummary,
+                null,   // ptpBand — populated by the controller via PtpPredictionService
+                null    // paymentBand — populated by the controller via PtpPredictionService
         );
     }
 

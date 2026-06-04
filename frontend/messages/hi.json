@@ -120,6 +120,9 @@
     "title": "ग्राहक विवरण",
     "cifNumber": "CIF नंबर",
     "noOfAgreements": "एग्रीमेंट की संख्या",
+    "ptpFulfillment": "PTP पूर्ति",
+    "paymentProbability15d": "भुगतान संभावना (15 दिन)",
+    "paymentProbability30d": "भुगतान संभावना (30 दिन)",
     "writeoff": "राइट-ऑफ",
     "legalProceedings": "कानूनी कार्यवाही"
   },

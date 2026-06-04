@@ -5,6 +5,7 @@ import type {
   EndCallParams,
   TranscriptItem,
   SummaryCombinedDTO,
+  PtpPrediction,
 } from "@/types/collections.types";
 
 import { toast } from "sonner";
@@ -51,6 +52,26 @@ export async function fetchCustomerData(agreementId: string): Promise<CustomerDa
       `/customer/${encodeURIComponent(agreementId)}`,
     );
     return data.data;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch the PTP-fulfillment prediction for an account.
+ * Uses a bare axios call (not the shared `api` instance) so it skips the global
+ * success/error toast interceptor — this is background data, not a user action.
+ */
+export async function fetchPtpPrediction(
+  agreementId: string,
+): Promise<PtpPrediction | null> {
+  try {
+    const baseURL =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/collassistantapi";
+    const { data } = await axios.get<ApiResponse<PtpPrediction>>(
+      `${baseURL}/ptp/predict/${encodeURIComponent(agreementId)}`,
+    );
+    return data.success ? data.data : null;
   } catch {
     return null;
   }

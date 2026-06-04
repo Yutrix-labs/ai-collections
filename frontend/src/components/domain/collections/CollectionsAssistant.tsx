@@ -4,8 +4,8 @@ import { ADDITIONAL, CALL_BEHAVIOUR, CUSTOMER, LOAN, PAST_COMMS } from "@/data/m
 import { useLiveKitConnection } from "@/hooks/useLiveKitConnection";
 import { useStompClient, type CallStatusEvent } from "@/hooks/useStompClient";
 import { useRouter } from "@/i18n/navigation";
-import { endCall, fetchCustomerData, startCall } from "@/lib/api/collections-api";
-import type { ConversationSummaryItem, CustomerData, TranscriptItem, SummaryCombinedDTO, Insight, Sentiment } from "@/types/collections.types";
+import { endCall, fetchCustomerData, fetchPtpPrediction, startCall } from "@/lib/api/collections-api";
+import type { ConversationSummaryItem, CustomerData, TranscriptItem, SummaryCombinedDTO, Insight, Sentiment, PtpPrediction } from "@/types/collections.types";
 import type { NextMove, Disposition, ContextualDetail } from "@/types/copilot.types";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
@@ -30,6 +30,7 @@ export function CollectionsAssistant() {
   /* Backend integration */
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [customerData, setCustomerData] = useState<CustomerData | null>(null);
+  const [ptpPrediction, setPtpPrediction] = useState<PtpPrediction | null>(null);
   const [liveAudioLevel, setLiveAudioLevel] = useState<number | null>(null);
   const [micToggle, setMicToggle] = useState<(() => void) | null>(null);
   const [micEnabled, setMicEnabled] = useState(true);
@@ -109,6 +110,8 @@ export function CollectionsAssistant() {
       const data = await fetchCustomerData(loanId);
       if (data) {
         setCustomerData(data);
+        // Fire the PTP-fulfillment prediction in the background (non-blocking).
+        fetchPtpPrediction(loanId).then(setPtpPrediction);
       } else {
         setTimeout(() => router.push("/"), 4000);
       }
@@ -327,7 +330,7 @@ export function CollectionsAssistant() {
         <div className="flex-1 flex flex-col gap-3 p-3 overflow-hidden">
           {/* Row 1: Customer Details | Customer Profile */}
           <div className="grid grid-cols-2 gap-3 min-h-[200px]" style={{ maxHeight: "38vh" }}>
-            <CustomerDetailsCard customer={customer} loan={loan} additional={additional} />
+            <CustomerDetailsCard customer={customer} loan={loan} additional={additional} ptp={ptpPrediction} />
             <CustomerProfileCard pastComms={pastComms} callBehaviour={callBehaviour} />
           </div>
 

@@ -41,6 +41,11 @@ app:
 next-action:
   api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze
 
+ptp:
+  model:
+    # FastAPI PTP-fulfillment model service (backend/ml-ptp). Run with: uv run ptp-serve
+    api-url: http://localhost:8000
+
 logging:
   level:
     labs.yutrix.uw: DEBUG
