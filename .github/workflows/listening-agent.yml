@@ -75,21 +75,8 @@ jobs:
         run: |
           echo "$KUBECONFIG_B64" | base64 -d > /tmp/kubeconfig
           export KUBECONFIG=/tmp/kubeconfig
-
-          # The k3s API server (6443) is intermittently slow to accept connections
-          # from GitHub runners (occasional "dial tcp ...:6443: i/o timeout").
-          # Retry each kubectl call a few times before failing the deploy.
-          retry() {
-            for attempt in 1 2 3 4 5; do
-              if "$@"; then return 0; fi
-              echo "::warning::kubectl attempt $attempt failed, retrying in 15s..."
-              sleep 15
-            done
-            "$@"
-          }
-
-          retry kubectl apply --request-timeout=60s -f k8s/listening-agent/authz-policy.yaml
-          retry kubectl apply --request-timeout=60s -f k8s/listening-agent/deployment.yaml
-          retry kubectl rollout status deployment/listening-agent \
+          kubectl apply -f k8s/listening-agent/authz-policy.yaml
+          kubectl apply -f k8s/listening-agent/deployment.yaml
+          kubectl rollout status deployment/listening-agent \
             --namespace app-services \
             --timeout=600s
