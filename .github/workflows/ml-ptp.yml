@@ -1,19 +1,16 @@
-name: Backend CI/CD
+name: ML-PTP CI/CD
 
 on:
   push:
     branches: [v1.0.1.3]
     paths:
-      - "backend/src/**"
-      - "backend/pom.xml"
-      - "backend/Dockerfile"
-      - "k8s/backend/**"
-      - ".github/workflows/backend.yml"
+      - "backend/ml-ptp/**"
+      - "k8s/ml-ptp/**"
+      - ".github/workflows/ml-ptp.yml"
   pull_request:
     branches: [master]
     paths:
-      - "backend/src/**"
-      - "backend/pom.xml"
+      - "backend/ml-ptp/**"
   workflow_dispatch:
 
 jobs:
@@ -33,8 +30,8 @@ jobs:
         id: image
         run: |
           REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          echo "ref=ghcr.io/${REPO}/backend:${{ github.sha }}" >> "$GITHUB_OUTPUT"
-          echo "latest=ghcr.io/${REPO}/backend:latest"         >> "$GITHUB_OUTPUT"
+          echo "ref=ghcr.io/${REPO}/ml-ptp:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "latest=ghcr.io/${REPO}/ml-ptp:latest"         >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -49,7 +46,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: ./backend
+          context: ./backend/ml-ptp
           push: ${{ github.ref == 'refs/heads/v1.0.1.3' && github.event_name == 'push' }}
           tags: |
             ${{ steps.image.outputs.ref }}
@@ -68,8 +65,8 @@ jobs:
 
       - name: Pin image to SHA in manifest
         run: |
-          sed -i "s|image: ghcr.io/yutrix-labs/ai-collections/backend:.*|image: ${{ needs.build-push.outputs.image }}|" \
-            k8s/backend/deployment.yaml
+          sed -i "s|image: ghcr.io/yutrix-labs/ai-collections/ml-ptp:.*|image: ${{ needs.build-push.outputs.image }}|" \
+            k8s/ml-ptp/deployment.yaml
 
       - name: Deploy
         env:
@@ -77,9 +74,9 @@ jobs:
         run: |
           echo "$KUBECONFIG_B64" | base64 -d > /tmp/kubeconfig
           export KUBECONFIG=/tmp/kubeconfig
-          kubectl apply -f k8s/backend/peer-auth.yaml
-          kubectl apply -f k8s/backend/authz-policy.yaml
-          kubectl apply -f k8s/backend/deployment.yaml
-          kubectl rollout status deployment/backend \
+          kubectl apply -f k8s/ml-ptp/peer-auth.yaml
+          kubectl apply -f k8s/ml-ptp/authz-policy.yaml
+          kubectl apply -f k8s/ml-ptp/deployment.yaml
+          kubectl rollout status deployment/ml-ptp \
             --namespace app-services \
-            --timeout=180s
+            --timeout=300s

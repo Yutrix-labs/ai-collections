@@ -1,0 +1,11 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: ml-ptp-permissive
+  namespace: app-services
+spec:
+  selector:
+    matchLabels:
+      app: ml-ptp
+  mtls:
+    mode: PERMISSIVE

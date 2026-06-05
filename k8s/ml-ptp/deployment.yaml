@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ml-ptp
+  namespace: app-services
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-ptp
+  namespace: app-services
+  labels:
+    app: ml-ptp
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ml-ptp
+  template:
+    metadata:
+      labels:
+        app: ml-ptp
+      annotations:
+        sidecar.istio.io/proxyCPU: "10m"
+        sidecar.istio.io/proxyMemory: "64Mi"
+    spec:
+      serviceAccountName: ml-ptp
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: ml-ptp
+          image: ghcr.io/yutrix-labs/ai-collections/ml-ptp:latest
+          ports:
+            - containerPort: 8000
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 4
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-ptp
+  namespace: app-services
+spec:
+  selector:
+    app: ml-ptp
+  ports:
+    - port: 8000
+      targetPort: 8000

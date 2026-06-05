@@ -7,3 +7,8 @@ __pycache__/
 data/*.csv
 models/*.joblib
 models/*.json
+
+# ...but DO commit the trained PTP model + metadata: they are baked into the
+# Docker image (the source xlsx isn't in the repo, so we can't retrain at build).
+!models/ptp_model.joblib
+!models/model_metadata.json

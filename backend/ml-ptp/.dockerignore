@@ -1,0 +1,11 @@
+# Keep the build context small and platform-clean (the local .venv is built for
+# the host OS and must never leak into the image).
+.venv/
+__pycache__/
+**/__pycache__/
+*.egg-info/
+**/*.egg-info/
+.pytest_cache/
+data/*.csv
+.gitignore
+README.md

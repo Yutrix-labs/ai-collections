@@ -1,0 +1,11 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: ml-ptp-allow
+  namespace: app-services
+spec:
+  selector:
+    matchLabels:
+      app: ml-ptp
+  rules:
+  - {}

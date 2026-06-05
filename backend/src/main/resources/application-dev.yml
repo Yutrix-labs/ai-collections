@@ -41,6 +41,12 @@ app:
 next-action:
   api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze
 
+ptp:
+  model:
+    # FastAPI PTP-fulfillment model service, reached over cluster-internal DNS.
+    # Overridable via PTP_MODEL_API_URL env var.
+    api-url: ${PTP_MODEL_API_URL:http://ml-ptp.app-services.svc.cluster.local:8000}
+
 logging:
   level:
     labs.yutrix.uw: DEBUG

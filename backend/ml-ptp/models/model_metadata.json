@@ -1,0 +1,295 @@
+{
+  "model_version": "0.1.0",
+  "threshold": 0.5,
+  "decision_threshold": 0.23984082114582322,
+  "target": "ptp_fulfilled",
+  "trained_on": "PTP-given accounts (ptp_given == 1)",
+  "data_path": "C:\\yutrix\\backend\\ai-collections\\backend\\ml-ptp\\data\\ptp_training_data.csv",
+  "metrics": {
+    "roc_auc": 0.7857163897725933,
+    "pr_auc": 0.5458407378248723,
+    "brier_score": 0.14630064528125977,
+    "decision_threshold": 0.23984082114582322,
+    "positive_rate": 0.240498899486427,
+    "n_train": 5452,
+    "n_test": 1363,
+    "confusion_matrix": [
+      [
+        710,
+        325
+      ],
+      [
+        85,
+        243
+      ]
+    ]
+  },
+  "global_importances": [
+    {
+      "feature": "pay_paid_ratio",
+      "importance": 0.18534302462589836
+    },
+    {
+      "feature": "latest_dpd",
+      "importance": 0.018551718805231432
+    },
+    {
+      "feature": "cibil_score",
+      "importance": 0.018249786438081658
+    },
+    {
+      "feature": "broken_ptp_count",
+      "importance": 0.013857038706256541
+    },
+    {
+      "feature": "collateral_type",
+      "importance": 0.0025596132320017673
+    },
+    {
+      "feature": "credit_utilization_pct",
+      "importance": 0.0013988305643924948
+    },
+    {
+      "feature": "payment_recent_status",
+      "importance": 0.001156916460468893
+    },
+    {
+      "feature": "call_pickup_rate",
+      "importance": 0.0010851154707198218
+    },
+    {
+      "feature": "income_band",
+      "importance": 0.0009065335218568227
+    },
+    {
+      "feature": "action_field_ratio",
+      "importance": 0.0007010722281135112
+    },
+    {
+      "feature": "total_interactions",
+      "importance": 0.0005749602332978804
+    },
+    {
+      "feature": "forced_sale_value",
+      "importance": 0.00037999293036398984
+    },
+    {
+      "feature": "dpd_bucket_0_30",
+      "importance": 0.000278919229409591
+    },
+    {
+      "feature": "last_contact_channel",
+      "importance": 0.0002141142335335272
+    },
+    {
+      "feature": "dpd_bucket_30_60",
+      "importance": 0.00020214740190868663
+    },
+    {
+      "feature": "action_call_ratio",
+      "importance": 0.0001942308825261252
+    },
+    {
+      "feature": "best_time_to_call",
+      "importance": 0.00016845616825723886
+    },
+    {
+      "feature": "escalation_flag",
+      "importance": 0.0001027306468715794
+    },
+    {
+      "feature": "pay_returned_ratio",
+      "importance": 3.8662071403239295e-05
+    },
+    {
+      "feature": "dpd_bucket_90_120",
+      "importance": 5.891363261428806e-06
+    },
+    {
+      "feature": "npa_flag",
+      "importance": 0.0
+    },
+    {
+      "feature": "is_secured",
+      "importance": 0.0
+    },
+    {
+      "feature": "action_count",
+      "importance": 0.0
+    },
+    {
+      "feature": "action_last",
+      "importance": 0.0
+    },
+    {
+      "feature": "dpd_bucket_60_90",
+      "importance": -4.216006833993036e-05
+    },
+    {
+      "feature": "do_not_disturb",
+      "importance": -6.241162955118729e-05
+    },
+    {
+      "feature": "outstanding_ratio",
+      "importance": -8.192677035472051e-05
+    },
+    {
+      "feature": "language_preference",
+      "importance": -9.039560504311983e-05
+    },
+    {
+      "feature": "loan_type",
+      "importance": -0.00017158595499011664
+    },
+    {
+      "feature": "days_since_last_contact",
+      "importance": -0.00017987068457647748
+    },
+    {
+      "feature": "pay_missed_ratio",
+      "importance": -0.0002432028396371494
+    },
+    {
+      "feature": "active_loans",
+      "importance": -0.00026676829268304503
+    },
+    {
+      "feature": "age_group",
+      "importance": -0.0003102170967362733
+    },
+    {
+      "feature": "avg_days_to_pay",
+      "importance": -0.0003168448804054119
+    },
+    {
+      "feature": "city_tier",
+      "importance": -0.0004000603864735275
+    },
+    {
+      "feature": "whatsapp_opted_in",
+      "importance": -0.00043706551195954457
+    },
+    {
+      "feature": "segment",
+      "importance": -0.00044645487215753954
+    },
+    {
+      "feature": "outstanding_amount",
+      "importance": -0.00047756863438210007
+    },
+    {
+      "feature": "ltv_ratio",
+      "importance": -0.0005710940261577369
+    },
+    {
+      "feature": "response_rate",
+      "importance": -0.0007452574525746714
+    },
+    {
+      "feature": "preferred_channel",
+      "importance": -0.0009742841993638091
+    },
+    {
+      "feature": "internal_score",
+      "importance": -0.0011545230941440582
+    },
+    {
+      "feature": "employer_type",
+      "importance": -0.0013835498409332514
+    },
+    {
+      "feature": "loan_amount",
+      "importance": -0.00159582302344774
+    },
+    {
+      "feature": "bureau_enquiries_6m",
+      "importance": -0.0023594909862142965
+    }
+  ],
+  "numeric_medians": {
+    "latest_dpd": 25.0,
+    "dpd_bucket_0_30": 1.0,
+    "dpd_bucket_30_60": 1.0,
+    "dpd_bucket_60_90": 0.0,
+    "dpd_bucket_90_120": 0.0,
+    "npa_flag": 0.0,
+    "loan_amount": 12900.0,
+    "outstanding_amount": 9120.0,
+    "cibil_score": 660.0,
+    "internal_score": 80.0,
+    "bureau_enquiries_6m": 1.0,
+    "active_loans": 2.0,
+    "credit_utilization_pct": 0.7045,
+    "total_interactions": 5.0,
+    "days_since_last_contact": 3.0,
+    "response_rate": 0.5309,
+    "call_pickup_rate": 0.2598,
+    "broken_ptp_count": 2.0,
+    "avg_days_to_pay": 4.0,
+    "escalation_flag": 0.0,
+    "whatsapp_opted_in": 1.0,
+    "do_not_disturb": 0.0,
+    "ltv_ratio": 0.5871,
+    "forced_sale_value": 0.0,
+    "outstanding_ratio": 0.7397163120567376,
+    "is_secured": 0.0,
+    "pay_paid_ratio": 0.5,
+    "pay_missed_ratio": 0.3333333333333333,
+    "pay_returned_ratio": 0.16666666666666666,
+    "action_count": 5.0,
+    "action_call_ratio": 0.3333333333333333,
+    "action_field_ratio": 0.14285714285714285
+  },
+  "features": {
+    "numeric": [
+      "latest_dpd",
+      "dpd_bucket_0_30",
+      "dpd_bucket_30_60",
+      "dpd_bucket_60_90",
+      "dpd_bucket_90_120",
+      "npa_flag",
+      "loan_amount",
+      "outstanding_amount",
+      "cibil_score",
+      "internal_score",
+      "bureau_enquiries_6m",
+      "active_loans",
+      "credit_utilization_pct",
+      "total_interactions",
+      "days_since_last_contact",
+      "response_rate",
+      "call_pickup_rate",
+      "broken_ptp_count",
+      "avg_days_to_pay",
+      "escalation_flag",
+      "whatsapp_opted_in",
+      "do_not_disturb",
+      "ltv_ratio",
+      "forced_sale_value",
+      "outstanding_ratio",
+      "is_secured",
+      "pay_paid_ratio",
+      "pay_missed_ratio",
+      "pay_returned_ratio",
+      "action_count",
+      "action_call_ratio",
+      "action_field_ratio"
+    ],
+    "categorical": [
+      "segment",
+      "loan_type",
+      "age_group",
+      "income_band",
+      "employer_type",
+      "city_tier",
+      "last_contact_channel",
+      "preferred_channel",
+      "language_preference",
+      "best_time_to_call",
+      "collateral_type",
+      "payment_recent_status",
+      "action_last"
+    ]
+  },
+  "note": "Trained on synthetic data generated from the project's data spec. Metrics are illustrative; swap TRAINING_CSV for real labeled outcomes to productionize."
+}
