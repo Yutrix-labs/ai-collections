@@ -29,11 +29,12 @@ TRAINING_CSV = DATA_DIR / "ptp_training_data.csv"
 MODEL_PATH = MODELS_DIR / "ptp_model.joblib"
 METADATA_PATH = MODELS_DIR / "model_metadata.json"
 
-# Payment-probability models (LightGBM, 15d/30d) — externally trained, integrated as-is.
+# Payment-probability models (LightGBM, 15d/30d).
+# Bundled artifact from the ptp_prob_lightgbm notebook: a dict with p15/p30 regressors,
+# per-column LabelEncoders, and classifier heads. Only p15/p30 are used here (the 15d/30d
+# payment probabilities); the action/priority/confidence heads are intentionally not served.
 PAYMENT_MODELS_DIR = MODELS_DIR / "payment"
-PAYMENT_MODEL_15_PATH = PAYMENT_MODELS_DIR / "model_15d.pkl"
-PAYMENT_MODEL_30_PATH = PAYMENT_MODELS_DIR / "model_30d.pkl"
-PAYMENT_CAT_MAPPINGS_PATH = PAYMENT_MODELS_DIR / "cat_mappings.pkl"
+PAYMENT_BUNDLE_PATH = PAYMENT_MODELS_DIR / "collections_models_v1.pkl"
 
 RANDOM_SEED = 42
 

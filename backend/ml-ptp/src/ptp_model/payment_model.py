@@ -1,70 +1,101 @@
 """Payment-probability models (15-day / 30-day).
 
-Two externally-trained LightGBM classifiers (from the POC_3Jun2026 work) predict the
-probability that an account pays within 15 / 30 days. They consume the same raw account
-schema as the PTP model, with 13 categorical columns mapped via the bundled cat_mappings.
+Serves the 15d/30d payment probabilities from the bundled ``collections_models_v1.pkl``
+artifact (LightGBM, trained in the ptp_prob_lightgbm notebook). The artifact is a dict
+holding five model heads; only the two payment regressors (``p15``, ``p30``) are used
+here. They consume a 41-column raw account frame whose 13 categorical columns are
+label-encoded with the encoders bundled in the artifact.
 
-This module loads them once and scores a raw account DataFrame, returning both
-probabilities. Integration is additive — if the model files are absent, prediction
-returns ``None`` and the PTP path is unaffected.
+Integration is additive — if the artifact file is absent, prediction returns ``None`` and
+the PTP path is unaffected.
+
+NOTE on accuracy: the artifact was trained on synthetic data whose payment targets are a
+deterministic function of the input features, so its headline R² is not a real-world
+metric. Several of its expected inputs (e.g. self_cure_probability, ptp_kept,
+paid_after_days) are not supplied by the backend and are imputed as missing at serve time.
 """
 
 from __future__ import annotations
 
+import pickle
 import warnings
 
-import joblib
 import numpy as np
 import pandas as pd
 
 from . import config
 
-_state: dict = {"model_15": None, "model_30": None, "cat_mappings": None, "features": None}
+_state: dict = {
+    "p15": None,
+    "p30": None,
+    "label_encoders": None,
+    "features": None,
+    "cat_cols": None,
+}
 
 
 def load() -> bool:
-    """Load both models + categorical mappings. Returns False if files are missing."""
-    if not all(
-        p.exists()
-        for p in (
-            config.PAYMENT_MODEL_15_PATH,
-            config.PAYMENT_MODEL_30_PATH,
-            config.PAYMENT_CAT_MAPPINGS_PATH,
-        )
-    ):
+    """Load the p15/p30 payment regressors from the bundled artifact. False if missing."""
+    if not config.PAYMENT_BUNDLE_PATH.exists():
         return False
-    _state["model_15"] = joblib.load(config.PAYMENT_MODEL_15_PATH)
-    _state["model_30"] = joblib.load(config.PAYMENT_MODEL_30_PATH)
-    _state["cat_mappings"] = joblib.load(config.PAYMENT_CAT_MAPPINGS_PATH)
+    with warnings.catch_warnings():
+        # Silence the sklearn pickle version-mismatch notice (models predict fine).
+        warnings.simplefilter("ignore")
+        with open(config.PAYMENT_BUNDLE_PATH, "rb") as f:
+            artifact = pickle.load(f)
+
+    models = artifact["models"]
+    _state["p15"] = models["p15"]
+    _state["p30"] = models["p30"]
+    _state["label_encoders"] = artifact.get("label_encoders", {})
     # Use the model's own feature order so X always matches what it was trained on.
-    _state["features"] = list(_state["model_30"].feature_name_)
+    _state["features"] = list(_state["p15"].booster_.feature_name())
+    # Categorical columns that actually have a stored label encoder.
+    _state["cat_cols"] = [
+        c for c in artifact.get("categorical_features", []) if c in _state["label_encoders"]
+    ]
     return True
 
 
 def is_loaded() -> bool:
-    return _state["model_30"] is not None
+    return _state["p15"] is not None
+
+
+def _encode_categorical(values: pd.Series, le) -> pd.Series:
+    """Apply a stored LabelEncoder to a raw column.
+
+    Unseen or missing values map to the encoder's ``"Missing"`` class if it has one,
+    else to code 0 — both are within the trained category set, so LightGBM's stored
+    categorical mapping stays aligned.
+    """
+    class_to_code = {c: i for i, c in enumerate(le.classes_)}
+    fallback = class_to_code.get("Missing", 0)
+    s = values.where(values.notna(), "Missing").astype(str)
+    return s.map(lambda v: class_to_code.get(v, fallback)).astype("int64")
 
 
 def _prepare(df_raw: pd.DataFrame) -> pd.DataFrame:
-    """Build the exact feature matrix the LightGBM models expect from a raw account frame.
+    """Build the 41-feature matrix the LightGBM models expect from a raw account frame.
 
-    Missing columns are created as NaN (LightGBM handles missing natively); categorical
-    columns are coerced to the model's known category set (unknown/missing -> NaN).
+    Missing columns are created (NaN numeric / ``"Missing"`` categorical). Categoricals are
+    label-encoded with the stored encoders and set to ``category`` dtype, mirroring training
+    so the booster's stored categorical codes line up. Numerics are coerced (LightGBM
+    handles NaN natively).
     """
     features = _state["features"]
-    cat_mappings = _state["cat_mappings"]
+    encoders = _state["label_encoders"]
+    cat_cols = set(_state["cat_cols"])
 
     X = pd.DataFrame(index=df_raw.index)
     for col in features:
-        X[col] = df_raw[col] if col in df_raw.columns else np.nan
-
-    for col, categories in cat_mappings.items():
-        if col in X.columns:
-            X[col] = X[col].astype("object").astype("category").cat.set_categories(categories)
-
-    for col in features:
-        if col not in cat_mappings:
-            X[col] = pd.to_numeric(X[col], errors="coerce")
+        if col in df_raw.columns:
+            src = df_raw[col]
+        else:
+            src = pd.Series([np.nan] * len(df_raw), index=df_raw.index)
+        if col in cat_cols:
+            X[col] = _encode_categorical(src, encoders[col]).astype("category")
+        else:
+            X[col] = pd.to_numeric(src, errors="coerce")
 
     return X[features]
 
@@ -76,9 +107,10 @@ def predict(df_raw: pd.DataFrame) -> dict:
 
     X = _prepare(df_raw)
     with warnings.catch_warnings():
-        # Silence the sklearn pickle version-mismatch notice (models predict fine).
         warnings.simplefilter("ignore")
-        prob_15 = _state["model_15"].predict_proba(X)[:, 1]
-        prob_30 = _state["model_30"].predict_proba(X)[:, 1]
+        prob_15 = np.clip(_state["p15"].predict(X), 0.0, 1.0)
+        prob_30_raw = np.clip(_state["p30"].predict(X), 0.0, 1.0)
 
+    # Enforce the monotonic rule used at train time: 30-day probability >= 15-day.
+    prob_30 = np.maximum(prob_15, prob_30_raw)
     return {"prob_15": prob_15, "prob_30": prob_30}
