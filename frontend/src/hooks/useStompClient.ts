@@ -1,12 +1,14 @@
 import { useRef, useCallback, useEffect } from "react";
 import { Client } from "@stomp/stompjs";
-import type { TranscriptItem, ConversationSummaryItem, SummaryCombinedDTO, Insight } from "@/types/collections.types";
+import type { TranscriptItem, TranslationItem, ConversationSummaryItem, SummaryCombinedDTO, Insight } from "@/types/collections.types";
 import type { NextMove, Disposition, ContextualDetail, CopilotWsMessage } from "@/types/copilot.types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 export interface StompHandlers {
   onTranscript: (item: TranscriptItem) => void;
+  /** Live translated turn (Gemini) — shown as a translated bubble in the UI. */
+  onTranslation?: (item: TranslationItem) => void;
   onMeetUrl: (url: string) => void;
   /** v2: Phase 1 — next_move arrives ~800ms after customer turn */
   onNextMove?: (data: NextMove) => void;
@@ -59,6 +61,16 @@ export function useStompClient() {
             handlers.onMeetUrl(data.meetUrl);
           },
         );
+
+        if (handlers.onTranslation) {
+          client.subscribe(
+            `/topic/call/${sessionId}/translation`,
+            (msg) => {
+              const item: TranslationItem = JSON.parse(msg.body);
+              handlers.onTranslation!(item);
+            },
+          );
+        }
 
         // v2 three-phase copilot messages — dispatch by type
         client.subscribe(

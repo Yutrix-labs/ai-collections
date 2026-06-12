@@ -73,6 +73,22 @@ export interface TranscriptItem {
   text: string;
   ts: string;
   sentiment: Sentiment;
+  /** Set when this bubble is a live translation (Gemini), not a raw STT turn. */
+  translated?: boolean;
+  /** Original (source-language) text, shown small under the translation. */
+  originalText?: string;
+  originalLang?: string;
+  translatedLang?: string;
+}
+
+/** Wire shape broadcast on /topic/call/{sessionId}/translation. */
+export interface TranslationItem {
+  speaker: "agent" | "customer";
+  originalText: string;
+  translatedText: string;
+  originalLang: string;
+  translatedLang: string;
+  ts: string;
 }
 
 export type InsightType = "intent" | "suggestion" | "policy" | "alert" | "sentiment";

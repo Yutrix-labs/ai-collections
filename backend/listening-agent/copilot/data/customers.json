@@ -96,6 +96,200 @@
     ],
     "pendingRequests": []
   },
+  "9607596968": {
+    "profile": {
+      "customerId": "CUST-10049",
+      "name": "Meit Garg",
+      "phone": "9607596968",
+      "email": "ritesh.pandey@email.com",
+      "dateOfBirth": "1985-03-14",
+      "address": "B-204, Sunshine Apartments, Andheri West, Mumbai 400053",
+      "segment": "Gold",
+      "relationshipValue": 1250000,
+      "customerSince": "2019-06-10",
+      "kycStatus": "Verified",
+      "alternatePhone": "9123456780"
+    },
+    "loans": [
+      {
+        "agreementId": "LN-2022-88431",
+        "loanType": "Personal Loan",
+        "sanctionedAmount": 500000,
+        "tenure": "36 months",
+        "emiAmount": 16200,
+        "outstandingAmount": 291600,
+        "overdueAmount": 32400,
+        "dpd": 15,
+        "disbursementDate": "2022-11-01",
+        "nextDueDate": "2025-04-01",
+        "status": "Overdue",
+        "paymentHistory": [
+          { "date": "2025-03-01", "amount": 0, "status": "Missed" },
+          { "date": "2025-02-01", "amount": 0, "status": "Missed" },
+          { "date": "2025-01-01", "amount": 16200, "status": "Paid" },
+          { "date": "2024-12-01", "amount": 16200, "status": "Paid" },
+          { "date": "2024-11-01", "amount": 16200, "status": "Paid" }
+        ]
+      },
+      {
+        "agreementId": "CC-2021-44210",
+        "loanType": "Credit Card",
+        "creditLimit": 300000,
+        "currentOutstanding": 45200,
+        "minimumDue": 4520,
+        "dueDate": "2025-04-15",
+        "dpd": 0,
+        "status": "Active"
+      }
+    ],
+    "collections": {
+      "isInCollections": true,
+      "collectionStatus": "Soft Bucket",
+      "assignedAgency": null,
+      "contactAttempts": [
+        { "date": "2025-03-18", "method": "Phone", "outcome": "Not Reachable" },
+        { "date": "2025-03-15", "method": "Phone", "outcome": "Not Reachable" },
+        { "date": "2025-03-10", "method": "SMS", "outcome": "Reminder Sent" }
+      ],
+      "lastPromise": null,
+      "totalOverdue": 32400
+    },
+    "interactionHistory": [
+      {
+        "date": "2025-03-17",
+        "channel": "Phone",
+        "topic": "Credit Card Billing Dispute",
+        "summary": "Customer disputed a charge of CHF 3,200 from an online merchant. Investigated and found it was a duplicate charge. Refund processed. Customer satisfied.",
+        "status": "Resolved",
+        "handledBy": "Agent Priya"
+      },
+      {
+        "date": "2025-02-28",
+        "channel": "Email",
+        "topic": "Statement Request",
+        "summary": "Customer requested last 6 months loan account statement for tax filing. Emailed within 24 hours.",
+        "status": "Resolved",
+        "handledBy": "System Auto"
+      },
+      {
+        "date": "2025-01-10",
+        "channel": "Phone",
+        "topic": "Loan Prepayment Inquiry",
+        "summary": "Customer asked about prepayment charges for personal loan. Informed about 4% prepayment penalty. Customer said they'd think about it.",
+        "status": "Resolved",
+        "handledBy": "Agent Vikram"
+      }
+    ],
+    "complaints": [
+      {
+        "complaintId": "CMP-2025-1182",
+        "date": "2025-03-17",
+        "category": "Billing Dispute",
+        "description": "Duplicate charge of CHF 3,200 on credit card from online merchant",
+        "status": "Resolved",
+        "resolution": "Refund processed",
+        "resolvedDate": "2025-03-17"
+      }
+    ],
+    "pendingRequests": []
+  },
+  "9767887347": {
+    "profile": {
+      "customerId": "CUST-10049",
+      "name": "Vikram Sethi",
+      "phone": "9767887347",
+      "email": "ritesh.pandey@email.com",
+      "dateOfBirth": "1985-03-14",
+      "address": "B-204, Sunshine Apartments, Andheri West, Mumbai 400053",
+      "segment": "Gold",
+      "relationshipValue": 1250000,
+      "customerSince": "2019-06-10",
+      "kycStatus": "Verified",
+      "alternatePhone": "9123456780"
+    },
+    "loans": [
+      {
+        "agreementId": "LN-2022-88431",
+        "loanType": "Personal Loan",
+        "sanctionedAmount": 500000,
+        "tenure": "36 months",
+        "emiAmount": 16200,
+        "outstandingAmount": 291600,
+        "overdueAmount": 32400,
+        "dpd": 15,
+        "disbursementDate": "2022-11-01",
+        "nextDueDate": "2025-04-01",
+        "status": "Overdue",
+        "paymentHistory": [
+          { "date": "2025-03-01", "amount": 0, "status": "Missed" },
+          { "date": "2025-02-01", "amount": 0, "status": "Missed" },
+          { "date": "2025-01-01", "amount": 16200, "status": "Paid" },
+          { "date": "2024-12-01", "amount": 16200, "status": "Paid" },
+          { "date": "2024-11-01", "amount": 16200, "status": "Paid" }
+        ]
+      },
+      {
+        "agreementId": "CC-2021-44210",
+        "loanType": "Credit Card",
+        "creditLimit": 300000,
+        "currentOutstanding": 45200,
+        "minimumDue": 4520,
+        "dueDate": "2025-04-15",
+        "dpd": 0,
+        "status": "Active"
+      }
+    ],
+    "collections": {
+      "isInCollections": true,
+      "collectionStatus": "Soft Bucket",
+      "assignedAgency": null,
+      "contactAttempts": [
+        { "date": "2025-03-18", "method": "Phone", "outcome": "Not Reachable" },
+        { "date": "2025-03-15", "method": "Phone", "outcome": "Not Reachable" },
+        { "date": "2025-03-10", "method": "SMS", "outcome": "Reminder Sent" }
+      ],
+      "lastPromise": null,
+      "totalOverdue": 32400
+    },
+    "interactionHistory": [
+      {
+        "date": "2025-03-17",
+        "channel": "Phone",
+        "topic": "Credit Card Billing Dispute",
+        "summary": "Customer disputed a charge of CHF 3,200 from an online merchant. Investigated and found it was a duplicate charge. Refund processed. Customer satisfied.",
+        "status": "Resolved",
+        "handledBy": "Agent Priya"
+      },
+      {
+        "date": "2025-02-28",
+        "channel": "Email",
+        "topic": "Statement Request",
+        "summary": "Customer requested last 6 months loan account statement for tax filing. Emailed within 24 hours.",
+        "status": "Resolved",
+        "handledBy": "System Auto"
+      },
+      {
+        "date": "2025-01-10",
+        "channel": "Phone",
+        "topic": "Loan Prepayment Inquiry",
+        "summary": "Customer asked about prepayment charges for personal loan. Informed about 4% prepayment penalty. Customer said they'd think about it.",
+        "status": "Resolved",
+        "handledBy": "Agent Vikram"
+      }
+    ],
+    "complaints": [
+      {
+        "complaintId": "CMP-2025-1182",
+        "date": "2025-03-17",
+        "category": "Billing Dispute",
+        "description": "Duplicate charge of CHF 3,200 on credit card from online merchant",
+        "status": "Resolved",
+        "resolution": "Refund processed",
+        "resolvedDate": "2025-03-17"
+      }
+    ],
+    "pendingRequests": []
+  },
   "9870064932": {
     "profile": {
       "customerId": "CUST-10042",

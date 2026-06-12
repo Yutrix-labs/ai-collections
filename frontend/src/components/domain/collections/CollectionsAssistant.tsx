@@ -215,6 +215,19 @@ export function CollectionsAssistant() {
           onTranscript: (item) => {
             setTr((prev) => [...prev, item]);
           },
+          onTranslation: (item) => {
+            // Live translated turn → render as a marked bubble in the transcript.
+            setTr((prev) => [...prev, {
+              speaker: item.speaker,
+              text: item.translatedText,
+              ts: item.ts,
+              sentiment: "neutral",
+              translated: true,
+              originalText: item.originalText,
+              originalLang: item.originalLang,
+              translatedLang: item.translatedLang,
+            }]);
+          },
           onMeetUrl: (url) => {
             liveKit.connectFromMeetUrl(url);
           },

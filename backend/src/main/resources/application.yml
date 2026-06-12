@@ -39,7 +39,8 @@ app:
     allowed-origins: http://localhost:3000
 
 next-action:
-  api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze
+  # api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze
+  api-url: http://localhost:8000/nextactionapi/V1/analyse/ai-assistant-analyze
 
 ptp:
   model:

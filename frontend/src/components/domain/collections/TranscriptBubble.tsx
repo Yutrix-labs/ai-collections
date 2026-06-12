@@ -1,6 +1,7 @@
 import { SC, T } from "@/config/theme";
 import type { Sentiment, TranscriptItem } from "@/types/collections.types";
 import { motion } from "framer-motion";
+import { Languages } from "lucide-react";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 3 },
@@ -23,6 +24,12 @@ export function TranscriptBubble({ item, t }: { item: TranscriptItem; t: (key: s
             <span className="text-[10px] font-bold text-[#94A3B8] uppercase">
               {isAgent ? t("transcript.agent") : t("transcript.customerSpeaker")}
             </span>
+            {item.translated && (
+              <span className="flex items-center gap-0.5 text-[9px] font-bold text-[#0D9488] uppercase">
+                <Languages size={10} strokeWidth={2.5} />
+                {item.translatedLang || ""}
+              </span>
+            )}
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.b }} />
             <span className="text-[10px] text-[#94A3B8]">{item.ts}</span>
           </div>
@@ -31,11 +38,20 @@ export function TranscriptBubble({ item, t }: { item: TranscriptItem; t: (key: s
               isAgent ? 'rounded-tl-[2px] rounded-tr-xl rounded-b-xl' : 'rounded-tl-xl rounded-tr-[2px] rounded-b-xl'
             }`}
             style={{
-              background: isAgent ? "rgba(13,148,136,0.08)" : "rgba(180,83,9,0.08)",
-              border: `1px solid ${isAgent ? "rgba(13,148,136,0.1)" : "rgba(180,83,9,0.1)"}`,
+              background: item.translated
+                ? "rgba(13,148,136,0.06)"
+                : isAgent ? "rgba(13,148,136,0.08)" : "rgba(180,83,9,0.08)",
+              border: item.translated
+                ? "1px dashed rgba(13,148,136,0.35)"
+                : `1px solid ${isAgent ? "rgba(13,148,136,0.1)" : "rgba(180,83,9,0.1)"}`,
             }}
           >
             {item.text}
+            {item.translated && item.originalText && (
+              <div className="mt-1 pt-1 text-[11px] italic text-[#94A3B8] border-t border-dashed border-[#CBD5E1]">
+                {item.originalText}
+              </div>
+            )}
           </div>
         </div>
       </div>

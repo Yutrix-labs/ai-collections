@@ -48,6 +48,33 @@ public class TranscriptService {
         );
     }
 
+    /**
+     * Broadcast a completed translated turn from the Python bridge to the agent
+     * UI. Not stored — it's a live overlay on top of the existing transcript.
+     */
+    public void processTranslation(TranslationPushRequest request) {
+        CallSession session = sessionStore.getByMobile(request.mobileNumber());
+        String sessionId = session.getSessionId();
+
+        TranslationItemDTO dto = new TranslationItemDTO(
+                request.speaker(),
+                request.originalText(),
+                request.translatedText(),
+                request.originalLang(),
+                request.translatedLang(),
+                request.timestamp() != null ? request.timestamp() : ""
+        );
+
+        log.info("[Translation] session={} speaker={} {}→{} text={}",
+                sessionId, request.speaker(), request.originalLang(),
+                request.translatedLang(), request.translatedText());
+
+        messagingTemplate.convertAndSend(
+                "/topic/call/" + sessionId + "/translation",
+                dto
+        );
+    }
+
     public List<TranscriptItemDTO> getTranscript(String sessionId) {
         return transcripts.getOrDefault(sessionId, List.of());
     }

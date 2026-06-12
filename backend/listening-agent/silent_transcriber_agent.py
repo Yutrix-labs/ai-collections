@@ -431,6 +431,44 @@ async def entrypoint(ctx: JobContext):
         "STT engines initialized | sip_endpointing=100ms | agent_endpointing=25ms"
     )
 
+    # Optional real-time speech-to-speech translation (opt-in, default off).
+    # When TRANSLATION_MODE != "on" nothing below runs and the flow is unchanged.
+    translation_manager = None
+    if os.getenv("TRANSLATION_MODE", "off").lower().strip() == "on":
+        gemini_key = os.getenv("GEMINI_API_KEY", "")
+        agent_lang = os.getenv("AGENT_LANG", "en").lower().strip()
+        if not gemini_key:
+            logger.error(
+                "TRANSLATION_MODE=on but GEMINI_API_KEY is not set; "
+                "translation disabled for this call"
+            )
+        else:
+            from translation import TranslationManager
+
+            # Customer language: CUSTOMER_LANG env override -> profile
+            # preferredLanguage -> auto-detect (resolved inside the manager).
+            customer_lang_override = os.getenv("CUSTOMER_LANG", "").strip() or None
+            translation_manager = TranslationManager(
+                ctx,
+                agent_lang,
+                gemini_key,
+                customer_lang=customer_lang_override,
+                http_session=http_session,
+                mobile_number=mobile_number,
+                call_sid=call_sid,
+            )
+            await translation_manager.start()
+            logger.info(f"Translation enabled | agent_lang={agent_lang}")
+
+    def attach_translation(track, participant):
+        """Hand a freshly subscribed audio track to the translation manager."""
+        if translation_manager is None or track.kind != rtc.TrackKind.KIND_AUDIO:
+            return
+        if participant.identity.startswith("sip_"):
+            translation_manager.attach_customer_track(track, participant.identity)
+        elif participant.identity == "human-agent":
+            translation_manager.attach_agent_track(track, participant.identity)
+
     @ctx.room.on("track_subscribed")
     def on_track_subscribed(track, publication, participant):
         if track.kind != rtc.TrackKind.KIND_AUDIO:
@@ -439,6 +477,8 @@ async def entrypoint(ctx: JobContext):
         logger.info(
             f"Audio track subscribed | participant={participant.identity} | track_sid={track.sid}"
         )
+
+        attach_translation(track, participant)
 
         if participant.identity.startswith("sip_"):
             asyncio.create_task(
@@ -477,6 +517,7 @@ async def entrypoint(ctx: JobContext):
                 logger.info(
                     f"Found existing audio track | participant={participant.identity} | track_sid={publication.track.sid}"
                 )
+                attach_translation(publication.track, participant)
                 if participant.identity.startswith("sip_"):
                     asyncio.create_task(
                         transcribe_sip_participant(
@@ -569,6 +610,11 @@ async def entrypoint(ctx: JobContext):
     try:
         await disconnect_event.wait()
     finally:
+        if translation_manager is not None:
+            try:
+                await translation_manager.aclose()
+            except Exception as e:
+                logger.error(f"Error closing translation manager: {e}")
         global _http_session
         if _http_session and not _http_session.closed:
             await _http_session.close()

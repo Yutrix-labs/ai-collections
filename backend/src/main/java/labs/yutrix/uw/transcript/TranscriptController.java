@@ -26,6 +26,16 @@ public class TranscriptController {
     }
 
     /**
+     * Endpoint for the Python translation bridge to POST each completed
+     * translated turn. Broadcast live to the frontend translation overlay.
+     */
+    @PostMapping("/translation")
+    public ApiResponse<String> pushTranslation(@Valid @RequestBody TranslationPushRequest request) {
+        transcriptService.processTranslation(request);
+        return ApiResponse.ok("Translation received");
+    }
+
+    /**
      * Get full transcript history for a session (for late-joining clients or
      * replay).
      */
