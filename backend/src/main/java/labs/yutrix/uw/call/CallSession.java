@@ -19,7 +19,10 @@ public class CallSession {
     private String customerMobile;
     private String exotelCallSid;
     private String status; // ACTIVE, ENDED, DISCONNECTED
-    private String meetUrl;
+    private String meetUrl;          // tele-caller's LiveKit connection (agent app auto-connects)
+    private String customerJoinUrl;  // shareable hosted-Meet link for the customer (livekit call mode)
+    private String roomName;         // LiveKit room (livekit call mode)
+    private String recordingUrl;     // LiveKit Egress → S3 recording URL (livekit call mode)
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
 

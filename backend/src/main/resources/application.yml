@@ -29,10 +29,18 @@ exotel:
   auth-token: 5102f8bd375bce451f009c4b98a1fdad6fd83386c69eba75
   caller-id: 02247790125
 
+# NOTE: for the browser (livekit) call mode these MUST point to the same LiveKit project
+# the listening-agent worker connects to (its .env), otherwise agent dispatch never reaches it.
 livekit:
-  url: wss://test125-h4h82mth.livekit.cloud
-  api-key: APInXwLysngAB2W
-  api-secret: eGhv62IbKuM9dkX2gNSVSbYiddDIBefYSpMareRKDVRA
+  url: wss://mohan-joshi-e2t1b6ty.livekit.cloud
+  api-key: APIg7kR5wWGojGk
+  api-secret: Wef12WTOTsFYxDQnOpXjUZgzX8cGrJH9AwnjYwNhXjb
+  # Must match the worker's AGENT_NAME env (backend/listening-agent/.env).
+  agent-name: silent-transcriber-dev
+
+# Telephony mode: "exotel" (Click2Call) or "livekit" (browser-to-browser WebRTC, bypasses Exotel).
+call:
+  mode: livekit
 
 app:
   cors:

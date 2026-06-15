@@ -30,9 +30,14 @@ exotel:
   caller-id: ${EXOTEL_CALLER_ID:02247790125}
 
 livekit:
-  url: ${LIVEKIT_URL:wss://test125-h4h82mth.livekit.cloud}
-  api-key: ${LIVEKIT_API_KEY}
-  api-secret: ${LIVEKIT_API_SECRET}
+  url: wss://mohan-joshi-e2t1b6ty.livekit.cloud
+  api-key: APIg7kR5wWGojGk
+  api-secret: Wef12WTOTsFYxDQnOpXjUZgzX8cGrJH9AwnjYwNhXjb
+  # Must match the worker's AGENT_NAME env (backend/listening-agent/.env).
+  agent-name: silent-transcriber-dev
+
+call:
+  mode: livekit
 
 app:
   cors:

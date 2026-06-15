@@ -156,6 +156,8 @@ export interface CallSession {
   customerMobile: string;
   status: "ACTIVE" | "ENDED";
   meetUrl: string | null;
+  customerJoinUrl?: string | null; // livekit call mode: shareable link for the customer
+  roomName?: string | null;
   startedAt: string;
   endedAt: string | null;
   dispositionResult: string | null;

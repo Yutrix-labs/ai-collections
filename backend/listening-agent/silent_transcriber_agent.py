@@ -20,6 +20,7 @@ from livekit.plugins import silero, deepgram
 
 from copilot.base import BaseCopilot
 from copilot.factory import create_copilot
+from egress_manager import start_audio_egress, stop_egress
 
 load_dotenv(".env")
 
@@ -186,6 +187,29 @@ async def push_meet_url(call_sid: str, meet_url: str, mobile_number: str | None 
         logger.error(f"Failed to push meet URL: {e}")
 
 
+async def push_recording_url(
+    call_sid: str, recording_url: str, mobile_number: str | None = None
+):
+    """Report the LiveKit Egress → S3 recording URL to the backend (browser/livekit mode)."""
+    try:
+        session = await get_http_session()
+        payload = {"callSid": call_sid, "recordingUrl": recording_url}
+        if mobile_number:
+            payload["mobileNumber"] = mobile_number
+        async with session.post(
+            f"{BACKEND_URL}/collassistantapi/call/recording",
+            json=payload,
+        ) as resp:
+            if resp.status != 200:
+                logger.warning(
+                    f"Backend returned {resp.status} for recording url: {await resp.text()}"
+                )
+            else:
+                logger.info(f"Recording URL pushed | callSid={call_sid} url={recording_url}")
+    except Exception as e:
+        logger.error(f"Failed to push recording URL: {e}")
+
+
 async def notify_call_disconnected(
     call_sid: str,
     mobile_number: str | None = None,
@@ -313,10 +337,12 @@ async def transcribe_human_agent(
     call_sid: str,
     copilot: BaseCopilot,
     mobile_number: str | None = None,
+    speaker: str = "agent",
 ):
-    """Transcribe audio from the human agent participant."""
+    """Transcribe a WebRTC participant's audio. `speaker` tags the turn ("agent" or "customer").
+    Used for the human tele-caller and, in browser mode, for the browser-joined customer."""
     logger.info(
-        f"[HUMAN] Starting transcription | participant={participant_id} | callSid={call_sid}"
+        f"[HUMAN] Starting transcription | participant={participant_id} | speaker={speaker} | callSid={call_sid}"
     )
 
     audio_stream = rtc.AudioStream(track)
@@ -346,11 +372,11 @@ async def transcribe_human_agent(
                 if text.strip():
                     transcript_count += 1
                     timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-                    logger.info(f"[HUMAN] [{timestamp}] {participant_id}: {text}")
+                    logger.info(f"[HUMAN] [{timestamp}] {participant_id} ({speaker}): {text}")
                     await push_transcript(
-                        call_sid, "agent", text, timestamp, mobile_number
+                        call_sid, speaker, text, timestamp, mobile_number
                     )
-                    await copilot.process_utterance("agent", text, timestamp)
+                    await copilot.process_utterance(speaker, text, timestamp)
         logger.info(
             f"[HUMAN] Transcription stream ended | participant={participant_id} | total_transcripts={transcript_count}"
         )
@@ -371,32 +397,58 @@ async def entrypoint(ctx: JobContext):
     await ctx.connect(auto_subscribe=AutoSubscribe.SUBSCRIBE_ALL)
     logger.info(f"Connected to room | room={room_name}")
 
-    # Extract Exotel Call SID and mobile number from SIP participant attributes via LiveKit API
-    call_sid, mobile_number = await get_exotel_callsid(room_name)
-    if not call_sid:
-        logger.error(f"Could not extract Exotel Call SID from room | room={room_name}")
-        return
+    # Detect browser (LiveKit/WebRTC) mode from dispatch metadata. In this mode the backend
+    # creates the room + tokens and dispatches us with the session identifiers, so there is no
+    # Exotel SIP participant / call-SID to read.
+    job_meta = {}
+    raw_meta = ctx.job.metadata if ctx.job else None
+    if raw_meta:
+        try:
+            job_meta = json.loads(raw_meta)
+        except (ValueError, TypeError):
+            job_meta = {}
+    browser_mode = job_meta.get("mode") == "livekit"
 
-    # Allow env var override for testing without a real SIP call
-    sip_mobile_override = os.getenv("SIP_MOBILE_NUMBER")
-    if sip_mobile_override:
-        mobile_number = sip_mobile_override
-        logger.info(f"Mobile number overridden by SIP_MOBILE_NUMBER env | mobile={mobile_number}")
+    if browser_mode:
+        mobile_number = job_meta.get("mobile")
+        # No telephony call-SID here; the backend resolves the session by mobile number.
+        call_sid = job_meta.get("sessionId") or mobile_number
+        logger.info(
+            f"[BROWSER MODE] mobile={mobile_number} sessionId={call_sid} room={room_name}"
+        )
+        if not mobile_number:
+            logger.error(f"Browser-mode job missing mobile | room={room_name}")
+            return
+    else:
+        # Exotel/SIP mode: read the call-SID + mobile from the SIP participant attributes.
+        call_sid, mobile_number = await get_exotel_callsid(room_name)
+        if not call_sid:
+            logger.error(f"Could not extract Exotel Call SID from room | room={room_name}")
+            return
+        sip_mobile_override = os.getenv("SIP_MOBILE_NUMBER")
+        if sip_mobile_override:
+            mobile_number = sip_mobile_override
+            logger.info(
+                f"Mobile number overridden by SIP_MOBILE_NUMBER env | mobile={mobile_number}"
+            )
+        logger.info(
+            f"Exotel Call SID extracted: {call_sid} | mobile={mobile_number} | room={room_name}"
+        )
 
-    logger.info(
-        f"Exotel Call SID extracted: {call_sid} | mobile={mobile_number} | room={room_name}"
-    )
-
-    livekit_url = os.getenv("LIVEKIT_URL", "")
-    token = create_meet_token(room_name, "human-agent")
-    meet_url = f"https://meet.livekit.io/custom?liveKitUrl={livekit_url}&token={token}"
-    logger.info(f"LiveKit Meet URL: {meet_url}")
-
-    # Notify backend of incoming call BEFORE copilot.initialize() so the Java session exists
-    # when customer context + pre-call summary are pushed (they resolve by mobileNumber).
     copilot_mode = os.getenv("COPILOT_MODE", "collections").lower().strip()
-    if copilot_mode == "customer_service" and mobile_number:
-        await push_incoming_call(call_sid, mobile_number, meet_url)
+
+    # Exotel mode publishes a Meet URL so the tele-caller can join via browser. In browser mode
+    # the backend already handed both parties their links, so we skip this (and avoid an
+    # identity collision on "human-agent").
+    if not browser_mode:
+        livekit_url = os.getenv("LIVEKIT_URL", "")
+        token = create_meet_token(room_name, "human-agent")
+        meet_url = f"https://meet.livekit.io/custom?liveKitUrl={livekit_url}&token={token}"
+        logger.info(f"LiveKit Meet URL: {meet_url}")
+        # Notify backend BEFORE copilot.initialize() so the Java session exists when customer
+        # context + pre-call summary are pushed (customer-service mode only).
+        if copilot_mode == "customer_service" and mobile_number:
+            await push_incoming_call(call_sid, mobile_number, meet_url)
 
     # Initialize copilot (collections or customer_service based on COPILOT_MODE env)
     http_session = await get_http_session()
@@ -404,8 +456,17 @@ async def entrypoint(ctx: JobContext):
     await copilot.initialize()
     logger.info(f"Copilot initialized | callSid={call_sid} | mobile={mobile_number}")
 
-    # Push Meet URL to the Spring Boot backend (identified by callSid)
-    await push_meet_url(call_sid, meet_url, mobile_number)
+    if not browser_mode:
+        # Push Meet URL to the Spring Boot backend (identified by callSid)
+        await push_meet_url(call_sid, meet_url, mobile_number)
+
+    # Browser mode: record the room via LiveKit Egress → S3 (Exotel calls are recorded by Exotel),
+    # then report the recording URL to the backend so it flows into the next-action payload.
+    egress_id = None
+    if browser_mode:
+        egress_id, recording_url = await start_audio_egress(room_name)
+        if recording_url:
+            await push_recording_url(call_sid, recording_url, mobile_number)
 
     # Separate STT configs: SIP telephony audio needs longer endpointing
     # stt_sip = inference.STT(
@@ -431,37 +492,41 @@ async def entrypoint(ctx: JobContext):
         "STT engines initialized | sip_endpointing=100ms | agent_endpointing=25ms"
     )
 
-    @ctx.room.on("track_subscribed")
-    def on_track_subscribed(track, publication, participant):
+    def _is_customer(identity: str) -> bool:
+        # SIP participants are prefixed "sip_"; browser-joined customers use identity "customer".
+        return identity.startswith("sip_") or identity.startswith("customer")
+
+    def route_track(track, participant):
+        """Start the right transcription coroutine for a participant's audio track."""
         if track.kind != rtc.TrackKind.KIND_AUDIO:
             return
+        identity = participant.identity
+        logger.info(f"Audio track | participant={identity} | track_sid={track.sid}")
 
-        logger.info(
-            f"Audio track subscribed | participant={participant.identity} | track_sid={track.sid}"
-        )
-
-        if participant.identity.startswith("sip_"):
-            asyncio.create_task(
-                transcribe_sip_participant(
-                    track,
-                    participant.identity,
-                    stt_sip,
-                    call_sid,
-                    copilot,
-                    mobile_number,
+        if _is_customer(identity):
+            if browser_mode:
+                # Browser/WebRTC customer audio — native-rate STT, tagged as the customer.
+                asyncio.create_task(
+                    transcribe_human_agent(
+                        track, identity, stt_agent, call_sid, copilot, mobile_number, speaker="customer"
+                    )
                 )
-            )
+            else:
+                asyncio.create_task(
+                    transcribe_sip_participant(
+                        track, identity, stt_sip, call_sid, copilot, mobile_number
+                    )
+                )
         else:
             asyncio.create_task(
                 transcribe_human_agent(
-                    track,
-                    participant.identity,
-                    stt_agent,
-                    call_sid,
-                    copilot,
-                    mobile_number,
+                    track, identity, stt_agent, call_sid, copilot, mobile_number, speaker="agent"
                 )
             )
+
+    @ctx.room.on("track_subscribed")
+    def on_track_subscribed(track, publication, participant):
+        route_track(track, participant)
 
     @ctx.room.on("track_unsubscribed")
     def on_track_unsubscribed(track, publication, participant):
@@ -470,40 +535,20 @@ async def entrypoint(ctx: JobContext):
         )
 
     # Handle tracks that were already subscribed BEFORE the listener was registered
-    # (SIP participant is usually already in the room when the agent connects)
+    # (the SIP participant is usually already in the room when the agent connects).
     for participant in ctx.room.remote_participants.values():
         for publication in participant.track_publications.values():
             if publication.track and publication.track.kind == rtc.TrackKind.KIND_AUDIO:
                 logger.info(
                     f"Found existing audio track | participant={participant.identity} | track_sid={publication.track.sid}"
                 )
-                if participant.identity.startswith("sip_"):
-                    asyncio.create_task(
-                        transcribe_sip_participant(
-                            publication.track,
-                            participant.identity,
-                            stt_sip,
-                            call_sid,
-                            copilot,
-                            mobile_number,
-                        )
-                    )
-                else:
-                    asyncio.create_task(
-                        transcribe_human_agent(
-                            publication.track,
-                            participant.identity,
-                            stt_agent,
-                            call_sid,
-                            copilot,
-                            mobile_number,
-                        )
-                    )
+                route_track(publication.track, participant)
 
     @ctx.room.on("participant_connected")
     def on_participant_connected(participant):
         logger.info(f"Participant connected | identity={participant.identity}")
-        if participant.identity == "human-agent":
+        # Silent track keeps the SIP leg alive — only needed in Exotel mode.
+        if not browser_mode and participant.identity == "human-agent":
             asyncio.create_task(publish_silent_track(ctx, room_name))
 
     async def publish_silent_track(job_ctx: JobContext, rn: str):
@@ -525,8 +570,8 @@ async def entrypoint(ctx: JobContext):
             f"Participant disconnected | identity={participant.identity} reason_code={reason_str}"
         )
 
-        # If SIP participant (customer) disconnected, notify backend
-        if participant.identity.startswith("sip_"):
+        # If the customer (SIP or browser) disconnected, notify backend
+        if _is_customer(participant.identity):
             logger.warning(
                 f"Customer disconnected from call | callSid={call_sid} participant={participant.identity} reason_code={reason_str}"
             )
@@ -569,6 +614,9 @@ async def entrypoint(ctx: JobContext):
     try:
         await disconnect_event.wait()
     finally:
+        # Stop egress before tearing down so the S3 upload finalizes.
+        if egress_id:
+            await stop_egress(egress_id)
         global _http_session
         if _http_session and not _http_session.closed:
             await _http_session.close()

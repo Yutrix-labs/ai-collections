@@ -254,6 +254,13 @@ export function CollectionsAssistant() {
             }
           },
         });
+
+        // Browser (livekit) call mode: connect the tele-caller to the LiveKit room.
+        // The customer join link stays internal (backend /call/customer-link endpoint) —
+        // it is intentionally not surfaced on the agent UI.
+        if (session.meetUrl) {
+          liveKit.connectFromMeetUrl(session.meetUrl);
+        }
       } catch (e) {
         console.error("Failed to start call:", e);
         setCa(false);

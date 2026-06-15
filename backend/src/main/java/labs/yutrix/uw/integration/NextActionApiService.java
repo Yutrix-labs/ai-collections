@@ -100,6 +100,8 @@ public class NextActionApiService {
             payload.put("agreementId", session.getAgreementId());
             payload.put("customerMobile", session.getCustomerMobile());
             payload.put("exotelCallSid", session.getExotelCallSid());
+            // LiveKit Egress → S3 recording (browser mode); null for Exotel calls (recorded by Exotel).
+            payload.put("callRecordingURL", session.getRecordingUrl());
             payload.put("status", session.getStatus());
             payload.put("startedAt", session.getStartedAt() != null ? session.getStartedAt().toString() : null);
             payload.put("endedAt", session.getEndedAt() != null ? session.getEndedAt().toString() : null);

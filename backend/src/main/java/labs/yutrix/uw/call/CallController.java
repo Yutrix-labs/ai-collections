@@ -8,6 +8,7 @@ import labs.yutrix.uw.insight.DispositionService;
 import labs.yutrix.uw.insight.PreCallNudgeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +24,7 @@ import java.util.UUID;
 public class CallController {
 
         private final ExotelService exotelService;
+        private final LiveKitService liveKitService;
         private final SimpMessagingTemplate messagingTemplate;
         private final SessionStore sessionStore;
         private final CustomerContextService customerContextService;
@@ -30,21 +32,40 @@ public class CallController {
         private final PreCallNudgeService preCallNudgeService;
         private final DispositionService dispositionService;
 
+        /** "exotel" = Click2Call telephony; "livekit" = browser-to-browser WebRTC (Exotel bypass). */
+        @Value("${call.mode:exotel}")
+        private String callMode;
+
         @PostMapping("/start")
         public ApiResponse<CallSession> startCall(@Valid @RequestBody StartCallRequest request) {
                 String sessionId = UUID.randomUUID().toString();
 
-                // Initiate Exotel Click2Call first to get the Call SID
+                CallSession session = "livekit".equalsIgnoreCase(callMode)
+                                ? startLiveKitCall(sessionId, request)
+                                : startExotelCall(sessionId, request);
+
+                sessionStore.put(session);
+                log.info("Call session created: mode={}, sessionId={}, agreementId={}, mobile={}, callSid={}, room={}",
+                                callMode, sessionId, request.agreementId(), request.customerMobile(),
+                                session.getExotelCallSid(), session.getRoomName());
+
+                // Fire async pre-call nudge (broadcasts via STOMP after FE subscribes)
+                preCallNudgeService.generateAndBroadcast(request.agreementId(), sessionId);
+
+                return ApiResponse.ok("Call initiated", session);
+        }
+
+        /** Exotel Click2Call path: dials the customer's phone and bridges it into a LiveKit room. */
+        private CallSession startExotelCall(String sessionId, StartCallRequest request) {
                 Map<String, Object> exotelResult = exotelService.initiateCall(
                                 "02247790123", // TODO: pass actual agent number from request or config
                                 request.customerMobile(),
                                 request.customerMobile());
-                // sessionId);
 
                 String exotelCallSid = (String) exotelResult.getOrDefault("callSid", "");
                 log.info("Exotel result for session {}: callSid={}", sessionId, exotelCallSid);
 
-                CallSession session = CallSession.builder()
+                return CallSession.builder()
                                 .sessionId(sessionId)
                                 .agreementId(request.agreementId())
                                 .customerMobile(request.customerMobile())
@@ -52,15 +73,60 @@ public class CallController {
                                 .status("ACTIVE")
                                 .startedAt(LocalDateTime.now())
                                 .build();
+        }
 
-                sessionStore.put(session);
-                log.info("Call session created: sessionId={}, agreementId={}, mobile={}, callSid={}",
-                                sessionId, request.agreementId(), request.customerMobile(), exotelCallSid);
+        /**
+         * Browser/WebRTC path (Exotel bypass): create a LiveKit room, mint tokens for the tele-caller
+         * and the customer, dispatch the transcription agent, and hand the tele-caller a shareable
+         * link the customer opens in any browser. Transcription/insights/disposition are unchanged —
+         * they all resolve by the customer mobile, not the Exotel call-SID.
+         */
+        private CallSession startLiveKitCall(String sessionId, StartCallRequest request) {
+                // Deterministic per-customer room so a link shared in advance lands in the same room.
+                String room = liveKitService.roomFor(request.agreementId());
 
-                // Fire async pre-call nudge (broadcasts via STOMP after FE subscribes)
-                preCallNudgeService.generateAndBroadcast(request.agreementId(), sessionId);
+                String agentToken = liveKitService.participantToken(room, "human-agent", "Tele-caller");
+                String customerToken = liveKitService.participantToken(room, "customer", "Customer");
+                String agentMeetUrl = liveKitService.meetUrl(agentToken);
+                String customerJoinUrl = liveKitService.meetUrl(customerToken);
 
-                return ApiResponse.ok("Call initiated", session);
+                // Send the transcription agent into the room with the identifiers it needs (no SIP call-SID).
+                liveKitService.dispatchAgent(room, Map.of(
+                                "mode", "livekit",
+                                "mobile", request.customerMobile(),
+                                "agreementId", request.agreementId(),
+                                "sessionId", sessionId));
+
+                return CallSession.builder()
+                                .sessionId(sessionId)
+                                .agreementId(request.agreementId())
+                                .customerMobile(request.customerMobile())
+                                // No Exotel in browser mode — leave the call-SID null (the session
+                                // resolves by mobile everywhere). The next-action payload carries the
+                                // LiveKit recording URL instead.
+                                .exotelCallSid(null)
+                                .roomName(room)
+                                .meetUrl(agentMeetUrl)
+                                .customerJoinUrl(customerJoinUrl)
+                                .status("ACTIVE")
+                                .startedAt(LocalDateTime.now())
+                                .build();
+        }
+
+        /**
+         * Get a customer's shareable join link ahead of time (browser/livekit mode). The room is
+         * derived from the agreementId, so this link is stable and can be sent before the call —
+         * when the tele-caller later starts the call, both land in the same room.
+         *
+         * GET /collassistantapi/call/customer-link/{agreementId}
+         */
+        @GetMapping("/customer-link/{agreementId}")
+        public ApiResponse<Map<String, Object>> customerLink(@PathVariable String agreementId) {
+                Map<String, Object> data = new HashMap<>();
+                data.put("agreementId", agreementId);
+                data.put("roomName", liveKitService.roomFor(agreementId));
+                data.put("customerJoinUrl", liveKitService.customerLinkFor(agreementId));
+                return ApiResponse.ok("Customer join link", data);
         }
 
         /**
@@ -160,6 +226,25 @@ public class CallController {
                                 meetUrlMessage);
 
                 return ApiResponse.ok("Meet URL received");
+        }
+
+        /**
+         * Endpoint for the Python listening agent to POST the LiveKit Egress → S3 recording URL
+         * (browser/livekit call mode). Stored on the session and forwarded to the next-action
+         * service in place of the Exotel call recording.
+         */
+        @PostMapping("/recording")
+        public ApiResponse<String> receiveRecordingUrl(@RequestBody Map<String, String> body) {
+                String mobile = body.get("mobileNumber");
+                String callSid = body.get("callSid");
+                CallSession session = (mobile != null && !mobile.isBlank())
+                                ? sessionStore.getByMobile(mobile)
+                                : sessionStore.getByCallSid(callSid);
+
+                session.setRecordingUrl(body.get("recordingUrl"));
+                log.info("Recording URL received | sessionId={} url={}",
+                                session.getSessionId(), body.get("recordingUrl"));
+                return ApiResponse.ok("Recording URL received");
         }
 
         @GetMapping("/{sessionId}")
