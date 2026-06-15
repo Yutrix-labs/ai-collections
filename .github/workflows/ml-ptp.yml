@@ -74,9 +74,24 @@ jobs:
         run: |
           echo "$KUBECONFIG_B64" | base64 -d > /tmp/kubeconfig
           export KUBECONFIG=/tmp/kubeconfig
-          kubectl apply -f k8s/ml-ptp/peer-auth.yaml
-          kubectl apply -f k8s/ml-ptp/authz-policy.yaml
-          kubectl apply -f k8s/ml-ptp/deployment.yaml
-          kubectl rollout status deployment/ml-ptp \
+
+          # Retry wrapper: the k3s API server on :6443 is occasionally
+          # unreachable from GitHub-hosted runners (transient i/o timeout).
+          retry() {
+            for attempt in 1 2 3; do
+              "$@" && return 0
+              echo "::warning::'$*' failed (attempt ${attempt}/3); retrying in 10s..."
+              sleep 10
+            done
+            echo "::error::'$*' failed after 3 attempts"
+            return 1
+          }
+
+          # --validate=false skips the client-side openapi schema download
+          # (GET /openapi/v2), which was the call timing out against :6443.
+          retry kubectl apply --validate=false -f k8s/ml-ptp/peer-auth.yaml
+          retry kubectl apply --validate=false -f k8s/ml-ptp/authz-policy.yaml
+          retry kubectl apply --validate=false -f k8s/ml-ptp/deployment.yaml
+          retry kubectl rollout status deployment/ml-ptp \
             --namespace app-services \
             --timeout=300s
