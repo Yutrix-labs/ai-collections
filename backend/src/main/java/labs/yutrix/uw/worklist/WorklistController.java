@@ -68,7 +68,7 @@ public class WorklistController {
     @SuppressWarnings("unchecked")
     private WorklistItemDTO enrichWithPredictions(WorklistItemDTO item) {
         try {
-            Map<String, Object> prediction = ptpPredictionService.predict(item.agreementId());
+            Map<String, Object> prediction = ptpPredictionService.getOrPredict(item.agreementId());
             String ptpBand = (String) prediction.get("band");
 
             String paymentBand = null;

@@ -47,6 +47,25 @@ FILLER_PATTERNS = re.compile(
 # Feature flag: set COPILOT_V2_ENABLED=false to fall back to old single-push flow
 COPILOT_V2_ENABLED = os.getenv("COPILOT_V2_ENABLED", "true").lower() == "true"
 
+def _pct(p) -> str:
+    """Render a 0-1 probability as a rounded percentage (e.g. 0.83 -> '83%')."""
+    return f"{round(p * 100)}%" if p is not None else "?"
+
+
+def format_prediction(prediction: Optional[Dict]) -> str:
+    """Compact one-liner of the ML scores for the LLM prompt: PTP-fulfilment plus the
+    15-day and 30-day payment probabilities. Empty string when no prediction is available."""
+    if not prediction or prediction.get("probability") is None:
+        return ""
+    parts = [f"PTP-fulfil {_pct(prediction.get('probability'))} ({prediction.get('band', '?')})"]
+    p15 = prediction.get("payment_probability_15d") or {}
+    if p15.get("probability") is not None:
+        parts.append(f"pay-in-15d {_pct(p15.get('probability'))} ({p15.get('band', '?')})")
+    p30 = prediction.get("payment_probability_30d") or {}
+    if p30.get("probability") is not None:
+        parts.append(f"pay-in-30d {_pct(p30.get('probability'))} ({p30.get('band', '?')})")
+    return " | ".join(parts)
+
 # ── Cerebras JSON schema for structured output ────────────────────────────
 # Mirrors the compressed keys the LLM prompt instructs (points, conf, amt, next).
 # Pydantic normalizes these to full field names after parsing.
@@ -424,13 +443,16 @@ def build_llm_prompt(
     else:
         insights_lines.append("(none)")
 
+    prediction_line = format_prediction(profile.get("prediction"))
+    ml_section = f"\n--- ML PROBABILITIES ---\n{prediction_line}\n" if prediction_line else ""
+
     prompt = f"""--- CUSTOMER PROFILE ---
 Name: {customer.get("name", "")}
 Agreement: {customer.get("agreementId", "")} | Loan Type: {customer.get("loanType", "")}
 Loan: {loan.get("amount", "")} | Tenure: {loan.get("tenure", "")}
 Outstanding: {loan.get("outstanding", "")} | Overdue: {loan.get("overdue", "")}
 DPD: {additional.get("dpd", 0)} days | EMI Amount: CHF {additional.get("amount", "")}
-
+{ml_section}
 --- PAYMENT HISTORY (recent) ---
 {chr(10).join(payment_lines)}
 
@@ -713,6 +735,9 @@ class InsightEngine:
         # Customer's preferred language for insight generation
         preferred_language = customer.get("preferredLanguage", "en")
 
+        # ML scores (PTP + 15d/30d payment probabilities) cached on the profile by the backend.
+        prediction_line = format_prediction(self.customer_profile.get("prediction"))
+
         system_prompt, user_prompt = self.build_copilot_prompt(
             customer,
             loan,
@@ -725,6 +750,7 @@ class InsightEngine:
             include_contextual=include_contextual,
             call_flow_text=call_flow_text,
             preferred_language=preferred_language,
+            prediction_line=prediction_line,
         )
 
         # (A1) Cache Consistency
@@ -2120,6 +2146,7 @@ Recent conversation:
         include_contextual: bool = True,
         call_flow_text: str = "",
         preferred_language: str = "en",
+        prediction_line: str = "",
     ) -> tuple[str, str]:
         """(A2) v2 copilot prompt — aggressive compression for latency."""
         schema_dict = {"next_move": {"points": ["max 2"], "priority": "high|mid|low"}}
@@ -2163,9 +2190,10 @@ LANGUAGE: Generate next_move points and contextual_details labels in {LANGUAGE_N
         flow_section = f"\nFlow:\n{call_flow_text}" if call_flow_text else ""
 
         today = datetime.now().strftime("%d %b %Y")
+        ml_line = f"\nML:{prediction_line}" if prediction_line else ""
         user_prompt = f"""Today:{today}
 Cust:{customer.get("name", "")} Agr:{customer.get("agreementId", "")} Loan:{loan.get("amount", "")} Ten:{customer.get("loanType", "")}
-Outs:{loan.get("outstanding", "")} Due:{loan.get("overdue", "")} DPD:{additional.get("dpd", 0)}d EMI:CHF {additional.get("amount", "")}
+Outs:{loan.get("outstanding", "")} Due:{loan.get("overdue", "")} DPD:{additional.get("dpd", 0)}d EMI:CHF {additional.get("amount", "")}{ml_line}
 Pay:
 {payment_toon}
 POLICIES (MANDATORY - HARD RULES, NO EXCEPTIONS):

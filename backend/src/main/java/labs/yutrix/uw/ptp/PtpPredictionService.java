@@ -35,6 +35,31 @@ public class PtpPredictionService {
     @Value("${ptp.model.api-url}")
     private String ptpModelApiUrl;
 
+    /**
+     * Returns the cached prediction stored on the customer record, or calls the model once and
+     * caches the result (req 3). The model is only hit the first time per account; subsequent
+     * calls read from customers.json. Model-down fallbacks are never cached, so a failed call is
+     * retried next time rather than poisoning the cache.
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getOrPredict(String agreementId) {
+        Map<String, Object> record = worklistService.getCustomerContext(agreementId);
+        if (record == null) {
+            throw new EntityNotFoundException("Customer not found for agreement: " + agreementId);
+        }
+
+        Object cached = record.get("prediction");
+        if (cached instanceof Map<?, ?> m && m.get("probability") != null && m.get("error") == null) {
+            return (Map<String, Object>) cached;
+        }
+
+        Map<String, Object> prediction = predict(agreementId);
+        if (prediction.get("probability") != null && prediction.get("error") == null) {
+            worklistService.savePrediction(agreementId, prediction);
+        }
+        return prediction;
+    }
+
     @SuppressWarnings("unchecked")
     public Map<String, Object> predict(String agreementId) {
         Map<String, Object> customerData = worklistService.getCustomerContext(agreementId);

@@ -4,9 +4,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -22,15 +24,29 @@ public class WorklistService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private List<Map<String, Object>> customersData;
 
+    /**
+     * Writable copy of the dataset (see {@code app.customers-file}). When set and present, the
+     * service loads from — and persists PTP predictions back to — this file so the model is only
+     * called once per account. Blank => fall back to the read-only classpath resource.
+     */
+    @Value("${app.customers-file:}")
+    private String customersFile;
+
     @PostConstruct
     public void loadCustomersData() {
         try {
-            ClassPathResource resource = new ClassPathResource("data/customers.json");
-            customersData = objectMapper.readValue(
-                    resource.getInputStream(),
-                    new TypeReference<List<Map<String, Object>>>() {}
-            );
-            log.info("Loaded {} customer records from customers.json", customersData.size());
+            File file = customersFile == null || customersFile.isBlank() ? null : new File(customersFile);
+            if (file != null && file.exists()) {
+                customersData = objectMapper.readValue(file, new TypeReference<List<Map<String, Object>>>() {});
+                log.info("Loaded {} customer records from {}", customersData.size(), file.getPath());
+            } else {
+                ClassPathResource resource = new ClassPathResource("data/customers.json");
+                customersData = objectMapper.readValue(
+                        resource.getInputStream(),
+                        new TypeReference<List<Map<String, Object>>>() {}
+                );
+                log.info("Loaded {} customer records from classpath customers.json", customersData.size());
+            }
         } catch (IOException e) {
             log.error("Failed to load customers.json", e);
             customersData = List.of();
@@ -110,6 +126,33 @@ public class WorklistService {
         }
 
         return result;
+    }
+
+    /**
+     * Cache a PTP prediction on the customer record so the model is only called once per account.
+     * Mutates the in-memory record and persists the whole dataset back to {@code app.customers-file}
+     * (when configured) so the cache survives restarts.
+     */
+    public synchronized void savePrediction(String agreementId, Map<String, Object> prediction) {
+        Map<String, Object> record = getCustomerContext(agreementId);
+        if (record == null) {
+            return;
+        }
+        record.put("prediction", prediction);
+        persist();
+    }
+
+    /** Writes the current dataset back to the configured writable file (no-op if unset). */
+    private void persist() {
+        if (customersFile == null || customersFile.isBlank()) {
+            log.debug("app.customers-file not set — prediction cached in memory only");
+            return;
+        }
+        try {
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File(customersFile), customersData);
+        } catch (IOException e) {
+            log.warn("Failed to persist customers.json predictions: {}", e.getMessage());
+        }
     }
 
     /**

@@ -5,6 +5,7 @@ import labs.yutrix.uw.worklist.WorklistService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -43,13 +44,16 @@ public class CustomerContextService {
      * @return Map with snake_case keys for LLM prompt consumption
      */
     public Map<String, Object> buildContextFromRawData(Map<String, Object> customerData) {
-        return Map.of(
-                "customer", customerData.get("customer"),
-                "loan", customerData.get("loan"),
-                "additional", customerData.get("additionalDetails"),
-                "payment_history", customerData.get("paymentHistory"),
-                "active_policies", customerData.get("activePolicies"),
-                "past_communications", customerData.get("pastCommunications")
-        );
+        // HashMap (not Map.of) so a not-yet-computed prediction can be carried as null.
+        Map<String, Object> context = new HashMap<>();
+        context.put("customer", customerData.get("customer"));
+        context.put("loan", customerData.get("loan"));
+        context.put("additional", customerData.get("additionalDetails"));
+        context.put("payment_history", customerData.get("paymentHistory"));
+        context.put("active_policies", customerData.get("activePolicies"));
+        context.put("past_communications", customerData.get("pastCommunications"));
+        // PTP + 15d/30d payment probabilities, cached on the record by PtpPredictionService.
+        context.put("prediction", customerData.get("prediction"));
+        return context;
     }
 }

@@ -11,6 +11,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.Base64;
 import java.util.Map;
@@ -76,9 +77,15 @@ public class ExotelService {
                     "status", "initiated",
                     "callSid", callSid != null ? callSid : "",
                     "response", response != null ? response : "");
+        } catch (WebClientResponseException e) {
+            // Exotel rejected the request — log its response body, which carries the precise reason
+            // (invalid API key/token, IP not whitelisted, CallerId/ExoPhone not owned, etc.).
+            String body = e.getResponseBodyAsString();
+            log.error("Exotel Click2Call failed | status={} body={}", e.getStatusCode(), body);
+            return Map.of("status", "failed", "error", e.getStatusCode() + " " + (body == null ? "" : body));
         } catch (Exception e) {
             log.error("Exotel Click2Call failed", e);
-            return Map.of("status", "failed", "error", e.getMessage());
+            return Map.of("status", "failed", "error", e.getMessage() == null ? "unknown error" : e.getMessage());
         }
     }
 

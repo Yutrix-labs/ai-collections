@@ -29,9 +29,9 @@ function BandBadge({ band }: { band?: string | null }) {
     return <span className="text-slate-300 text-xs">—</span>;
   }
   const colors: Record<string, { bg: string; text: string }> = {
-    High: { bg: "#DCFCE7", text: "#16A34A" },   // green
+    High: { bg: "#DCFCE7", text: "#16A34A" }, // green
     Medium: { bg: "#FEF3C7", text: "#D97706" }, // amber
-    Low: { bg: "#FEE2E2", text: "#DC2626" },    // red
+    Low: { bg: "#FEE2E2", text: "#DC2626" }, // red
   };
   const style = colors[band] ?? colors.Low;
 
@@ -68,11 +68,17 @@ export function WorklistTable() {
     // User requirement: "mobile number to initiate the call should also come from the actual data"
     // The assistant page fetches customer data by agreementId.
     // If we want to start call immediately, we might need to pass a flag.
-    router.push(`/collections-assistant?loanId=${item.agreementId}&startCall=true`);
+    router.push(
+      `/collections-assistant?loanId=${item.agreementId}&startCall=true`,
+    );
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-500 text-sm">Loading worklist...</div>;
+    return (
+      <div className="p-8 text-center text-slate-500 text-sm">
+        Loading worklist...
+      </div>
+    );
   }
 
   return (
@@ -80,14 +86,28 @@ export function WorklistTable() {
       <Table className="table-fixed">
         <TableHeader className="bg-slate-50">
           <TableRow>
-            <TableHead className="w-[13%] font-bold text-slate-700">Loan App No</TableHead>
-            <TableHead className="w-[19%] font-bold text-slate-700">Customer Name</TableHead>
-            <TableHead className="w-[12%] font-bold text-slate-700">Mobile</TableHead>
-            <TableHead className="w-[12%] text-right font-bold text-slate-700">Amount Due</TableHead>
-            <TableHead className="w-[8%] text-center font-bold text-slate-700">DPD</TableHead>
-            <TableHead className="w-[13%] text-center font-bold text-slate-700">PTP Probability</TableHead>
-            <TableHead className="w-[14%] text-center font-bold text-slate-700">Payment Probability</TableHead>
-            <TableHead className="w-[9%] text-right font-bold text-slate-700">Action</TableHead>
+            <TableHead className="w-[13%] font-bold text-slate-700">
+              Loan App No
+            </TableHead>
+            <TableHead className="w-[19%] font-bold text-slate-700">
+              Customer Name
+            </TableHead>
+            <TableHead className="w-[12%] font-bold text-slate-700">
+              Mobile
+            </TableHead>
+            <TableHead className="w-[12%] text-right font-bold text-slate-700">
+              Amount Due
+            </TableHead>
+            <TableHead className="w-[8%] text-center font-bold text-slate-700">
+              DPD
+            </TableHead>
+            {/* <TableHead className="w-[13%] text-center font-bold text-slate-700">PTP Probability</TableHead> */}
+            <TableHead className="w-[14%] text-center font-bold text-slate-700">
+              Payment Prob. (30 days)
+            </TableHead>
+            <TableHead className="w-[9%] text-right font-bold text-slate-700">
+              Action
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -121,16 +141,16 @@ export function WorklistTable() {
                       item.dpd > 60
                         ? "bg-red-50 text-red-600"
                         : item.dpd > 30
-                        ? "bg-amber-50 text-amber-600"
-                        : "bg-slate-100 text-slate-600"
+                          ? "bg-amber-50 text-amber-600"
+                          : "bg-slate-100 text-slate-600"
                     }`}
                   >
                     {item.dpd}
                   </span>
                 </TableCell>
-                <TableCell className="text-center">
+                {/* <TableCell className="text-center">
                   <BandBadge band={item.ptpBand} />
-                </TableCell>
+                </TableCell> */}
                 <TableCell className="text-center">
                   <BandBadge band={item.paymentBand} />
                 </TableCell>

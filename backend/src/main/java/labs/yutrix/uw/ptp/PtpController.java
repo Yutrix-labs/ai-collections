@@ -24,6 +24,6 @@ public class PtpController {
 
     @GetMapping("/predict/{agreementId}")
     public ApiResponse<Map<String, Object>> predict(@PathVariable String agreementId) {
-        return ApiResponse.ok("PTP prediction retrieved", ptpPredictionService.predict(agreementId));
+        return ApiResponse.ok("PTP prediction retrieved", ptpPredictionService.getOrPredict(agreementId));
     }
 }

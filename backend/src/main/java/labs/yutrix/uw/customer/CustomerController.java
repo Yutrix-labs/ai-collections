@@ -2,8 +2,10 @@ package labs.yutrix.uw.customer;
 
 import labs.yutrix.uw.common.ApiResponse;
 import labs.yutrix.uw.common.EntityNotFoundException;
+import labs.yutrix.uw.ptp.PtpPredictionService;
 import labs.yutrix.uw.worklist.WorklistService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,10 +20,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/customer")
 @RequiredArgsConstructor
+@Slf4j
 public class CustomerController {
 
     private final CustomerContextService customerContextService;
     private final WorklistService worklistService;
+    private final PtpPredictionService ptpPredictionService;
 
     /**
      * Get customer information by agreement ID.
@@ -58,11 +62,22 @@ public class CustomerController {
      * GET /collassistantapi/customer/mobile/{mobile}/context
      */
     @GetMapping("/mobile/{mobile}/context")
+    @SuppressWarnings("unchecked")
     public ApiResponse<Map<String, Object>> getCustomerContextByMobile(@PathVariable String mobile) {
         Map<String, Object> customerData = worklistService.getCustomerContextByMobile(mobile);
 
         if (customerData == null) {
             throw new EntityNotFoundException("Customer not found for mobile: " + mobile);
+        }
+
+        // Ensure the PTP + payment probabilities are available (cached after the first call) so the
+        // listening agent can fold them into the AI-insight prompt.
+        try {
+            Map<String, Object> customer = (Map<String, Object>) customerData.get("customer");
+            String agreementId = (String) customer.get("agreementId");
+            ptpPredictionService.getOrPredict(agreementId);
+        } catch (Exception e) {
+            log.warn("PTP prediction unavailable for context | mobile={} error={}", mobile, e.getMessage());
         }
 
         Map<String, Object> context = customerContextService.buildContextFromRawData(customerData);
