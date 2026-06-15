@@ -26,6 +26,7 @@ py-modules = [
     "copilot_schema",
     "sip_mobile_extractor",
     "toon_util",
+    "egress_manager",
 ]
 
 [tool.setuptools.packages.find]
