@@ -34,7 +34,7 @@ livekit:
   api-key: APIg7kR5wWGojGk
   api-secret: Wef12WTOTsFYxDQnOpXjUZgzX8cGrJH9AwnjYwNhXjb
   # Must match the worker's AGENT_NAME env (backend/listening-agent/.env).
-  agent-name: silent-transcriber-dev
+  agent-name: silent-transcriber
 
 call:
   mode: livekit

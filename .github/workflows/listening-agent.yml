@@ -60,6 +60,10 @@ jobs:
     needs: build-push
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/v1.0.1.3' && github.event_name == 'push'
+    # GITHUB_TOKEN needs packages:read so the cluster pull secret can be refreshed from it.
+    permissions:
+      contents: read
+      packages: read
 
     steps:
       - uses: actions/checkout@v4
@@ -69,14 +73,39 @@ jobs:
           sed -i "s|image: ghcr.io/yutrix-labs/ai-collections/listening-agent:.*|image: ${{ needs.build-push.outputs.image }}|" \
             k8s/listening-agent/deployment.yaml
 
-      - name: Deploy
+      # Copy the (SHA-pinned) manifests to the VPS. We run kubectl ON the VPS over SSH because
+      # GitHub-hosted runners can't reliably reach the k3s API on :6443 (i/o timeouts); locally
+      # on the box the API is always reachable.
+      - name: Copy manifests to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          source: "k8s/listening-agent/authz-policy.yaml,k8s/listening-agent/deployment.yaml"
+          target: "/tmp/ai-collections-listening-agent"
+          overwrite: true
+
+      - name: Apply on VPS over SSH
+        uses: appleboy/ssh-action@v1.2.0
         env:
-          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
-        run: |
-          echo "$KUBECONFIG_B64" | base64 -d > /tmp/kubeconfig
-          export KUBECONFIG=/tmp/kubeconfig
-          kubectl apply -f k8s/listening-agent/authz-policy.yaml
-          kubectl apply -f k8s/listening-agent/deployment.yaml
-          kubectl rollout status deployment/listening-agent \
-            --namespace app-services \
-            --timeout=600s
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          envs: GHCR_TOKEN
+          script: |
+            set -e
+            cd /tmp/ai-collections-listening-agent
+            # Refresh the GHCR pull secret so private images can be pulled (the previous token expired).
+            kubectl -n app-services create secret docker-registry ghcr-pull-secret \
+              --docker-server=ghcr.io \
+              --docker-username=${{ github.actor }} \
+              --docker-password="$GHCR_TOKEN" \
+              --dry-run=client -o yaml | kubectl apply -f -
+            kubectl apply -f k8s/listening-agent/authz-policy.yaml
+            kubectl apply -f k8s/listening-agent/deployment.yaml
+            kubectl -n app-services rollout status deployment/listening-agent --timeout=600s
