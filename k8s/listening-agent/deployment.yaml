@@ -44,6 +44,13 @@ spec:
           AWS_ACCESS_KEY_ID="{{ .Data.data.aws_access_key_id }}"
           AWS_SECRET_ACCESS_KEY="{{ .Data.data.aws_secret_access_key }}"
           AWS_REGION="{{ .Data.data.aws_region }}"
+          # LiveKit Egress -> S3 call recording (dedicated S3 keys, distinct from Bedrock keys above)
+          AWS_ACCESS_KEY="{{ .Data.data.aws_s3_access_key }}"
+          AWS_SECRET_KEY="{{ .Data.data.aws_s3_secret_key }}"
+          AWS_BUCKET_NAME="{{ .Data.data.aws_bucket_name }}"
+          BUCKET_FILE_PATH="{{ .Data.data.bucket_file_path }}"
+          DESTINATION_PATH="{{ .Data.data.destination_path }}"
+          LIVEKIT_EGRESS_ENABLED="{{ .Data.data.livekit_egress_enabled }}"
           GCP_PROJECT_ID="{{ .Data.data.gcp_project_id }}"
           GCP_LOCATION="{{ .Data.data.gcp_location }}"
           GEMINI_MODEL="{{ .Data.data.gemini_model }}"
