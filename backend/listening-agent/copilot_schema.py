@@ -19,6 +19,22 @@ class Priority(str, Enum):
     LOW = "low"
 
 
+_VALID_PRIORITIES = {"high", "medium", "low"}
+
+
+def normalize_priority(value) -> str:
+    """Map LLM priority variants to the backend-standard ``high|medium|low``.
+
+    The backend (NextMovePushRequest / InsightData) validates priority against
+    ``high|medium|low``. The compact LLM schema emits ``mid``, so callers that push
+    raw extracted JSON (e.g. extract_next_move) must normalize first or the push is
+    rejected with 400. ``mid`` -> ``medium``; anything unrecognized -> ``medium``."""
+    p = str(value).strip().lower() if value is not None else ""
+    if p == "mid":
+        return "medium"
+    return p if p in _VALID_PRIORITIES else "medium"
+
+
 class DispositionResult(str, Enum):
     PTP = "PTP"
     WONT_PAY = "Won't Pay"
@@ -192,6 +208,8 @@ def extract_next_move(accumulated: str) -> dict | None:
             raw = json.loads(match.group(1))
             # Basic validation: must have points or action, and priority
             if ("points" in raw or "action" in raw) and "priority" in raw:
+                # Backend requires high|medium|low — the compact schema emits "mid".
+                raw["priority"] = normalize_priority(raw.get("priority"))
                 return raw
         except Exception:
             return None

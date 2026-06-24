@@ -1,5 +1,12 @@
 [
   {
+    "prediction": {
+      "probability": 0.36,
+      "band": "Low",
+      "fulfilled": false,
+      "payment_probability_15d": { "probability": 0.41, "band": "Low" },
+      "payment_probability_30d": { "probability": 0.54, "band": "Medium" }
+    },
     "customer": {
       "name": "Rajesh Kumar Sharma",
       "mobile": "7838153987",
@@ -128,6 +135,13 @@
     }
   },
   {
+    "prediction": {
+      "probability": 0.47,
+      "band": "Medium",
+      "fulfilled": false,
+      "payment_probability_15d": { "probability": 0.46, "band": "Medium" },
+      "payment_probability_30d": { "probability": 0.58, "band": "Medium" }
+    },
     "customer": {
       "name": "Ritesh Kumar Sharma",
       "mobile": "9870064932",
@@ -256,6 +270,13 @@
     }
   },
   {
+    "prediction": {
+      "probability": 0.55,
+      "band": "Medium",
+      "fulfilled": true,
+      "payment_probability_15d": { "probability": 0.50, "band": "Medium" },
+      "payment_probability_30d": { "probability": 0.66, "band": "High" }
+    },
     "customer": {
       "name": "Vikram Sethi",
       "mobile": "9767887347",
@@ -379,6 +400,13 @@
     }
   },
   {
+    "prediction": {
+      "probability": 0.79,
+      "band": "High",
+      "fulfilled": true,
+      "payment_probability_15d": { "probability": 0.74, "band": "High" },
+      "payment_probability_30d": { "probability": 0.87, "band": "High" }
+    },
     "customer": {
       "name": "Rajesh Rao",
       "mobile": "9123456421",
@@ -496,6 +524,13 @@
     }
   },
   {
+    "prediction": {
+      "probability": 0.17,
+      "band": "Low",
+      "fulfilled": false,
+      "payment_probability_15d": { "probability": 0.14, "band": "Low" },
+      "payment_probability_30d": { "probability": 0.26, "band": "Low" }
+    },
     "customer": {
       "name": "Michael D'Souza",
       "mobile": "9988776119",

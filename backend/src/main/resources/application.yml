@@ -44,14 +44,15 @@ call:
 
 app:
   cors:
-    allowed-origins: http://localhost:3000
+    allowed-origins: http://localhost:3000,http://localhost:3001
   # Writable copy of the customer dataset. PTP predictions are cached back here so
   # the model is only called once per account (see PtpPredictionService.getOrPredict).
   # Relative to the backend module dir when running `./mvnw spring-boot:run`.
   customers-file: src/main/resources/data/customers.json
 
 next-action:
-  api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze
+  api-url: http://localhost:8082/nextactionapi/V1/analyse/ai-assistant-analyze
+  # api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze
 
 ptp:
   model:

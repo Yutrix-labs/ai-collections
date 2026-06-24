@@ -101,7 +101,9 @@ export function WorklistTable() {
             <TableHead className="w-[8%] text-center font-bold text-slate-700">
               DPD
             </TableHead>
-            {/* <TableHead className="w-[13%] text-center font-bold text-slate-700">PTP Probability</TableHead> */}
+            {/* <TableHead className="w-[13%] text-center font-bold text-slate-700">
+              PTP Probability
+            </TableHead> */}
             <TableHead className="w-[14%] text-center font-bold text-slate-700">
               Payment Prob. (30 days)
             </TableHead>

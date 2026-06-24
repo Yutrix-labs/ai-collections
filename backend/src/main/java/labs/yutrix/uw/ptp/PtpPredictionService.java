@@ -36,10 +36,16 @@ public class PtpPredictionService {
     private String ptpModelApiUrl;
 
     /**
-     * Returns the cached prediction stored on the customer record, or calls the model once and
-     * caches the result (req 3). The model is only hit the first time per account; subsequent
-     * calls read from customers.json. Model-down fallbacks are never cached, so a failed call is
-     * retried next time rather than poisoning the cache.
+     * Returns the prediction seeded on the customer record in customers.json.
+     *
+     * <p><b>Demo mode:</b> predictions are hardcoded in customers.json, so this reads them
+     * straight from the record and NEVER calls the ML model. If an account has no seeded
+     * prediction, a graceful "unknown" is returned (the UI renders it as "—") — still no
+     * model call.
+     *
+     * <p>To restore dynamic predictions later: delete the {@code prediction} blocks from
+     * customers.json and replace the "unknown" return below with the
+     * {@code predict()} + {@code savePrediction()} path (kept intact for that purpose).
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> getOrPredict(String agreementId) {
@@ -48,16 +54,24 @@ public class PtpPredictionService {
             throw new EntityNotFoundException("Customer not found for agreement: " + agreementId);
         }
 
-        Object cached = record.get("prediction");
-        if (cached instanceof Map<?, ?> m && m.get("probability") != null && m.get("error") == null) {
-            return (Map<String, Object>) cached;
+        Object stored = record.get("prediction");
+        if (stored instanceof Map<?, ?> m && m.get("probability") != null && m.get("error") == null) {
+            return (Map<String, Object>) stored;
         }
 
-        Map<String, Object> prediction = predict(agreementId);
-        if (prediction.get("probability") != null && prediction.get("error") == null) {
-            worklistService.savePrediction(agreementId, prediction);
-        }
-        return prediction;
+        // No prediction seeded for this account — return a graceful "unknown". No model call.
+        log.info("[PtpPrediction] no seeded prediction | agreementId={} → returning 'unknown'", agreementId);
+        return unknownPrediction();
+    }
+
+    /** Graceful "unknown" prediction used when none is seeded — keeps the UI rendering "—". */
+    private Map<String, Object> unknownPrediction() {
+        Map<String, Object> unknown = new HashMap<>();
+        unknown.put("probability", null);
+        unknown.put("band", "Unknown");
+        unknown.put("fulfilled", false);
+        unknown.put("error", "No prediction available");
+        return unknown;
     }
 
     @SuppressWarnings("unchecked")

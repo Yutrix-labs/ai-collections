@@ -87,7 +87,7 @@ _CEREBRAS_RESPONSE_FORMAT = {
                         },
                         "priority": {
                             "type": "string",
-                            "enum": ["high", "mid", "low"],
+                            "enum": ["high", "medium", "low"],
                         },
                     },
                     "required": ["points", "priority"],
@@ -477,6 +477,7 @@ Valid disposition results and their required fields:
 
 --- INSTRUCTIONS ---
 Generate 1-3 NEW insights AND a disposition recommendation (if sufficient conversation data exists).
+Treat the ML PROBABILITIES section as a strong signal: PTP-fulfil is the likelihood the customer keeps a promise to pay; pay-in-15d/30d are the likelihood of payment within that window. Low PTP-fulfil → firmer recommendations and lower confidence on a PTP disposition; high PTP-fulfil → support a PTP path. Align any proposed timeline with pay-in-15d/30d. Never state the raw percentages to the customer — use them only to shape insights, suggestions, and disposition.
 
 PART 1 — INSIGHTS:
 Each insight must be one of: intent, suggestion, policy, alert, sentiment.
@@ -582,6 +583,12 @@ class InsightEngine:
         self.rate_limit_timestamps: Dict[str, float] = {}
         self.customer_profile: Dict = {}
 
+        # Precooked static system prompt (customer profile + ML + policies + flow),
+        # built ONCE per call and reused every turn so the provider serves it from
+        # prompt cache ("LLM memory"). Cleared in reset_for_call_end() so the next
+        # customer starts with a fresh context. None => not yet precooked.
+        self._cached_system_prompt: Optional[str] = None
+
         # Lock to prevent concurrent LLM calls
         self._llm_lock = asyncio.Lock()
 
@@ -622,12 +629,74 @@ class InsightEngine:
                     print(
                         f"[InsightEngine] Customer context loaded for mobile={self.mobile_number}"
                     )
+                    # Precook the static customer prompt now (at call start) so the
+                    # first mid-call turn doesn't pay the build cost and the provider
+                    # can cache it for the whole conversation.
+                    if self.customer_profile:
+                        self._precook_system_prompt()
                 else:
                     print(
                         f"[InsightEngine] Failed to fetch customer context: {resp.status}"
                     )
         except Exception as e:
             print(f"[InsightEngine] Error fetching customer context: {e}")
+
+    def _precook_system_prompt(self) -> str:
+        """Build the static, customer-specific system prompt ONCE and cache it for
+        the whole call. Every turn reuses the exact same string, so the provider's
+        prompt cache serves it instead of reprocessing the customer profile each
+        turn — the key latency win. Idempotent: returns the cached value if present.
+
+        Only the static profile is needed here (no transcript), so this is safe to
+        run at call start. Cleared by reset_for_call_end()."""
+        if self._cached_system_prompt is not None:
+            return self._cached_system_prompt
+
+        customer = self.customer_profile.get("customer", {})
+        loan = self.customer_profile.get("loan", {})
+        additional = self.customer_profile.get("additional", {})
+        payment_history = self.customer_profile.get("payment_history", [])
+        active_policies = self.customer_profile.get("active_policies", [])
+
+        payment_toon = json_to_toon(payment_history) if payment_history else ""
+        policy_lines = [f"-{p.get('policy', '')}:{p.get('rule', '')}" for p in active_policies]
+        call_flow_text = format_flow_text(select_flow(self.customer_profile))
+        prediction_line = format_prediction(self.customer_profile.get("prediction"))
+
+        # build_copilot_prompt now puts ALL static context into the system prompt and
+        # only the transcript into the user prompt, so we can build the system prompt
+        # with an empty transcript here and discard the (empty) user prompt.
+        system_prompt, _ = self.build_copilot_prompt(
+            customer,
+            loan,
+            additional,
+            payment_toon,
+            policy_lines,
+            0,
+            [],
+            include_disposition=False,
+            include_contextual=True,
+            call_flow_text=call_flow_text,
+            preferred_language=customer.get("preferredLanguage", "en"),
+            prediction_line=prediction_line,
+        )
+        self._cached_system_prompt = system_prompt
+        print(
+            f"[CopilotEngine] 🍳 Precooked customer context into cached system prompt "
+            f"({len(system_prompt)} chars) for call_sid={self.call_sid}"
+        )
+        return self._cached_system_prompt
+
+    def reset_for_call_end(self):
+        """Clear the precooked context and per-call state so the next customer
+        starts fresh (req: clear the LLM 'memory' between calls). The provider's
+        own prompt cache is ephemeral and keyed on the prefix, so a new customer
+        naturally forms a new cached prefix — this just drops our local handles."""
+        self._cached_system_prompt = None
+        _system_prompt_hash_per_call.pop(self.call_sid, None)
+        self.transcript.clear()
+        self.previous_insights.clear()
+        print(f"[CopilotEngine] 🧹 Cleared precooked context for call_sid={self.call_sid}")
 
     async def process_utterance(self, speaker: str, text: str, timestamp: str):
         """
@@ -702,7 +771,7 @@ class InsightEngine:
 
     async def _generate_and_push_v2(self, trigger_reason: str):
         """v2 copilot: simplified prompt, streaming with three-phase push."""
-        from copilot_schema import parse_llm_response
+        from copilot_schema import parse_llm_response, normalize_priority
 
         prompt_start = time.time()
         self._v2_cycle_start = prompt_start
@@ -711,47 +780,15 @@ class InsightEngine:
         include_disposition = False
         include_contextual = True
 
-        customer = self.customer_profile.get("customer", {})
-        loan = self.customer_profile.get("loan", {})
-        additional = self.customer_profile.get("additional", {})
-        payment_history = self.customer_profile.get("payment_history", [])
-        active_policies = self.customer_profile.get("active_policies", [])
+        # Static customer context: precooked ONCE per call (in initialize, or lazily
+        # here on the first turn) and reused verbatim every turn so the provider
+        # serves it from prompt cache instead of reprocessing it mid-conversation.
+        system_prompt = self._precook_system_prompt()
 
-        # TOON-encode payment history for token efficiency
-        payment_toon = json_to_toon(payment_history) if payment_history else ""
-
-        policy_lines = []
-        for pol in active_policies:
-            policy_lines.append(f"-{pol.get('policy', '')}:{pol.get('rule', '')}")
-
-        # Preprocess transcript: filler stripping + turn limit
+        # Only the live transcript changes per turn → rebuild just the user prompt.
         transcript_lines = preprocess_transcript(self.transcript, MAX_TRANSCRIPT_TURNS)
         recent_count = min(len(self.transcript), MAX_TRANSCRIPT_TURNS)
-
-        # Select call flow based on customer profile heuristics
-        flow_id = select_flow(self.customer_profile)
-        call_flow_text = format_flow_text(flow_id)
-
-        # Customer's preferred language for insight generation
-        preferred_language = customer.get("preferredLanguage", "en")
-
-        # ML scores (PTP + 15d/30d payment probabilities) cached on the profile by the backend.
-        prediction_line = format_prediction(self.customer_profile.get("prediction"))
-
-        system_prompt, user_prompt = self.build_copilot_prompt(
-            customer,
-            loan,
-            additional,
-            payment_toon,
-            policy_lines,
-            recent_count,
-            transcript_lines,
-            include_disposition=include_disposition,
-            include_contextual=include_contextual,
-            call_flow_text=call_flow_text,
-            preferred_language=preferred_language,
-            prediction_line=prediction_line,
-        )
+        user_prompt = self.build_user_prompt(transcript_lines, recent_count)
 
         # (A1) Cache Consistency
         verify_cache_consistency(self.call_sid, system_prompt)
@@ -759,6 +796,19 @@ class InsightEngine:
         prompt_time = (time.time() - prompt_start) * 1000
         print(
             f"[CopilotEngine] 📝 v2 prompt built in {prompt_time:.0f}ms"
+        )
+
+        # Dump the full prompt that will be sent to the LLM (for debugging).
+        print(
+            "\n"
+            "========== LLM REQUEST (v2) ==========\n"
+            f"provider={self.ai_provider} | trigger={trigger_reason} | "
+            f"include_disposition={include_disposition} | include_contextual={include_contextual}\n"
+            "---------- SYSTEM PROMPT ----------\n"
+            f"{system_prompt}\n"
+            "---------- USER PROMPT ----------\n"
+            f"{user_prompt}\n"
+            "======================================\n"
         )
 
         llm_start = time.time()
@@ -841,7 +891,8 @@ class InsightEngine:
                     {
                         "type": ins.type,
                         "text": ins.text,
-                        "priority": ins.priority
+                        # Backend standard is high|medium|low — normalize "mid" etc.
+                        "priority": normalize_priority(ins.priority)
                     }
                     for ins in parsed.insights
                 ]
@@ -852,7 +903,9 @@ class InsightEngine:
                     "items": insights_payload
                 }
 
-                url = f"{self.backend_url}/uwapi/insight/push"
+                # Backend context-path is /collassistantapi (matches the next-move /
+                # contextual-details pushes above). The old /uwapi path 404'd.
+                url = f"{self.backend_url}/collassistantapi/insight/push"
 
                 async with self.http_session.post(url, json=payload) as resp:
                     print(f"[CopilotEngine] 🚀 Insights push status: {resp.status} | count={len(insights_payload)}")
@@ -1012,6 +1065,11 @@ class InsightEngine:
                     {"role": "user", "content": user_prompt},
                 ],
                 stream=True,
+                # (Cerebras Rule #2) Pin every turn of THIS call to the same prompt cache so
+                # they hit the same backend/DC and reuse the cached static system prefix.
+                # Per-conversation key (call_sid) — NOT a key shared across customers.
+                # Sent via extra_body since SDK 1.67.0 has no typed prompt_cache_key param.
+                extra_body={"prompt_cache_key": f"copilot-{self.call_sid}"},
             )
 
             async for chunk in stream:
@@ -1505,6 +1563,35 @@ class InsightEngine:
             print(f"[InsightEngine] Gemini v2 API error: {e}")
             return ""
 
+    @staticmethod
+    def _log_prompt_cache_usage(response, label: str):
+        """Print prompt-token cache stats so prompt caching is observable in the logs.
+
+        OpenAI-compatible providers (incl. Cerebras) return
+        usage.prompt_tokens_details.cached_tokens = the number of prompt-prefix tokens
+        served from cache. cached_tokens ≈ 0 on the first turn of a call and jumps to
+        roughly the system-prompt size on subsequent turns — proof the precooked static
+        prompt is being reused from the provider's cache rather than reprocessed."""
+        try:
+            usage = getattr(response, "usage", None)
+            if not usage:
+                print(f"[CopilotEngine] 🧠 prompt cache [{label}]: no usage on response")
+                return
+            prompt = getattr(usage, "prompt_tokens", None)
+            completion = getattr(usage, "completion_tokens", None)
+            details = getattr(usage, "prompt_tokens_details", None)
+            cached = getattr(details, "cached_tokens", None) if details is not None else None
+            if cached is None and isinstance(details, dict):
+                cached = details.get("cached_tokens")
+            pct = f"{round(100 * cached / prompt)}%" if cached and prompt else "0%"
+            print(
+                f"[CopilotEngine] 🧠 prompt cache [{label}]: prompt_tokens={prompt} "
+                f"cached_tokens={cached if cached is not None else 'n/a'} ({pct} of prompt) "
+                f"completion_tokens={completion}"
+            )
+        except Exception as e:
+            print(f"[CopilotEngine] (prompt cache usage log failed: {e})")
+
     async def _call_cerebras_api_v2(self, system_prompt: str, user_prompt: str) -> str:
         """Call Cerebras non-streaming (safe extraction for gpt-oss-120b and fallback path)."""
         if not self.cerebras_api_key:
@@ -1533,12 +1620,22 @@ class InsightEngine:
                 ],
                 stream=False,
                 response_format={"type": "json_object"} if is_reasoning_model else _CEREBRAS_RESPONSE_FORMAT,
+                # (Cerebras Rule #2) Per-conversation prompt cache key so all turns of this
+                # call route to the same backend and reuse the cached static system prefix.
+                # Sent via extra_body since SDK 1.67.0 has no typed prompt_cache_key param.
+                extra_body={"prompt_cache_key": f"copilot-{self.call_sid}"},
                 **extra_kwargs,
             )
 
             if not response or not response.choices:
                 print("[CopilotEngine] ❌ Empty response from Cerebras (no choices)")
                 return ""
+
+            # Prompt-cache visibility: shows how many prompt (prefix) tokens the provider
+            # served from cache. ~0 on the first turn of a call, then jumps to ≈ the static
+            # system-prompt size on later turns — that jump IS the precooked prompt being
+            # reused from "LLM memory" instead of reprocessed.
+            self._log_prompt_cache_usage(response, "cerebras non-streaming")
 
             choice = response.choices[0]
             if hasattr(choice, "message") and choice.message:
@@ -1566,6 +1663,16 @@ class InsightEngine:
         )
         prompt_time = (time.time() - prompt_start) * 1000
         print(f"[CopilotEngine] 📝 Legacy prompt built in {prompt_time:.0f}ms")
+
+        # Dump the full prompt that will be sent to the LLM (for debugging).
+        print(
+            "\n"
+            "========== LLM REQUEST (legacy) ==========\n"
+            f"provider={self.ai_provider} | trigger={trigger_reason}\n"
+            "---------- PROMPT ----------\n"
+            f"{prompt}\n"
+            "==========================================\n"
+        )
 
         llm_start = time.time()
         print(
@@ -2149,7 +2256,7 @@ Recent conversation:
         prediction_line: str = "",
     ) -> tuple[str, str]:
         """(A2) v2 copilot prompt — aggressive compression for latency."""
-        schema_dict = {"next_move": {"points": ["max 2"], "priority": "high|mid|low"}}
+        schema_dict = {"next_move": {"points": ["max 2"], "priority": "high|medium|low"}}
         if include_contextual:
             schema_dict["contextual_details"] = {
                 "details": [{"label": "<18ch field name", "value": "<20ch raw number/fact", "highlight": "bool"}]
@@ -2182,29 +2289,44 @@ STRICT FORMAT — label: short field name (max 18 chars). value: raw number/fact
 GOOD: {{"label":"DPD","value":"67 days","highlight":true}}, {{"label":"Overdue","value":"CHF 73,800","highlight":true}}, {{"label":"Last Paid","value":"Dec CHF 5K","highlight":false}}, {{"label":"EMI","value":"CHF 18,450","highlight":false}}, {{"label":"Bounce Charges","value":"CHF 1,500","highlight":false}}
 BAD (NEVER DO THIS): {{"value":"Aug bounced; Sep cleared; liquidity stress"}}, {{"value":"eligible for plan, not settlement"}}, {{"value":"3 missed in last 6 months"}}
 Use ONLY provided data. No fabrication. Follow the call flow decision tree steps.
-MANDATORY POLICY ENFORCEMENT: The POLICIES section in the user prompt contains hard bank policy rules. You MUST follow them exactly in every next_move suggestion. Never suggest a repayment amount, timeline, or offer that contradicts any policy rule. If a policy specifies exact payment terms (e.g. 50% today + balance in 7 days), the agent must offer exactly those terms — no flexibility, no alternatives, no exceptions. Always use Today's date (provided in the user prompt) to compute and state exact calendar dates — never say "in 7 days" or "by next week", always say the actual date (e.g. "by 28 May 2026").
+ML SIGNAL: The CALL CONTEXT "ML:" line carries model-predicted probabilities — PTP-fulfil (likelihood the customer keeps a promise to pay), pay-in-15d and pay-in-30d (likelihood of payment within that window), each with a band (high/mid/low). Treat these as a strong signal that MUST inform next_move priority, insights, and disposition. Low PTP-fulfil → make next_move firmer (push for immediate/secured commitment) and set disposition conf lower for PTP; high PTP-fulfil → support a PTP path and a follow-up next action. Align pay-in-15d/30d with any proposed payment timeline. Never state the raw percentages to the customer; use them only to shape your guidance.
+MANDATORY POLICY ENFORCEMENT: The POLICIES section in CALL CONTEXT contains hard bank policy rules. You MUST follow them exactly in every next_move suggestion. Never suggest a repayment amount, timeline, or offer that contradicts any policy rule. If a policy specifies exact payment terms (e.g. 50% today + balance in 7 days), the agent must offer exactly those terms — no flexibility, no alternatives, no exceptions. Always use Today's date (in CALL CONTEXT) to compute and state exact calendar dates — never say "in 7 days" or "by next week", always say the actual date (e.g. "by 28 May 2026").
 If the conversation indicates the customer is questioning payments, disputing amounts, or the agent needs payment context — surface payment history in contextual_details as TWO separate items: one for paid months and one for unpaid months (e.g. {{"label":"Paid Months","value":"Jun CHF 5K, Aug CHF 5K","highlight":false}}, {{"label":"Unpaid Months","value":"Jul ✗, Sep ✗","highlight":true}}).
 LANGUAGE: Generate next_move points and contextual_details labels in {LANGUAGE_NAMES.get(preferred_language, "English")}. Keep field values (amounts, dates, numbers) in their original format."""
 
-        # Build call flow section for user prompt (dynamic, not in system prompt for caching)
-        flow_section = f"\nFlow:\n{call_flow_text}" if call_flow_text else ""
-
+        # ── Static CALL CONTEXT — precooked once, lives in the cached prefix ──────
+        # Customer profile, ML scores, policies and call-flow are constant for the
+        # whole call, so they are appended to the SYSTEM prompt (the provider's
+        # cached prefix / "LLM memory") and reused every turn instead of being
+        # re-sent mid-conversation. Only the transcript (user prompt) changes.
         today = datetime.now().strftime("%d %b %Y")
+        flow_section = f"\nFlow:\n{call_flow_text}" if call_flow_text else ""
         ml_line = f"\nML:{prediction_line}" if prediction_line else ""
-        user_prompt = f"""Today:{today}
+        system_prompt += f"""
+
+--- CALL CONTEXT (static for this call) ---
+Today:{today}
 Cust:{customer.get("name", "")} Agr:{customer.get("agreementId", "")} Loan:{loan.get("amount", "")} Ten:{customer.get("loanType", "")}
 Outs:{loan.get("outstanding", "")} Due:{loan.get("overdue", "")} DPD:{additional.get("dpd", 0)}d EMI:CHF {additional.get("amount", "")}{ml_line}
 Pay:
 {payment_toon}
 POLICIES (MANDATORY - HARD RULES, NO EXCEPTIONS):
 {chr(10).join(policy_lines)}{flow_section}
-Trans:
-{chr(10).join(transcript_lines)}
-Rules:
+Answer rules:
 - points: 1-2 cues. NOT dialogue.
 - Follow the call flow decision tree steps."""
-        # print(f"[InsightEngine] Built v2 prompts (system {system_prompt} chars, user {user_prompt} chars)")
+
+        user_prompt = InsightEngine.build_user_prompt(transcript_lines, recent_count)
+        # print(f"[InsightEngine] Built v2 prompts (system {len(system_prompt)} chars, user {len(user_prompt)} chars)")
         return system_prompt, user_prompt
+
+    @staticmethod
+    def build_user_prompt(transcript_lines: list[str], recent_count: int) -> str:
+        """Dynamic v2 user prompt: only the live transcript, which changes every
+        turn. Kept minimal so the static system prefix stays cache-hot — the static
+        customer context lives in the system prompt (see build_copilot_prompt)."""
+        return f"""Trans (last {recent_count} turns):
+{chr(10).join(transcript_lines)}"""
 
 
 # ── Legacy response parsers ──────────────────────────────────────────────────
