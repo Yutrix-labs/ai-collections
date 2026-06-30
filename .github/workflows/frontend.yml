@@ -54,6 +54,8 @@ jobs:
             ${{ steps.image.outputs.latest }}
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=246308753830-evjvm7g2ob48m0du3l7iems6qjs4629p.apps.googleusercontent.com
+            BFF_URL=https://auth-bff.yutrix.io
           cache-from: type=registry,ref=${{ steps.image.outputs.latest }}
           cache-to: type=inline
 

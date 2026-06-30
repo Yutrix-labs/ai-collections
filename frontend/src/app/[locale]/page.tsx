@@ -2,17 +2,15 @@
 
 import { useEffect } from "react";
 import { useRouter } from "@/i18n/navigation";
-import { isLoggedIn } from "@/lib/auth";
+import { authApi } from "@/auth/authApi";
 
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    if (isLoggedIn()) {
-      router.replace("/worklist");
-    } else {
-      router.replace("/login");
-    }
+    authApi.me().then((r) => {
+      router.replace(r.authenticated ? "/worklist" : "/login");
+    });
   }, [router]);
 
   return null;

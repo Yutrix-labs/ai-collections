@@ -1,23 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "@/i18n/navigation";
-import { isLoggedIn } from "@/lib/auth";
+import { useRequireAuth } from "@/auth/useRequireAuth";
 import { WorklistTable } from "@/components/domain/worklist/WorklistTable";
 import { motion } from "framer-motion";
 import { ListChecks } from "lucide-react";
 
 export default function WorklistPage() {
-  const router = useRouter();
+  const ready = useRequireAuth();
   const [currentDate, setCurrentDate] = useState<string>("");
 
   useEffect(() => {
-    if (!isLoggedIn()) {
-      router.replace("/login");
-      return;
-    }
     setCurrentDate(new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' }));
-  }, [router]);
+  }, []);
+
+  if (!ready) return null;
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">

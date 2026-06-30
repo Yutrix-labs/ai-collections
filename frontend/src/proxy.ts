@@ -9,5 +9,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/((?!api|trpc|_next|_vercel|.*\\..*).*)",
+  // Exclude /auth/* so it is proxied to the auth-bff (no locale prefix added).
+  matcher: "/((?!api|trpc|auth|_next|_vercel|.*\\..*).*)",
 };

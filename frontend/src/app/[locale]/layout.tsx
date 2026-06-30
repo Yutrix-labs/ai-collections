@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { Toaster } from "sonner";
+import Script from "next/script";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -38,6 +39,8 @@ export default async function RootLayout({
           {children}
         </NextIntlClientProvider>
         <Toaster richColors position="bottom-right" />
+        {/* Google Identity Services — Sign in with Google button */}
+        <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
       </body>
     </html>
   );
