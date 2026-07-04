@@ -1,0 +1,27 @@
+# Frontend-Integrated Backend Endpoints
+
+## REST endpoints
+Base URL: NEXT_PUBLIC_API_URL  ->  http://localhost:8080/collassistantapi
+Source: frontend/src/lib/api/collections-api.ts
+
+GET   /customer/{agreementId}              fetchCustomerData      Customer data lookup
+GET   /ptp/predict/{agreementId}           fetchPtpPrediction     PTP-fulfillment ML prediction (skips toast interceptor)
+POST  /call/start                          startCall              Initiate Click2Call { agreementId, customerMobile }
+POST  /call/end                            endCall                End call
+GET   /transcript/{sessionId}              fetchTranscriptHistory Transcript history
+GET   /transcript/{sessionId}/summary      fetchSummaryHistory    Conversation summary
+GET   /worklist                            fetchWorklist          Agent worklist
+
+
+## WebSocket (STOMP over /ws)
+Base: NEXT_PUBLIC_API_URL (hooks fall back to http://localhost:8080), derived ws(s)://.../ws
+
+Per-session subscriptions (Source: frontend/src/hooks/useStompClient.ts)
+SUB   /topic/call/{sessionId}/transcript   Live transcript turns
+SUB   /topic/call/{sessionId}/meet-url     LiveKit Meet URL
+SUB   /topic/call/{sessionId}/insights     Copilot v2 (next-move, contextual-details, disposition, summary, customer-context)
+SUB   /topic/call/{sessionId}/status       Call status (disconnected / ended)
+SUB   /topic/call/{sessionId}/summary      Conversation summary push
+
+Global subscription (Source: frontend/src/hooks/useIncomingCall.ts)
+SUB   /topic/agent/incoming-call           Incoming customer-service call notifications
