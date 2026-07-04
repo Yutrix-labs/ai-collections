@@ -48,6 +48,8 @@ spec:
           LIVEKIT_URL={{ .Data.data.livekit_url }}
           LIVEKIT_API_KEY={{ .Data.data.livekit_api_key }}
           LIVEKIT_API_SECRET={{ .Data.data.livekit_api_secret }}
+          APP_API_KEY={{ .Data.data.api_key }}
+          APP_CORS_ALLOWED_ORIGINS={{ .Data.data.cors_allowed_origins }}
           {{- end }}
     spec:
       serviceAccountName: backend

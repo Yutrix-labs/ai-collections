@@ -1,5 +1,7 @@
 package labs.yutrix.uw.customer;
 
+import labs.yutrix.uw.call.CallSession;
+import labs.yutrix.uw.call.SessionStore;
 import labs.yutrix.uw.common.ApiResponse;
 import labs.yutrix.uw.common.EntityNotFoundException;
 import labs.yutrix.uw.ptp.PtpPredictionService;
@@ -26,6 +28,7 @@ public class CustomerController {
     private final CustomerContextService customerContextService;
     private final WorklistService worklistService;
     private final PtpPredictionService ptpPredictionService;
+    private final SessionStore sessionStore;
 
     /**
      * Get customer information by agreement ID.
@@ -64,6 +67,13 @@ public class CustomerController {
     @GetMapping("/mobile/{mobile}/context")
     @SuppressWarnings("unchecked")
     public ApiResponse<Map<String, Object>> getCustomerContextByMobile(@PathVariable String mobile) {
+        // Prefer the record pushed at /call/start (external integrations); fall back to demo data.
+        CallSession session = sessionStore.findByMobile(mobile);
+        if (session != null && session.getCustomerContext() != null && !session.getCustomerContext().isEmpty()) {
+            return ApiResponse.ok("Customer context retrieved",
+                    customerContextService.buildContextForSession(session));
+        }
+
         Map<String, Object> customerData = worklistService.getCustomerContextByMobile(mobile);
 
         if (customerData == null) {

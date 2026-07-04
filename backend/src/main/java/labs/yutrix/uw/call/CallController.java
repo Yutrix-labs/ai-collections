@@ -45,12 +45,12 @@ public class CallController {
                                 : startExotelCall(sessionId, request);
 
                 sessionStore.put(session);
-                log.info("Call session created: mode={}, sessionId={}, agreementId={}, mobile={}, callSid={}, room={}",
+                log.info("Call session created: mode={}, sessionId={}, agreementId={}, mobile={}, callSid={}, room={}, pushedCustomerData={}",
                                 callMode, sessionId, request.agreementId(), request.customerMobile(),
-                                session.getExotelCallSid(), session.getRoomName());
+                                session.getExotelCallSid(), session.getRoomName(), request.customerData() != null);
 
                 // Fire async pre-call nudge (broadcasts via STOMP after FE subscribes)
-                preCallNudgeService.generateAndBroadcast(request.agreementId(), sessionId);
+                preCallNudgeService.generateAndBroadcast(session);
 
                 return ApiResponse.ok("Call initiated", session);
         }
@@ -70,6 +70,7 @@ public class CallController {
                                 .agreementId(request.agreementId())
                                 .customerMobile(request.customerMobile())
                                 .exotelCallSid(exotelCallSid.isBlank() ? null : exotelCallSid)
+                                .customerContext(request.customerData())
                                 .status("ACTIVE")
                                 .startedAt(LocalDateTime.now())
                                 .build();
@@ -108,6 +109,7 @@ public class CallController {
                                 .roomName(room)
                                 .meetUrl(agentMeetUrl)
                                 .customerJoinUrl(customerJoinUrl)
+                                .customerContext(request.customerData())
                                 .status("ACTIVE")
                                 .startedAt(LocalDateTime.now())
                                 .build();
@@ -265,7 +267,7 @@ public class CallController {
                 log.info("Customer context requested | callSid={} sessionId={} agreementId={}",
                                 callSid, session.getSessionId(), session.getAgreementId());
 
-                Map<String, Object> context = customerContextService.buildContext(session.getAgreementId());
+                Map<String, Object> context = customerContextService.buildContextForSession(session);
 
                 return ApiResponse.ok("Customer context retrieved", context);
         }

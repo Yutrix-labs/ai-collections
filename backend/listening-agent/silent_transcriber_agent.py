@@ -39,8 +39,15 @@ _http_session: aiohttp.ClientSession | None = None
 async def get_http_session() -> aiohttp.ClientSession:
     global _http_session
     if _http_session is None or _http_session.closed:
+        # Attach the backend API key (X-API-KEY) as a default header so every agent/copilot
+        # call to the Spring backend is authenticated. Blank => header omitted (backend auth off).
+        default_headers = {}
+        backend_api_key = os.getenv("BACKEND_API_KEY", "").strip()
+        if backend_api_key:
+            default_headers["X-API-KEY"] = backend_api_key
         _http_session = aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=None)
+            timeout=aiohttp.ClientTimeout(total=None),
+            headers=default_headers,
         )
     return _http_session
 

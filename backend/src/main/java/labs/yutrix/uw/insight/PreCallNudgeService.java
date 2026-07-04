@@ -1,6 +1,7 @@
 package labs.yutrix.uw.insight;
 
-import labs.yutrix.uw.worklist.WorklistService;
+import labs.yutrix.uw.call.CallSession;
+import labs.yutrix.uw.customer.CustomerContextService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -21,7 +22,7 @@ import java.util.Map;
 @Slf4j
 public class PreCallNudgeService {
 
-    private final WorklistService worklistService;
+    private final CustomerContextService customerContextService;
     private final SimpMessagingTemplate messagingTemplate;
 
     /**
@@ -30,7 +31,9 @@ public class PreCallNudgeService {
      * after receiving the sessionId from the start-call API response.
      */
     @Async
-    public void generateAndBroadcast(String agreementId, String sessionId) {
+    public void generateAndBroadcast(CallSession session) {
+        String sessionId = session.getSessionId();
+        String agreementId = session.getAgreementId();
         log.info("[PRE-CALL NUDGE] Async method started | agreementId={} sessionId={} thread={}",
                 agreementId, sessionId, Thread.currentThread().getName());
         try {
@@ -38,9 +41,10 @@ public class PreCallNudgeService {
             Thread.sleep(1500);
             log.info("[PRE-CALL NUDGE] Delay complete, generating nudge | sessionId={}", sessionId);
 
-            Map<String, Object> customerData = worklistService.getCustomerContext(agreementId);
+            // Prefer the record pushed at /call/start; fall back to the demo dataset.
+            Map<String, Object> customerData = customerContextService.rawDataForSession(session);
             if (customerData == null) {
-                log.warn("[PRE-CALL NUDGE] Customer not found | agreementId={}", agreementId);
+                log.warn("[PRE-CALL NUDGE] No customer data | sessionId={} agreementId={}", sessionId, agreementId);
                 return;
             }
             log.info("[PRE-CALL NUDGE] Customer data loaded | agreementId={}", agreementId);

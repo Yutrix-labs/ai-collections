@@ -43,8 +43,12 @@ call:
   mode: livekit
 
 app:
+  # Shared API key required on all REST endpoints (X-API-KEY header) and the STOMP CONNECT frame.
+  # Blank => auth disabled (local dev / first deploy before the Vault secret exists). Set via APP_API_KEY.
+  api-key: ${APP_API_KEY:}
   cors:
-    allowed-origins: http://localhost:3000,http://localhost:3001
+    # Comma-separated browser origins allowed for REST + WebSocket. Override via APP_CORS_ALLOWED_ORIGINS.
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001}
   # Writable copy of the customer dataset. PTP predictions are cached back here so
   # the model is only called once per account (see PtpPredictionService.getOrPredict).
   # Relative to the backend module dir when running `./mvnw spring-boot:run`.

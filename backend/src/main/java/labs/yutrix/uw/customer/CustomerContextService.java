@@ -1,5 +1,6 @@
 package labs.yutrix.uw.customer;
 
+import labs.yutrix.uw.call.CallSession;
 import labs.yutrix.uw.common.EntityNotFoundException;
 import labs.yutrix.uw.worklist.WorklistService;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,49 @@ public class CustomerContextService {
         }
 
         return buildContextFromRawData(customerData);
+    }
+
+    /**
+     * Resolve the raw customer record for a call session.
+     *
+     * <p>Prefers the record pushed by the caller at {@code /call/start} (external integrations
+     * where the customer data lives on their side). Falls back to the demo {@code customers.json}
+     * lookup by agreementId, then by mobile, so the built-in demo frontend keeps working.
+     *
+     * @return the raw record, or {@code null} if nothing resolves
+     */
+    public Map<String, Object> rawDataForSession(CallSession session) {
+        if (session == null) {
+            return null;
+        }
+        Map<String, Object> pushed = session.getCustomerContext();
+        if (pushed != null && !pushed.isEmpty()) {
+            return pushed;
+        }
+        // Demo fallback: look the record up in customers.json.
+        if (session.getAgreementId() != null) {
+            Map<String, Object> byId = worklistService.getCustomerContext(session.getAgreementId());
+            if (byId != null) {
+                return byId;
+            }
+        }
+        if (session.getCustomerMobile() != null) {
+            return worklistService.getCustomerContextByMobile(session.getCustomerMobile());
+        }
+        return null;
+    }
+
+    /**
+     * Builds the AI prompt-compatible context for a call session, sourcing the raw record from
+     * the pushed payload (preferred) or the demo dataset (fallback).
+     */
+    public Map<String, Object> buildContextForSession(CallSession session) {
+        Map<String, Object> raw = rawDataForSession(session);
+        if (raw == null) {
+            throw new EntityNotFoundException(
+                    "No customer data for session: " + (session == null ? "null" : session.getSessionId()));
+        }
+        return buildContextFromRawData(raw);
     }
 
     /**

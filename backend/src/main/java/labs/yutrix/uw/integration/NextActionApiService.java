@@ -81,7 +81,7 @@ public class NextActionApiService {
             // Collections: build context from agreementId. Customer service: fall back to CS customer data (normalized).
             Map<String, Object> customerContext = null;
             try {
-                customerContext = customerContextService.buildContext(session.getAgreementId());
+                customerContext = customerContextService.buildContextForSession(session);
             } catch (Exception e) {
                 log.warn("[NextActionApi] Could not fetch customer context | sessionId={}", sessionId);
             }

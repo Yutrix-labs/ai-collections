@@ -80,7 +80,7 @@ public class DispositionService {
             // Fetch customer context
             String customerContext = "";
             try {
-                Map<String, Object> context = customerContextService.buildContext(session.getAgreementId());
+                Map<String, Object> context = customerContextService.buildContextForSession(session);
                 customerContext = buildCustomerContextString(context);
             } catch (Exception e) {
                 log.warn("Could not fetch customer context for disposition | sessionId={}", sessionId, e);

@@ -54,6 +54,11 @@ public class SessionStore {
         return session;
     }
 
+    /** Non-throwing lookup by mobile; returns {@code null} when no session exists. */
+    public CallSession findByMobile(String mobile) {
+        return mobile == null ? null : byMobile.get(normalizeMobile(mobile));
+    }
+
     /**
      * Normalize mobile to last 10 digits for matching.
      */

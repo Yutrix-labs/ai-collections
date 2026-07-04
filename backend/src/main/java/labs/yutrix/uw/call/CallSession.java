@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Data
@@ -25,6 +26,11 @@ public class CallSession {
     private String recordingUrl;     // LiveKit Egress → S3 recording URL (livekit call mode)
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
+
+    // Full customer record pushed by the caller at /call/start (external integrations where the
+    // customer data lives on their side). Same shape as a customers.json entry. Null => the backend
+    // falls back to the demo customers.json lookup by agreementId / mobile.
+    private Map<String, Object> customerContext;
 
     // Disposition
     private String dispositionResult;
