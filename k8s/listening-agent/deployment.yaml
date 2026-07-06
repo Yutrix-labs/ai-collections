@@ -60,8 +60,10 @@ spec:
           COPILOT_MODE="{{ .Data.data.copilot_mode }}"
           AGENT_NAME="{{ .Data.data.agent_name }}"
           SIP_MOBILE_NUMBER="{{ .Data.data.sip_mobile_number }}"
+          {{- if .Data.data.backend_api_key }}
           # Must equal the backend's api_key so agent/copilot calls pass the X-API-KEY gate.
           BACKEND_API_KEY="{{ .Data.data.backend_api_key }}"
+          {{- end }}
           GOOGLE_APPLICATION_CREDENTIALS="/vault/secrets/gcp-sa.json"
           {{- end }}
         # GCP service account JSON injected as a file

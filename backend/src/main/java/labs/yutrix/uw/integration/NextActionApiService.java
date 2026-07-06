@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -42,6 +43,7 @@ public class NextActionApiService {
     private final InsightService insightService;
     private final SummaryService summaryService;
     private final CopilotService copilotService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -127,6 +129,16 @@ public class NextActionApiService {
             payload.put("preCallSummary", preCallSummary);
             payload.put("callMode", preCallSummary != null || copilotService.getCustomerData(sessionId) != null
                     ? "customer_service" : "collections");
+
+            // Push the exact same payload to the frontend on a dedicated STOMP topic, so the UI gets
+            // the full next-action data in realtime (independent of the external microservice call).
+            try {
+                messagingTemplate.convertAndSend("/topic/call/" + sessionId + "/next-action", payload);
+                log.info("[NextActionApi] Broadcast next-action payload to frontend | sessionId={}", sessionId);
+            } catch (Exception e) {
+                log.error("[NextActionApi] Failed to broadcast next-action payload | sessionId={} error={}",
+                        sessionId, e.getMessage(), e);
+            }
 
             String jsonPayload = objectMapper.writeValueAsString(payload);
             log.info("[NextActionApi] Sending POST request | sessionId={} payloadSize={}chars", sessionId, jsonPayload);
