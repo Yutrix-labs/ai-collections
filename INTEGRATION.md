@@ -153,21 +153,19 @@ curl -s https://aiassistant.yutrix.io/collassistantapi/call/start \
     "sessionId": "bf43e881-ab8a-406a-8b71-333933666baf",
     "agreementId": "PL-2024-00847392",
     "customerMobile": "7838153987",
-    "exotelCallSid": null,
     "status": "ACTIVE",
     "meetUrl": "https://meet.livekit.io/custom?liveKitUrl=wss%3A%2F%2F...&token=eyJ...",
     "customerJoinUrl": "https://meet.livekit.io/custom?liveKitUrl=wss%3A%2F%2F...&token=eyJ...",
     "roomName": "call-PL-2024-00847392",
-    "recordingUrl": null,
-    "startedAt": "2026-07-06T07:11:38.588772992",
-    "endedAt": null,
-    "customerContext": { "customer": { "…echoes the customerData you sent…" } },
-    "dispositionResult": null, "dispositionDate": null, "dispositionAmount": null,
-    "dispositionNotes": null, "dispositionNextAction": null, "dispositionReasonCode": null,
-    "dispositionPaymentSchedule": null
+    "startedAt": "2026-07-06T07:11:38.588772992"
   }
 }
 ```
+
+- `meetUrl` — the **agent** opens this to join the call (LiveKit audio bridge).
+- `customerJoinUrl` — share this with the **customer**; opening it joins them to the same room
+  (`roomName`). The token grants `roomJoin` + publish/subscribe and is validated by LiveKit.
+- `sessionId` — use for all `/topic/call/{sessionId}/*` STOMP subscriptions.
 
 ## 7. GET /call/{sessionId} — fetch current session state
 

@@ -37,7 +37,7 @@ public class CallController {
         private String callMode;
 
         @PostMapping("/start")
-        public ApiResponse<CallSession> startCall(@Valid @RequestBody StartCallRequest request) {
+        public ApiResponse<StartCallResponse> startCall(@Valid @RequestBody StartCallRequest request) {
                 String sessionId = UUID.randomUUID().toString();
 
                 CallSession session = "livekit".equalsIgnoreCase(callMode)
@@ -52,7 +52,7 @@ public class CallController {
                 // Fire async pre-call nudge (broadcasts via STOMP after FE subscribes)
                 preCallNudgeService.generateAndBroadcast(session);
 
-                return ApiResponse.ok("Call initiated", session);
+                return ApiResponse.ok("Call initiated", StartCallResponse.from(session));
         }
 
         /** Exotel Click2Call path: dials the customer's phone and bridges it into a LiveKit room. */
