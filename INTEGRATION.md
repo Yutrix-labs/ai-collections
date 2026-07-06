@@ -165,6 +165,8 @@ curl -s https://aiassistant.yutrix.io/collassistantapi/call/start \
 - `meetUrl` — the **agent** opens this to join the call (LiveKit audio bridge).
 - `customerJoinUrl` — share this with the **customer**; opening it joins them to the same room
   (`roomName`). The token grants `roomJoin` + publish/subscribe and is validated by LiveKit.
+  **Valid for 6 hours** from call start (gates the join/reconnect; an in-progress call is not cut
+  off when it expires). To share a link *before* the call, use `/call/customer-link` (valid 7 days).
 - `sessionId` — use for all `/topic/call/{sessionId}/*` STOMP subscriptions.
 
 ## 7. GET /call/{sessionId} — fetch current session state
@@ -209,6 +211,9 @@ curl -s https://aiassistant.yutrix.io/collassistantapi/transcript/{sessionId}/su
 ```
 
 ## 10. GET /call/customer-link/{agreementId} — shareable customer join link (LiveKit mode)
+
+Use this to send the customer a join link **ahead of the call**. Same room as `/call/start`
+(`call-{agreementId}`), but the token is **valid for 7 days** (vs 6h for the `/call/start` link).
 
 ```bash
 curl -s https://aiassistant.yutrix.io/collassistantapi/call/customer-link/PL-2024-00847392 \
