@@ -54,6 +54,10 @@ spec:
           {{- if .Data.data.cors_allowed_origins }}
           APP_CORS_ALLOWED_ORIGINS="{{ .Data.data.cors_allowed_origins }}"
           {{- end }}
+          {{- if .Data.data.mail_username }}
+          MAIL_USERNAME="{{ .Data.data.mail_username }}"
+          MAIL_PASSWORD="{{ .Data.data.mail_password }}"
+          {{- end }}
           {{- end }}
     spec:
       serviceAccountName: backend

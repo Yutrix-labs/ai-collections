@@ -24,4 +24,18 @@ final class AllowedOrigins {
                         .toArray(String[]::new);
         return parsed.length > 0 ? parsed : DEFAULTS;
     }
+
+    /**
+     * True when the configured value is the {@code *} wildcard ("allow all origins", e.g. for
+     * testing). Callers must then use {@code allowedOriginPatterns("*")} instead of
+     * {@code allowedOrigins("*")}, since the latter is rejected when credentials are allowed.
+     */
+    static boolean isWildcard(String[] origins) {
+        for (String o : origins) {
+            if ("*".equals(o)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

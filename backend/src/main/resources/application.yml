@@ -16,6 +16,26 @@ spring:
         gemini:
           project-id: dev-placeholder
           location: dev-placeholder
+  # SMTP for sending the customer their LiveKit join link. Credentials come from env
+  # (MAIL_USERNAME / MAIL_PASSWORD via Vault) — never commit the Gmail app password.
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+        transport:
+          protocol: smtp
+    # Don't hang the request thread forever if Gmail is unreachable.
+    connect-timeout: 8000
+    timeout: 8000
+    write-timeout: 8000
 
 server:
   port: 8080

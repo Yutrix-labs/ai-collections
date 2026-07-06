@@ -13,10 +13,16 @@ public class CorsConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins(AllowedOrigins.parse(allowedOrigins))
+        String[] origins = AllowedOrigins.parse(allowedOrigins);
+        var mapping = registry.addMapping("/**")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);
+        // "*" => allow all origins (testing). Must use patterns, not allowedOrigins, with credentials.
+        if (AllowedOrigins.isWildcard(origins)) {
+            mapping.allowedOriginPatterns("*");
+        } else {
+            mapping.allowedOrigins(origins);
+        }
     }
 }

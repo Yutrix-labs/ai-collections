@@ -6,6 +6,7 @@ import labs.yutrix.uw.customer.CustomerContextService;
 import labs.yutrix.uw.customer.CustomerServiceDataService;
 import labs.yutrix.uw.insight.DispositionService;
 import labs.yutrix.uw.insight.PreCallNudgeService;
+import labs.yutrix.uw.integration.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,7 @@ public class CallController {
         private final CustomerServiceDataService customerServiceDataService;
         private final PreCallNudgeService preCallNudgeService;
         private final DispositionService dispositionService;
+        private final EmailService emailService;
 
         /** "exotel" = Click2Call telephony; "livekit" = browser-to-browser WebRTC (Exotel bypass). */
         @Value("${call.mode:exotel}")
@@ -52,7 +54,28 @@ public class CallController {
                 // Fire async pre-call nudge (broadcasts via STOMP after FE subscribes)
                 preCallNudgeService.generateAndBroadcast(session);
 
+                // Email the customer their join link (livekit mode only; async, best-effort).
+                if (session.getCustomerJoinUrl() != null && !session.getCustomerJoinUrl().isBlank()) {
+                        String email = customerField(session, "email");
+                        String name = customerField(session, "name");
+                        emailService.sendCustomerJoinLink(email, name, session.getCustomerJoinUrl());
+                }
+
                 return ApiResponse.ok("Call initiated", StartCallResponse.from(session));
+        }
+
+        /** Pull a field from the pushed customer record ({@code customerContext.customer.<field>}). */
+        private String customerField(CallSession session, String field) {
+                Map<String, Object> ctx = session.getCustomerContext();
+                if (ctx == null) {
+                        return null;
+                }
+                Object customer = ctx.get("customer");
+                if (customer instanceof Map<?, ?> cm) {
+                        Object v = cm.get(field);
+                        return v != null ? v.toString() : null;
+                }
+                return null;
         }
 
         /** Exotel Click2Call path: dials the customer's phone and bridges it into a LiveKit room. */
