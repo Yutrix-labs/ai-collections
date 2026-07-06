@@ -173,8 +173,8 @@ curl -s https://aiassistant.yutrix.io/collassistantapi/call/start \
 curl -s https://aiassistant.yutrix.io/collassistantapi/call/{sessionId} \
   -H "X-API-KEY: YOUR_API_KEY"
 ```
-**Response** `200`: same `CallSession` object as `/call/start` (reflects the latest `status`,
-`endedAt`, and any `disposition*` fields once set).
+**Response** `200`: the **full** `CallSession` (unlike the slim `/call/start` response) — includes
+`status`, `endedAt`, the echoed `customerContext`, and `disposition*` fields once set.
 
 ## 8. GET /transcript/{sessionId} — transcript history (replay)
 
@@ -303,33 +303,49 @@ Fired after `/call/end` (or a disconnect) once AI disposition + next-action proc
 This is the **exact same object** the backend sends to the internal next-action microservice —
 delivered to the frontend on this topic so the UI has the full post-call dataset in one message.
 
+Real captured payload (`callFlows` abbreviated — 5 flow templates are returned):
 ```json
 {
-  "sessionId": "bf43e881-...",
+  "sessionId": "835bff5a-a8ed-436a-8186-8ff2c77394d9",
   "agreementId": "PL-2024-00847392",
   "customerMobile": "7838153987",
   "exotelCallSid": null,
-  "callRecordingURL": null,
+  "callRecordingURL": "https://…/VOICE_RECORDING/….mp3",
   "status": "ENDED",
-  "startedAt": "2026-07-06T07:11:38.5887",
-  "endedAt": "2026-07-06T07:11:40.3045",
+  "startedAt": "2026-07-06T07:32:37.148068124",
+  "endedAt": "2026-07-06T07:32:41.240055963",
   "dpd": 45,
   "delinquencyBucket": "31-60 DPD",
-  "transcript": [ { "speaker": "customer", "text": "…", "ts": "…", "sentiment": "neutral" } ],
-  "customerContext": { "customer": {}, "loan": {}, "additional": {}, "payment_history": [], "past_communications": [] },
-  "insights": [ /* Insight[] */ ],
-  "summary": { "summaryItems": [], "insightItems": [] },
-  "recommendations": [ /* RecommendationDto[] */ ],
-  "dataSuggestions": [ /* DataSuggestionDto[] */ ],
-  "callFlows": [ /* configured flow templates */ ],
-  "disposition": {
-    "result": "PTP", "date": "2026-07-10", "amount": "1000",
-    "notes": "…", "nextAction": "Follow-up Call", "reason": "", "paymentSchedule": null
+  "callMode": "collections",
+  "customerContext": {
+    "customer": { "name": "…", "mobile": "…", "agreementId": "…", "loanType": "…", "writeoff": "N", "legalProceedings": null },
+    "loan": { "outstanding": "CHF 1,20,000", "overdue": "CHF 40,000" },
+    "additional": { "dpd": 45, "profession": "Business owner" },
+    "payment_history": [ { "status": "Missed" }, { "status": "Partial" } ],
+    "past_communications": [ { "date": "01-Jul", "caller": "Agent", "summary": "…" } ],
+    "active_policies": null,
+    "prediction": null
   },
-  "preCallSummary": null,
-  "callMode": "collections"
+  "transcript": [],
+  "insights": [],
+  "summary": { "summaryItems": [], "insightItems": [] },
+  "recommendations": [],
+  "dataSuggestions": [],
+  "callFlows": [
+    { "id": "ptp", "name": "Promise to Pay", "goal": "Get explicit date + amount + method", "steps": [ "…" ] }
+  ],
+  "disposition": {
+    "result": null, "date": null, "amount": null,
+    "notes": null, "nextAction": null, "reason": null, "paymentSchedule": null
+  },
+  "preCallSummary": null
 }
 ```
+
+> **Note:** `transcript`, `insights`, `summary`, `recommendations`, `dataSuggestions` and
+> `disposition` are populated from the **live AI analysis of the call audio** during a real call.
+> In a no-audio smoke test (like the values above) they come back empty/null. `customerContext`,
+> `dpd`, `delinquencyBucket`, `callFlows`, `callRecordingURL` are always present.
 
 ### Global topic (subscribe once, no sessionId)
 
