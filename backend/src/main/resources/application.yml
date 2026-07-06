@@ -83,6 +83,14 @@ ptp:
     # FastAPI PTP-fulfillment model service (backend/ml-ptp). Run with: uv run ptp-serve
     api-url: http://localhost:8000
 
+management:
+  health:
+    # The mail health indicator opens an SMTP connection to Gmail on every /actuator/health call.
+    # The k8s readiness probe hits /actuator/health, so if the cluster can't reach smtp.gmail.com:587
+    # the pod never becomes ready. Email sending is unaffected by this — only the health check is.
+    mail:
+      enabled: false
+
 logging:
   level:
     labs.yutrix.uw: DEBUG
