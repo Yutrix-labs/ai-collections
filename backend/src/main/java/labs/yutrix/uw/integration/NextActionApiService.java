@@ -133,7 +133,7 @@ public class NextActionApiService {
             // Push the exact same payload to the frontend on a dedicated STOMP topic, so the UI gets
             // the full next-action data in realtime (independent of the external microservice call).
             try {
-                messagingTemplate.convertAndSend("/topic/call/" + sessionId + "/next-action", payload);
+                messagingTemplate.convertAndSend("/topic/call/" + sessionId + "/next-action", (Object) payload);
                 log.info("[NextActionApi] Broadcast next-action payload to frontend | sessionId={}", sessionId);
             } catch (Exception e) {
                 log.error("[NextActionApi] Failed to broadcast next-action payload | sessionId={} error={}",
