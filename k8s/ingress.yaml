@@ -19,6 +19,15 @@ spec:
     - host: aiassistant.yutrix.io
       http:
         paths:
+          # Tata telephony WebSocket bridge (ws_telephony_bridge.py). Tata connects to
+          # wss://aiassistant.yutrix.io/telephony/stream/<id>. Matched before the catch-all.
+          - path: /telephony
+            pathType: Prefix
+            backend:
+              service:
+                name: ws-bridge
+                port:
+                  number: 8090
           # Backend API + WebSocket (more specific — matched first)
           - path: /collassistantapi
             pathType: Prefix

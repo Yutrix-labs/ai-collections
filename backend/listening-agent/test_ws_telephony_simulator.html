@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<!--
+  test_ws_telephony_simulator.html
+
+  Stand-in for Tata (the telephony provider), to test ws_telephony_bridge.py end-to-end
+  WITHOUT a real phone call or Tata credentials. Open in a browser, point it at your running
+  bridge, hit "Start Call" and talk into your mic — it streams your audio to the bridge exactly
+  like Tata would (same JSON {"event":"media","media":{"payload":"<base64>"}} frames the bridge's
+  default parser expects), and plays back whatever audio the bridge sends the other way (the human
+  tele-caller in the LiveKit room), so you can hear the full round trip.
+
+  Purely a local test tool — does not modify or depend on any other file.
+
+  TWO WAYS TO TEST:
+
+  A) STANDALONE (bridge only, no Spring backend):
+       - Run the agent worker:  uv run listening-agent
+       - Run the bridge with:    BRIDGE_DISPATCH_AGENT=true python ws_telephony_bridge.py
+       - Leave "Room" and "Session ID" BLANK here → the bridge mints its own room (ws-call-<id>)
+         and dispatches the agent itself. Confirms audio lands in LiveKit + is transcribed
+         (watch the agent console for `customer_<id>` transcript lines).
+
+  B) INTEGRATED HAPPY PATH (with the Spring backend, dry-run without Tata):
+       - Run the agent worker + backend (CALL_MODE=tata; Tata creds not needed — the real dial
+         is skipped, but the room + agent + meetUrl are still set up).
+       - Run the bridge normally:  python ws_telephony_bridge.py
+       - curl POST /call/start → copy `roomName`, `sessionId`, `meetUrl` from the response.
+       - Open `meetUrl` in another browser tab = the HUMAN AGENT joins the room.
+       - Here, set Room = <roomName> and Session ID = <sessionId>, Start Call.
+         → the bridge joins the SAME room as the agent → you talk (customer) ⇄ agent talks,
+         full duplex, and the agent sees your live transcript.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Telephony WebSocket Simulator</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+  h1 { font-size: 1.3rem; }
+  label { display: block; margin-top: 0.75rem; font-size: 0.85rem; color: #444; }
+  input, select { width: 100%; padding: 0.4rem; margin-top: 0.2rem; box-sizing: border-box; font-family: monospace; }
+  .row { display: flex; gap: 1rem; }
+  .row > div { flex: 1; }
+  button { margin-top: 1rem; padding: 0.6rem 1.2rem; font-size: 0.95rem; cursor: pointer; margin-right: 0.5rem; }
+  #startBtn { background: #16a34a; color: white; border: none; border-radius: 4px; }
+  #stopBtn { background: #dc2626; color: white; border: none; border-radius: 4px; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  #status { display: inline-block; margin-left: 1rem; font-weight: 600; }
+  #log { background: #0f172a; color: #d1d5db; font-family: monospace; font-size: 0.75rem;
+         height: 240px; overflow-y: auto; padding: 0.75rem; margin-top: 1rem; border-radius: 6px; white-space: pre-wrap; }
+  .meter { height: 8px; background: #e5e7eb; border-radius: 4px; margin-top: 0.5rem; overflow: hidden; }
+  .meter > div { height: 100%; width: 0%; background: #16a34a; transition: width 0.05s linear; }
+  .hint { color:#666; font-size:0.8rem; margin-top:0.25rem; }
+</style>
+</head>
+<body>
+  <h1>Telephony WebSocket Simulator</h1>
+  <p class="hint">Simulates Tata streaming a call into <code>ws_telephony_bridge.py</code>. See the file header for standalone vs integrated test modes.</p>
+
+  <div class="row">
+    <div>
+      <label>Bridge WS base URL (no call id / query)
+        <input id="baseUrl" value="ws://localhost:8090/telephony/stream">
+      </label>
+    </div>
+    <div>
+      <label>Call ID (path segment; blank = auto)
+        <input id="callId" placeholder="auto">
+      </label>
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Room (INTEGRATED: paste roomName from /call/start; blank = standalone)
+        <input id="room" placeholder="(blank for standalone)">
+      </label>
+    </div>
+    <div>
+      <label>Session ID (INTEGRATED: paste sessionId from /call/start)
+        <input id="sessionId" placeholder="(blank for standalone)">
+      </label>
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Mobile number (sent as ?mobile=)
+        <input id="mobile" value="7838153987">
+      </label>
+    </div>
+    <div>
+      <label>Auth token (?token=, matches WS_BRIDGE_AUTH_TOKEN)
+        <input id="token" placeholder="(blank if not set on bridge)">
+      </label>
+    </div>
+  </div>
+
+  <label>Encoding (must match TELEPHONY_ENCODING on the bridge)
+    <select id="encoding">
+      <option value="mulaw" selected>mulaw (8-bit G.711, default)</option>
+      <option value="pcm16">pcm16 (16-bit linear)</option>
+    </select>
+  </label>
+
+  <div>
+    <button id="startBtn">Start Call</button>
+    <button id="stopBtn" disabled>End Call</button>
+    <span id="status">idle</span>
+  </div>
+  <div class="meter"><div id="micMeter"></div></div>
+  <div id="log"></div>
+
+<script>
+const SEND_RATE = 8000;     // telephony-standard sample rate we simulate
+const FRAME_MS = 20;        // ~20ms per media frame, typical for telephony streams
+const FRAME_SAMPLES = SEND_RATE * FRAME_MS / 1000; // 160 samples
+
+let audioCtx, micStream, processor, ws, playHeadTime = 0;
+let sendBuffer = [];
+
+function log(msg) {
+  const el = document.getElementById('log');
+  const ts = new Date().toLocaleTimeString();
+  el.textContent += `[${ts}] ${msg}\n`;
+  el.scrollTop = el.scrollHeight;
+}
+
+// ---- G.711 mu-law codec (mirrors the algorithm in ws_telephony_bridge.py) ----
+const MULAW_BIAS = 0x84, MULAW_CLIP = 32635;
+
+function mulawEncodeSample(sample) {
+  let sign = 0;
+  if (sample < 0) { sample = -sample; sign = 0x80; }
+  sample = Math.min(sample + MULAW_BIAS, MULAW_CLIP);
+  let exponent = 7, mask = 0x4000;
+  while (exponent > 0 && !(sample & mask)) { exponent--; mask >>= 1; }
+  const mantissa = (sample >> (exponent + 3)) & 0x0F;
+  return (~(sign | (exponent << 4) | mantissa)) & 0xFF;
+}
+
+function mulawDecodeSample(uVal) {
+  uVal = (~uVal) & 0xFF;
+  const sign = uVal & 0x80;
+  const exponent = (uVal >> 4) & 0x07;
+  const mantissa = uVal & 0x0F;
+  let sample = ((mantissa << 3) + MULAW_BIAS) << exponent;
+  sample -= MULAW_BIAS;
+  return sign ? -sample : sample;
+}
+
+function encodeFrame(int16Samples, encoding) {
+  if (encoding === 'pcm16') {
+    const bytes = new Uint8Array(int16Samples.length * 2);
+    const view = new DataView(bytes.buffer);
+    int16Samples.forEach((s, i) => view.setInt16(i * 2, s, true));
+    return bytes;
+  }
+  const out = new Uint8Array(int16Samples.length);
+  int16Samples.forEach((s, i) => out[i] = mulawEncodeSample(s));
+  return out;
+}
+
+function decodeFrame(bytes, encoding) {
+  if (encoding === 'pcm16') {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const out = new Int16Array(bytes.length / 2);
+    for (let i = 0; i < out.length; i++) out[i] = view.getInt16(i * 2, true);
+    return out;
+  }
+  const out = new Int16Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) out[i] = mulawDecodeSample(bytes[i]);
+  return out;
+}
+
+function bytesToBase64(bytes) {
+  let bin = '';
+  bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin);
+}
+function base64ToBytes(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+// ---- linear-interpolation downsample float32 (native rate) -> int16 @ 8kHz ----
+function downsampleTo8k(float32, srcRate) {
+  const ratio = srcRate / SEND_RATE;
+  const outLen = Math.floor(float32.length / ratio);
+  const out = new Int16Array(outLen);
+  for (let i = 0; i < outLen; i++) {
+    const srcIdx = i * ratio;
+    const lo = Math.floor(srcIdx), hi = Math.min(lo + 1, float32.length - 1);
+    const frac = srcIdx - lo;
+    const sample = float32[lo] * (1 - frac) + float32[hi] * frac;
+    out[i] = Math.max(-32768, Math.min(32767, Math.round(sample * 32767)));
+  }
+  return out;
+}
+
+function buildUrl() {
+  const base = document.getElementById('baseUrl').value.replace(/\/$/, '');
+  const callId = document.getElementById('callId').value.trim() || ('sim-' + Math.random().toString(36).slice(2, 10));
+  document.getElementById('callId').value = callId;
+  const params = new URLSearchParams();
+  const room = document.getElementById('room').value.trim();
+  const sessionId = document.getElementById('sessionId').value.trim();
+  const mobile = document.getElementById('mobile').value.trim();
+  const token = document.getElementById('token').value.trim();
+  if (room) params.set('room', room);
+  if (sessionId) params.set('sessionId', sessionId);
+  if (mobile) params.set('mobile', mobile);
+  if (token) params.set('token', token);
+  const qs = params.toString();
+  return `${base}/${callId}${qs ? '?' + qs : ''}`;
+}
+
+async function startCall() {
+  const encoding = document.getElementById('encoding').value;
+  const url = buildUrl();
+  log(`Connecting to ${url}`);
+  ws = new WebSocket(url);
+
+  ws.onopen = async () => {
+    log('WS open -> sending start event');
+    ws.send(JSON.stringify({ event: 'start', callId: document.getElementById('callId').value }));
+    await startMic(encoding);
+    document.getElementById('status').textContent = 'in call';
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('stopBtn').disabled = false;
+  };
+
+  ws.onmessage = (evt) => {
+    try {
+      const msg = JSON.parse(evt.data);
+      if (msg.event === 'media' && msg.media && msg.media.payload) {
+        playFrame(base64ToBytes(msg.media.payload), encoding);
+      } else {
+        log('recv: ' + JSON.stringify(msg).slice(0, 120));
+      }
+    } catch (e) {
+      log('recv (non-JSON, ' + (evt.data.length || '?') + ' bytes)');
+    }
+  };
+
+  ws.onerror = () => log('WS error');
+  ws.onclose = () => { log('WS closed'); endCall(false); };
+}
+
+async function startMic(encoding) {
+  micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  playHeadTime = audioCtx.currentTime;
+  const source = audioCtx.createMediaStreamSource(micStream);
+  processor = audioCtx.createScriptProcessor(4096, 1, 1);
+
+  processor.onaudioprocess = (e) => {
+    const input = e.inputBuffer.getChannelData(0);
+    let peak = 0;
+    for (let i = 0; i < input.length; i++) peak = Math.max(peak, Math.abs(input[i]));
+    document.getElementById('micMeter').style.width = Math.min(100, peak * 140) + '%';
+
+    const down = downsampleTo8k(input, audioCtx.sampleRate);
+    sendBuffer.push(...down);
+    while (sendBuffer.length >= FRAME_SAMPLES) {
+      const chunk = sendBuffer.splice(0, FRAME_SAMPLES);
+      const encoded = encodeFrame(Int16Array.from(chunk), encoding);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ event: 'media', media: { payload: bytesToBase64(encoded) } }));
+      }
+    }
+  };
+  source.connect(processor);
+  processor.connect(audioCtx.destination); // keeps the graph running in some browsers
+}
+
+function playFrame(bytes, encoding) {
+  if (!audioCtx) return;
+  const int16 = decodeFrame(bytes, encoding);
+  const buf = audioCtx.createBuffer(1, int16.length, SEND_RATE);
+  const ch = buf.getChannelData(0);
+  for (let i = 0; i < int16.length; i++) ch[i] = int16[i] / 32768;
+
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  src.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+  if (playHeadTime < now) playHeadTime = now;
+  src.start(playHeadTime);
+  playHeadTime += buf.duration;
+}
+
+function endCall(sendStop = true) {
+  if (sendStop && ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ event: 'stop' }));
+    ws.close();
+  }
+  if (processor) { processor.disconnect(); processor = null; }
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  document.getElementById('status').textContent = 'idle';
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('stopBtn').disabled = true;
+  document.getElementById('micMeter').style.width = '0%';
+}
+
+document.getElementById('startBtn').onclick = () => startCall().catch(e => log('ERROR: ' + e.message));
+document.getElementById('stopBtn').onclick = () => endCall(true);
+</script>
+</body>
+</html>

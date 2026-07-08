@@ -1,0 +1,12 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: ws-bridge-permissive
+  namespace: app-services
+spec:
+  selector:
+    matchLabels:
+      app: ws-bridge
+  # PERMISSIVE so the ingress (Kong) and external Tata WebSocket can reach it without mTLS.
+  mtls:
+    mode: PERMISSIVE

@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ws-bridge
+  namespace: app-services
+---
+# WebSocket telephony bridge (ws_telephony_bridge.py) — the SIP-trunk replacement for Tata.
+# Tata streams call audio here over a bidirectional WebSocket; the bridge injects it into the
+# LiveKit room the backend already created and pumps the agent's audio back to the phone.
+#
+# Reuses the listening-agent image (the bridge script ships in the same backend/listening-agent
+# directory) — only the start command differs. Rebuild/push that image after adding the bridge
+# file so this Deployment picks it up.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ws-bridge
+  namespace: app-services
+  labels:
+    app: ws-bridge
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ws-bridge
+  template:
+    metadata:
+      labels:
+        app: ws-bridge
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "ws-bridge"
+        vault.hashicorp.com/agent-inject-secret-config: "secret/data/app-services/ws-bridge/config"
+        vault.hashicorp.com/agent-requests-cpu: "50m"
+        vault.hashicorp.com/agent-limits-cpu: "100m"
+        vault.hashicorp.com/agent-requests-memory: "64Mi"
+        vault.hashicorp.com/agent-limits-memory: "128Mi"
+        sidecar.istio.io/proxyCPU: "10m"
+        sidecar.istio.io/proxyMemory: "64Mi"
+        # Secrets: same LiveKit project as the listening-agent, plus the bridge auth token.
+        # Populate secret/data/app-services/ws-bridge/config with these keys in Vault.
+        vault.hashicorp.com/agent-inject-template-config: |
+          {{- with secret "secret/data/app-services/ws-bridge/config" -}}
+          LIVEKIT_URL="{{ .Data.data.livekit_url }}"
+          LIVEKIT_API_KEY="{{ .Data.data.livekit_api_key }}"
+          LIVEKIT_API_SECRET="{{ .Data.data.livekit_api_secret }}"
+          # Must match the listening-agent's AGENT_NAME (only used if BRIDGE_DISPATCH_AGENT=true).
+          AGENT_NAME="{{ .Data.data.agent_name }}"
+          # Shared secret Tata echoes back as ?token= ; must equal the backend's BRIDGE_AUTH_TOKEN.
+          WS_BRIDGE_AUTH_TOKEN="{{ .Data.data.ws_bridge_auth_token }}"
+          {{- end }}
+    spec:
+      serviceAccountName: ws-bridge
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: ws-bridge
+          image: ghcr.io/yutrix-labs/ai-collections/listening-agent:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              if [ -f /vault/secrets/config ]; then
+                set -a; . /vault/secrets/config; set +a
+              fi
+              exec /bin/uv run python ws_telephony_bridge.py
+          ports:
+            - containerPort: 8090
+          env:
+            # Backend dispatches the agent in the integrated flow — keep the bridge from double-dispatching.
+            - name: BRIDGE_DISPATCH_AGENT
+              value: "false"
+            - name: WS_BRIDGE_HOST
+              value: "0.0.0.0"
+            - name: WS_BRIDGE_PORT
+              value: "8090"
+            # Public wss:// base Tata connects to (also set as the backend's BRIDGE_PUBLIC_WS_BASE_URL).
+            - name: PUBLIC_BRIDGE_BASE_URL
+              value: "wss://aiassistant.yutrix.io"
+            # Tata media format — align with Tata's spec once confirmed (first call auto-logs it).
+            - name: TELEPHONY_ENCODING
+              value: "mulaw"
+            - name: TELEPHONY_SAMPLE_RATE
+              value: "8000"
+            - name: TELEPHONY_WS_FRAMING
+              value: "json"
+            - name: BRIDGE_PUBLISH_SAMPLE_RATE
+              value: "16000"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8090
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            failureThreshold: 3
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8090
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ws-bridge
+  namespace: app-services
+spec:
+  selector:
+    app: ws-bridge
+  ports:
+    - port: 8090
+      targetPort: 8090

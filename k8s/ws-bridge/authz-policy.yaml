@@ -1,0 +1,12 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: ws-bridge-allow
+  namespace: app-services
+spec:
+  selector:
+    matchLabels:
+      app: ws-bridge
+  # Access is gated at the app layer by WS_BRIDGE_AUTH_TOKEN (?token=), so allow at the mesh.
+  rules:
+  - {}

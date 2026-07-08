@@ -25,6 +25,7 @@ import java.util.UUID;
 public class CallController {
 
         private final ExotelService exotelService;
+        private final TataService tataService;
         private final LiveKitService liveKitService;
         private final SimpMessagingTemplate messagingTemplate;
         private final SessionStore sessionStore;
@@ -34,17 +35,33 @@ public class CallController {
         private final DispositionService dispositionService;
         private final EmailService emailService;
 
-        /** "exotel" = Click2Call telephony; "livekit" = browser-to-browser WebRTC (Exotel bypass). */
+        /**
+         * "exotel" = Exotel Click2Call (SIP); "tata" = Tata Smartflo click-to-call streamed over
+         * WebSocket into LiveKit; "livekit" = browser-to-browser WebRTC (no telephony).
+         */
         @Value("${call.mode:exotel}")
         private String callMode;
+
+        /** Public wss:// base of the telephony bridge (e.g. ngrok host). Used only in tata mode. */
+        @Value("${bridge.public-ws-base-url:}")
+        private String bridgeWsBaseUrl;
+
+        /** Shared secret Tata echoes back to the bridge; must match the bridge's WS_BRIDGE_AUTH_TOKEN. */
+        @Value("${bridge.auth-token:}")
+        private String bridgeAuthToken;
 
         @PostMapping("/start")
         public ApiResponse<StartCallResponse> startCall(@Valid @RequestBody StartCallRequest request) {
                 String sessionId = UUID.randomUUID().toString();
 
-                CallSession session = "livekit".equalsIgnoreCase(callMode)
-                                ? startLiveKitCall(sessionId, request)
-                                : startExotelCall(sessionId, request);
+                CallSession session;
+                if ("livekit".equalsIgnoreCase(callMode)) {
+                        session = startLiveKitCall(sessionId, request);
+                } else if ("tata".equalsIgnoreCase(callMode)) {
+                        session = startTataCall(sessionId, request);
+                } else {
+                        session = startExotelCall(sessionId, request);
+                }
 
                 sessionStore.put(session);
                 log.info("Call session created: mode={}, sessionId={}, agreementId={}, mobile={}, callSid={}, room={}, pushedCustomerData={}",
@@ -97,6 +114,72 @@ public class CallController {
                                 .status("ACTIVE")
                                 .startedAt(LocalDateTime.now())
                                 .build();
+        }
+
+        /**
+         * Tata + WebSocket path (Exotel/SIP replacement): create the LiveKit room, dispatch the
+         * transcription agent and mint the tele-caller's browser link (exactly like livekit mode),
+         * then trigger a Tata click-to-call to the customer's phone — handing Tata the bridge's
+         * WebSocket URL (carrying this room + sessionId + mobile). When the customer answers, the
+         * bridge (ws_telephony_bridge.py) joins THIS same room as the customer and pipes audio both
+         * ways, so the tele-caller and customer share one room in real time.
+         */
+        private CallSession startTataCall(String sessionId, StartCallRequest request) {
+                String room = liveKitService.roomFor(request.agreementId());
+
+                String agentToken = liveKitService.participantToken(room, "human-agent", "Tele-caller");
+                String agentMeetUrl = liveKitService.meetUrl(agentToken);
+
+                // Send the transcription agent into the room (browser-mode metadata — no SIP call-SID).
+                // The agent waits in the room until the customer arrives via the bridge.
+                liveKitService.dispatchAgent(room, Map.of(
+                                "mode", "livekit",
+                                "mobile", request.customerMobile(),
+                                "agreementId", request.agreementId(),
+                                "sessionId", sessionId));
+
+                // Tell Tata where to stream the call audio: our bridge's WebSocket URL.
+                String wsStreamUrl = buildBridgeWsUrl(sessionId, room, request.customerMobile());
+                Map<String, Object> tataResult = tataService.initiateCall(
+                                request.customerMobile(), wsStreamUrl, request.customerMobile());
+
+                String callSid = (String) tataResult.getOrDefault("callSid", "");
+                log.info("Tata result for session {}: status={} callSid={}",
+                                sessionId, tataResult.get("status"), callSid);
+
+                return CallSession.builder()
+                                .sessionId(sessionId)
+                                .agreementId(request.agreementId())
+                                .customerMobile(request.customerMobile())
+                                .exotelCallSid(callSid == null || callSid.isBlank() ? null : callSid)
+                                .roomName(room)
+                                .meetUrl(agentMeetUrl)
+                                .customerContext(request.customerData())
+                                .status("ACTIVE")
+                                .startedAt(LocalDateTime.now())
+                                .build();
+        }
+
+        /**
+         * Build the bridge WebSocket URL handed to Tata:
+         * {@code wss://<base>/telephony/stream/<sessionId>?room=<room>&sessionId=<id>&mobile=<m>&token=<secret>}.
+         * The bridge reads {@code room}/{@code sessionId} so it joins the room the backend already created.
+         */
+        private String buildBridgeWsUrl(String sessionId, String room, String mobile) {
+                String base = bridgeWsBaseUrl == null ? "" : bridgeWsBaseUrl.replaceAll("/+$", "");
+                StringBuilder url = new StringBuilder(base)
+                                .append("/telephony/stream/").append(enc(sessionId))
+                                .append("?room=").append(enc(room))
+                                .append("&sessionId=").append(enc(sessionId))
+                                .append("&mobile=").append(enc(mobile == null ? "" : mobile));
+                if (bridgeAuthToken != null && !bridgeAuthToken.isBlank()) {
+                        url.append("&token=").append(enc(bridgeAuthToken));
+                }
+                return url.toString();
+        }
+
+        private static String enc(String v) {
+                return java.net.URLEncoder.encode(v, java.nio.charset.StandardCharsets.UTF_8);
         }
 
         /**

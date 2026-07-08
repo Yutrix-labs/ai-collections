@@ -58,9 +58,27 @@ livekit:
   # Must match the worker's AGENT_NAME env (backend/listening-agent/.env).
   agent-name: silent-transcriber-dev
 
-# Telephony mode: "exotel" (Click2Call) or "livekit" (browser-to-browser WebRTC, bypasses Exotel).
+# Telephony mode: "exotel" (Click2Call/SIP), "tata" (Smartflo click-to-call over WebSocket),
+# or "livekit" (browser-to-browser WebRTC, no telephony). Override via CALL_MODE.
 call:
-  mode: livekit
+  mode: ${CALL_MODE:tata}
+
+# Tata Smartflo click-to-call (used when call.mode=tata). Replaces exotel.* for the telephony
+# trigger; audio is streamed to the bridge over WebSocket instead of a SIP trunk.
+# CONFIRM api-url / auth / field names against your Tata onboarding docs.
+tata:
+  api-url: ${TATA_API_URL:https://api-smartflo.tatateleservices.com/v1/click_to_call}
+  auth-token: ${TATA_AUTH_TOKEN:}
+  auth-scheme: ${TATA_AUTH_SCHEME:Bearer}
+  caller-id: ${TATA_CALLER_ID:}
+  agent-number: ${TATA_AGENT_NUMBER:}
+  stream-url-field: ${TATA_STREAM_URL_FIELD:ws_url}
+
+# ws_telephony_bridge.py location. In tata mode the backend builds the bridge WS URL from this
+# and hands it to Tata. For a demo, public-ws-base-url is your ngrok wss host.
+bridge:
+  public-ws-base-url: ${BRIDGE_PUBLIC_WS_BASE_URL:}
+  auth-token: ${BRIDGE_AUTH_TOKEN:}
 
 app:
   # Shared API key required on all REST endpoints (X-API-KEY header) and the STOMP CONNECT frame.
