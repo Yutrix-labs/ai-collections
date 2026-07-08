@@ -3,6 +3,7 @@ package labs.yutrix.uw.insight;
 import labs.yutrix.uw.call.CallSession;
 import labs.yutrix.uw.call.SessionStore;
 import labs.yutrix.uw.transcript.SummaryCombinedDTO;
+import labs.yutrix.uw.transcript.SummaryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -24,6 +25,7 @@ public class InsightService {
 
         private final SessionStore sessionStore;
         private final SimpMessagingTemplate messagingTemplate;
+        private final SummaryService summaryService;
 
         // In-memory storage: sessionId -> List of insights
         private final ConcurrentHashMap<String, List<InsightItemDTO>> insightsBySession = new ConcurrentHashMap<>();
@@ -48,9 +50,11 @@ public class InsightService {
                 log.info("Insights received | callSid={} sessionId={} count={}",
                                 request.callSid(), sessionId, request.items().size());
 
-                // Broadcast to summary topic (Unified Section)
+                // Broadcast to summary topic (Unified Section). Carry the last-known summary
+                // items (not null) so this insight-only update doesn't wipe the summary the
+                // frontend already received on the /summary topic.
                 SummaryCombinedDTO combined = new SummaryCombinedDTO(
-                                null, // summaryItems null here as we only updated insights
+                                summaryService.getCombinedSummary(sessionId).summaryItems(),
                                 request.items());
 
                 messagingTemplate.convertAndSend(
@@ -143,7 +147,7 @@ public class InsightService {
                         fullList.addAll(newInsights);
 
                         SummaryCombinedDTO combined = new SummaryCombinedDTO(
-                                        null, // summaryItems null here as we only updated insights
+                                        summaryService.getCombinedSummary(sessionId).summaryItems(),
                                         fullList);
 
                         messagingTemplate.convertAndSend(
