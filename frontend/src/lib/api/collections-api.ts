@@ -80,10 +80,16 @@ export async function fetchPtpPrediction(
 export async function startCall(
   agreementId: string,
   customerMobile: string,
+  // Optional: real recipient for the join-link email. Stored customer emails are
+  // masked on the backend, so pass an unmasked address here when one is known.
+  customerEmail?: string,
+  customerName?: string,
 ): Promise<CallSession> {
   const { data } = await api.post<ApiResponse<CallSession>>("/call/start", {
     agreementId,
     customerMobile,
+    ...(customerEmail ? { customerEmail } : {}),
+    ...(customerName ? { customerName } : {}),
   });
   return data.data;
 }

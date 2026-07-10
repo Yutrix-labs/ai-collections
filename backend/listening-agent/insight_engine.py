@@ -564,9 +564,16 @@ class InsightEngine:
         # AWS Bedrock configuration
         self.aws_region = os.getenv("AWS_REGION", "us-east-1")
 
-        # Cerebras configuration
+        # Cerebras configuration — the model name is the ONLY thing that changes
+        # per model swap, and it lives solely in .env (CEREBRAS_MODEL).
         self.cerebras_api_key = os.getenv("CEREBRAS_API_KEY", "")
         self.cerebras_model = os.getenv("CEREBRAS_MODEL", "")
+        # Reasoning models (e.g. gpt-oss-120b) have unreliable streaming and need the
+        # non-streaming path, reasoning_effort, a larger token budget and json_object
+        # output. Everything else (gemma-4-31b, llama, qwen) uses the default streaming
+        # path. Derived from the model name so switching models stays a .env-only change.
+        _cerebras_reasoning_models = {"gpt-oss-120b"}
+        self.cerebras_is_reasoning_model = self.cerebras_model in _cerebras_reasoning_models
 
         # AI provider selection
         self.ai_provider = os.getenv("AI_PROVIDER", "openai").lower()
@@ -684,6 +691,16 @@ class InsightEngine:
         print(
             f"[CopilotEngine] 🍳 Precooked customer context into cached system prompt "
             f"({len(system_prompt)} chars) for call_sid={self.call_sid}"
+        )
+        # Dump the FULL precooked system prompt so we can see exactly what static
+        # context gets sent to (and cached by) the LLM for this call.
+        print(
+            "\n"
+            "========== PRECOOKED SYSTEM PROMPT ==========\n"
+            f"call_sid={self.call_sid} | mobile={self.mobile_number} | chars={len(system_prompt)}\n"
+            "---------------------------------------------\n"
+            f"{system_prompt}\n"
+            "=============================================\n"
         )
         return self._cached_system_prompt
 
@@ -1023,8 +1040,8 @@ class InsightEngine:
                     await on_contextual_details_ready(cd)
             return mock
 
-        # gpt-oss-120b has inconsistent streaming behaviour — use non-streaming path directly
-        if self.cerebras_model == "gpt-oss-120b":
+        # Reasoning models have inconsistent streaming behaviour — use non-streaming path directly
+        if self.cerebras_is_reasoning_model:
             print(f"[CopilotEngine] ⚡ {self.cerebras_model} → non-streaming (streaming unreliable for this model)")
             accumulated = await self._call_cerebras_api_v2(system_prompt, user_prompt)
             if not accumulated:
@@ -1593,7 +1610,7 @@ class InsightEngine:
             print(f"[CopilotEngine] (prompt cache usage log failed: {e})")
 
     async def _call_cerebras_api_v2(self, system_prompt: str, user_prompt: str) -> str:
-        """Call Cerebras non-streaming (safe extraction for gpt-oss-120b and fallback path)."""
+        """Call Cerebras non-streaming (safe extraction for reasoning models and fallback path)."""
         if not self.cerebras_api_key:
             print("[InsightEngine] No CEREBRAS_API_KEY, returning mock v2 response")
             return '{"next_move":{"points":["Confirm customer identity","Reference loan account"],"priority":"high"},"disposition":null}'
@@ -1604,7 +1621,7 @@ class InsightEngine:
 
                 self._cerebras_client = AsyncCerebras(api_key=self.cerebras_api_key)
 
-            is_reasoning_model = self.cerebras_model in {"gpt-oss-120b"}
+            is_reasoning_model = self.cerebras_is_reasoning_model
 
             extra_kwargs = {}
             if is_reasoning_model:

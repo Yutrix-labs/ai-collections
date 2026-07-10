@@ -2,7 +2,8 @@
 
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
 import type { LiveKitConnectionInfo } from "@/types/collections.types";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { suppressLiveKitConsoleNoise } from "@/lib/livekit/suppress-livekit-noise";
 
 interface Props {
   connectionInfo: LiveKitConnectionInfo | null;
@@ -17,6 +18,11 @@ export function LiveKitCallProvider({
   onDisconnected,
   children,
 }: Props) {
+  // Silence benign livekit-client DataChannel teardown noise (global, one-time).
+  useEffect(() => {
+    suppressLiveKitConsoleNoise();
+  }, []);
+
   if (!connectionInfo) {
     return <>{children}</>;
   }

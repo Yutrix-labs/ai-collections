@@ -21,6 +21,7 @@ public class CallSession {
     private String status; // ACTIVE, ENDED, DISCONNECTED
     private String meetUrl;          // tele-caller's LiveKit connection (agent app auto-connects)
     private String customerJoinUrl;  // shareable hosted-Meet link for the customer (livekit call mode)
+    private String joinToken;        // one-time random token gating the emailed join link; expires with the session
     private String roomName;         // LiveKit room (livekit call mode)
     private String recordingUrl;     // LiveKit Egress → S3 recording URL (livekit call mode)
     private LocalDateTime startedAt;
