@@ -46,7 +46,9 @@ app:
   # the model is only called once per account (see PtpPredictionService.getOrPredict).
   # Relative to the backend module dir when running `./mvnw spring-boot:run`.
   customers-file: src/main/resources/data/customers.json
-  public-base-url: http://localhost:8080
+  # Public URL used to build the emailed customer join link ({base}/collassistantapi/call/join/{token}).
+  # Routes through the Kong ingress (aiassistant.yutrix.io) to this backend's public GET join endpoint.
+  public-base-url: ${PUBLIC_BASE_URL:https://aiassistant.yutrix.io}
 
 next-action:
   api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze

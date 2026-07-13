@@ -1,0 +1,13 @@
+# Kafka topic the ai-collections backend publishes next-action payloads to, and the
+# next-action engine consumes from. Managed by the Strimzi topic-operator on polyglot-kafka.
+# Lives in the `platform` namespace (same as the Kafka cluster), keyed by mobile for ordering.
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: ai-assistant-analyze
+  namespace: platform
+  labels:
+    strimzi.io/cluster: polyglot-kafka
+spec:
+  partitions: 3
+  replicas: 1
