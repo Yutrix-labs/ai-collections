@@ -1,4 +1,5 @@
 name: Backend CI/CD
+# ci: manual redeploy trigger (ebix-demo)
 
 on:
   push:
