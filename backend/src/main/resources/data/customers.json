@@ -274,7 +274,7 @@
       "probability": 0.55,
       "band": "Medium",
       "fulfilled": true,
-      "payment_probability_15d": { "probability": 0.50, "band": "Medium" },
+      "payment_probability_15d": { "probability": 0.5, "band": "Medium" },
       "payment_probability_30d": { "probability": 0.66, "band": "High" }
     },
     "customer": {
@@ -282,7 +282,7 @@
       "mobile": "9767887347",
       "loanType": "Business Loan",
       "agreementId": "BL-2023-445591",
-      "email": "v***i@sethicorp.in",
+      "email": "dipanshu.garg.a@gmail.com",
       "cifNumber": "CIF-44559123",
       "noOfAgreements": 1,
       "writeoff": "N",

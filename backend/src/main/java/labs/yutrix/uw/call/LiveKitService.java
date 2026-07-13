@@ -115,6 +115,31 @@ public class LiveKitService {
         }
     }
 
+    /**
+     * Delete a LiveKit room, forcibly disconnecting every participant. Called when a call ends so
+     * a customer who still has the Meet tab open is dropped — the conversation truly expires, not
+     * just the ability to re-join via the emailed link. Best-effort; never throws.
+     */
+    public void closeRoom(String room) {
+        if (room == null || room.isBlank()) {
+            return;
+        }
+        try {
+            String response = WebClient.create()
+                    .post()
+                    .uri(httpUrl() + "/twirp/livekit.RoomService/DeleteRoom")
+                    .header("Authorization", "Bearer " + adminToken(room))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(Map.of("room", room))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+            log.info("[LiveKit] Room closed | room={} resp={}", room, response);
+        } catch (Exception e) {
+            log.error("[LiveKit] Room close failed | room={} error={}", room, e.getMessage());
+        }
+    }
+
     // ── JWT (HS256) ────────────────────────────────────────────────────────────────────────
 
     private String buildToken(String identity, String name, Map<String, Object> videoGrant, long ttlSeconds) {

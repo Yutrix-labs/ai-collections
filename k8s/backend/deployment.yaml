@@ -64,6 +64,11 @@ spec:
                 set -a; . /vault/secrets/config; set +a
               fi
               exec java -jar app.jar --spring.profiles.active=dev
+          env:
+            # Cluster-managed Strimzi Kafka (platform ns) — plaintext internal listener, no auth.
+            # The next-action Kafka producer publishes here (see NextActionApiService).
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "polyglot-kafka-kafka-bootstrap.platform.svc.cluster.local:9092"
           ports:
             - containerPort: 8080
           livenessProbe:

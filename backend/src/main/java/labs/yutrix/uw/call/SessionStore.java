@@ -19,6 +19,7 @@ public class SessionStore {
     private final ConcurrentHashMap<String, CallSession> bySessionId = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, CallSession> byMobile = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, CallSession> byCallSid = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, CallSession> byJoinToken = new ConcurrentHashMap<>();
 
     public void put(CallSession session) {
         bySessionId.put(session.getSessionId(), session);
@@ -27,6 +28,9 @@ public class SessionStore {
         }
         if (session.getExotelCallSid() != null) {
             byCallSid.put(session.getExotelCallSid(), session);
+        }
+        if (session.getJoinToken() != null) {
+            byJoinToken.put(session.getJoinToken(), session);
         }
     }
 
@@ -52,6 +56,14 @@ public class SessionStore {
             throw new EntityNotFoundException("Call session not found for callSid: " + callSid);
         }
         return session;
+    }
+
+    /**
+     * Look up a session by its emailed join token. Returns {@code null} (rather than throwing)
+     * so the public join endpoint can render an "expired/invalid link" page instead of a 404.
+     */
+    public CallSession findByJoinToken(String joinToken) {
+        return joinToken == null ? null : byJoinToken.get(joinToken);
     }
 
     /**

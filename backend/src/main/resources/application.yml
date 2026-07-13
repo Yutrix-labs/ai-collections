@@ -16,6 +16,32 @@ spring:
         gemini:
           project-id: dev-placeholder
           location: dev-placeholder
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: yutrixlabs@gmail.com
+    password: zkbtuutyugfnaoab
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+        transport:
+          protocol: smtp
+    # Don't hang the request thread forever if Gmail is unreachable.
+    connect-timeout: 8000
+    timeout: 8000
+    write-timeout: 8000
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # JsonSerializer writes a __TypeId__ header the next-action engine's JsonDeserializer
+      # reads back to String — the exact round-trip its working chat-requests path relies on.
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
 
 server:
   port: 8080
@@ -31,12 +57,19 @@ exotel:
 
 # NOTE: for the browser (livekit) call mode these MUST point to the same LiveKit project
 # the listening-agent worker connects to (its .env), otherwise agent dispatch never reaches it.
+# livekit:
+#   url: wss://mohan-joshi-e2t1b6ty.livekit.cloud
+#   api-key: APIg7kR5wWGojGk
+#   api-secret: Wef12WTOTsFYxDQnOpXjUZgzX8cGrJH9AwnjYwNhXjb
+#   # Must match the worker's AGENT_NAME env (backend/listening-agent/.env).
+#   agent-name: silent-transcriber-dev
+
 livekit:
-  url: wss://mohan-joshi-e2t1b6ty.livekit.cloud
-  api-key: APIg7kR5wWGojGk
-  api-secret: Wef12WTOTsFYxDQnOpXjUZgzX8cGrJH9AwnjYwNhXjb
+  url: wss://testing-agents-hojyo1b2.livekit.cloud
+  api-key: APIRa6rA4b5k4bz
+  api-secret: X3f6HNt4FSf2V3TRQ3abraOVr702r0gim1eZIJbslbcB
   # Must match the worker's AGENT_NAME env (backend/listening-agent/.env).
-  agent-name: silent-transcriber-dev
+  agent-name: agent-local
 
 # Telephony mode: "exotel" (Click2Call) or "livekit" (browser-to-browser WebRTC, bypasses Exotel).
 call:
@@ -49,10 +82,22 @@ app:
   # the model is only called once per account (see PtpPredictionService.getOrPredict).
   # Relative to the backend module dir when running `./mvnw spring-boot:run`.
   customers-file: src/main/resources/data/customers.json
+  # Public origin of this backend as reachable by the customer's email client/browser.
+  # The gated join link is built as {public-base-url}{context-path}/call/join/{token}.
+  # In prod set this to the externally reachable host (e.g. https://cep.yutrix.io).
+  # public-base-url: http://localhost:8080
+  public-base-url: https://birectangular-albina-wearproof.ngrok-free.dev
+  email:
+    # Master switch for outbound customer emails (join link). Turn off in local dev if desired.
+    enabled: true
+    from-name: Collections Assistant
 
 next-action:
+  # Legacy HTTP endpoint (kept for reference/fallback). Data now flows via Kafka instead.
   api-url: http://localhost:8082/nextactionapi/V1/analyse/ai-assistant-analyze
   # api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze
+  # Kafka topic the next-action engine consumes (AiAssistantAnalyzeConsumer).
+  kafka-topic: ${NEXT_ACTION_KAFKA_TOPIC:ai-assistant-analyze}
 
 ptp:
   model:
