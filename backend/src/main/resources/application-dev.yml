@@ -51,6 +51,8 @@ app:
   public-base-url: ${PUBLIC_BASE_URL:https://aiassistant.yutrix.io}
 
 next-action:
+  # "http" = POST to api-url (default, active now); "kafka" = publish to kafka-topic.
+  transport: ${NEXT_ACTION_TRANSPORT:http}
   api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze
   kafka-topic: ${NEXT_ACTION_KAFKA_TOPIC:ai-assistant-analyze}
 

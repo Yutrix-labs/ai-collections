@@ -93,7 +93,9 @@ app:
     from-name: Collections Assistant
 
 next-action:
-  # Legacy HTTP endpoint (kept for reference/fallback). Data now flows via Kafka instead.
+  # Delivery transport: "http" = POST to api-url (default, active now); "kafka" = publish to kafka-topic.
+  # Flip to kafka via NEXT_ACTION_TRANSPORT=kafka once the engine consumes from the same broker.
+  transport: ${NEXT_ACTION_TRANSPORT:http}
   api-url: http://localhost:8082/nextactionapi/V1/analyse/ai-assistant-analyze
   # api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze
   # Kafka topic the next-action engine consumes (AiAssistantAnalyzeConsumer).
