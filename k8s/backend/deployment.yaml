@@ -65,8 +65,13 @@ spec:
               fi
               exec java -jar app.jar --spring.profiles.active=dev
           env:
+            # Next-action delivery transport: "http" (POST to the engine endpoint, active now)
+            # or "kafka" (publish to the topic). Flip to kafka once the engine consumes from the
+            # same broker — no code change, just change this value.
+            - name: NEXT_ACTION_TRANSPORT
+              value: "http"
             # Cluster-managed Strimzi Kafka (platform ns) — plaintext internal listener, no auth.
-            # The next-action Kafka producer publishes here (see NextActionApiService).
+            # Only used when NEXT_ACTION_TRANSPORT=kafka (see NextActionApiService).
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: "polyglot-kafka-kafka-bootstrap.platform.svc.cluster.local:9092"
           ports:
