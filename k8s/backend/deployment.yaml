@@ -71,19 +71,24 @@ spec:
               value: "polyglot-kafka-kafka-bootstrap.platform.svc.cluster.local:9092"
           ports:
             - containerPort: 8080
+          # Probe the dedicated liveness/readiness groups (app state only). The aggregate
+          # /actuator/health pulls in slow external checks (Kafka AdminClient, SMTP connect)
+          # that take ~2s and blew the 1s probe timeout, killing a healthy pod.
           livenessProbe:
             httpGet:
-              path: /collassistantapi/actuator/health
+              path: /collassistantapi/actuator/health/liveness
               port: 8080
             initialDelaySeconds: 90
             periodSeconds: 15
+            timeoutSeconds: 5
             failureThreshold: 4
           readinessProbe:
             httpGet:
-              path: /collassistantapi/actuator/health
+              path: /collassistantapi/actuator/health/readiness
               port: 8080
             initialDelaySeconds: 60
             periodSeconds: 10
+            timeoutSeconds: 5
             failureThreshold: 3
           resources:
             requests:
