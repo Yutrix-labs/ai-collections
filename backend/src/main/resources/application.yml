@@ -34,6 +34,14 @@ spring:
     connect-timeout: 8000
     timeout: 8000
     write-timeout: 8000
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # JsonSerializer writes a __TypeId__ header the next-action engine's JsonDeserializer
+      # reads back to String — the exact round-trip its working chat-requests path relies on.
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
 
 server:
   port: 8080
@@ -85,8 +93,11 @@ app:
     from-name: Collections Assistant
 
 next-action:
+  # Legacy HTTP endpoint (kept for reference/fallback). Data now flows via Kafka instead.
   api-url: http://localhost:8082/nextactionapi/V1/analyse/ai-assistant-analyze
   # api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze
+  # Kafka topic the next-action engine consumes (AiAssistantAnalyzeConsumer).
+  kafka-topic: ${NEXT_ACTION_KAFKA_TOPIC:ai-assistant-analyze}
 
 ptp:
   model:

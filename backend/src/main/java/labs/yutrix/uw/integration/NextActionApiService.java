@@ -15,10 +15,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.MediaType;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -42,13 +41,14 @@ public class NextActionApiService {
     private final InsightService insightService;
     private final SummaryService summaryService;
     private final CopilotService copilotService;
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private List<Map<String, Object>> callFlows;
 
-    @Value("${next-action.api-url}")
-    private String nextActionApiUrl;
+    @Value("${next-action.kafka-topic}")
+    private String nextActionTopic;
 
     @PostConstruct
     public void loadCallFlows() {
@@ -129,19 +129,21 @@ public class NextActionApiService {
                     ? "customer_service" : "collections");
 
             String jsonPayload = objectMapper.writeValueAsString(payload);
-            log.info("[NextActionApi] Sending POST request | sessionId={} payloadSize={}chars", sessionId, jsonPayload);
+            // Key by customer mobile so all events for one customer keep a stable partition/order.
+            String key = session.getCustomerMobile();
+            log.info("[NextActionApi] Publishing to Kafka | topic={} sessionId={} key={} payloadSize={}chars",
+                    nextActionTopic, sessionId, key, jsonPayload.length());
 
-            WebClient.create()
-                    .post()
-                    .uri(nextActionApiUrl)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(jsonPayload)
-                    .retrieve()
-                    .toBodilessEntity()
-                    .subscribe(
-                            response -> log.info("[NextActionApi] POST success | sessionId={} status={}", sessionId, response.getStatusCode()),
-                            error -> log.error("[NextActionApi] POST failed | sessionId={} error={}", sessionId, error.getMessage())
-                    );
+            kafkaTemplate.send(nextActionTopic, key, jsonPayload).whenComplete((result, ex) -> {
+                if (ex != null) {
+                    log.error("[NextActionApi] Kafka publish failed | sessionId={} error={}", sessionId, ex.getMessage(), ex);
+                } else {
+                    log.info("[NextActionApi] Kafka publish success | sessionId={} partition={} offset={}",
+                            sessionId,
+                            result.getRecordMetadata().partition(),
+                            result.getRecordMetadata().offset());
+                }
+            });
 
         } catch (Exception e) {
             log.error("[NextActionApi] Failed to build/send payload | sessionId={}", sessionId, e);

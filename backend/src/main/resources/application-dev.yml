@@ -46,9 +46,11 @@ app:
   # the model is only called once per account (see PtpPredictionService.getOrPredict).
   # Relative to the backend module dir when running `./mvnw spring-boot:run`.
   customers-file: src/main/resources/data/customers.json
+  public-base-url: http://localhost:8080
 
 next-action:
   api-url: https://cep.yutrix.io/nextactionapi/V1/analyse/ai-assistant-analyze
+  kafka-topic: ${NEXT_ACTION_KAFKA_TOPIC:ai-assistant-analyze}
 
 ptp:
   model:
