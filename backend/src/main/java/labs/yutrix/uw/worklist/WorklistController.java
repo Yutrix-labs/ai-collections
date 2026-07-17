@@ -37,11 +37,11 @@ public class WorklistController {
      * "data": [
      * {
      * "agreementId": "PL-2024-00847391",
-     * "name": "Rajesh Kumar Sharma",
+     * "name": "Brian Otieno Ochieng",
      * "mobile": "XXXX-XXX-932",
      * "loanType": "Personal Loan",
-     * "outstanding": "CHF 485,320",
-     * "overdue": "CHF 73,800",
+     * "outstanding": "KES 485,320",
+     * "overdue": "KES 73,800",
      * "dpd": 67,
      * "priority": "HIGH",
      * "lastContactDate": "28-Jan",

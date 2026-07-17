@@ -8,25 +8,25 @@
       "payment_probability_30d": { "probability": 0.54, "band": "Medium" }
     },
     "customer": {
-      "name": "Rajesh Kumar Sharma",
+      "name": "Brian Otieno Ochieng",
       "mobile": "7838153987",
       "loanType": "Personal Loan",
       "agreementId": "PL-2024-00847392",
-      "email": "r***a@gmail.com",
+      "email": "b***g@gmail.com",
       "cifNumber": "CIF-98234571",
       "noOfAgreements": 3,
       "writeoff": "N",
       "legalProceedings": null,
       "noOfLiabilities": 3,
-      "preferredLanguage": "hi"
+      "preferredLanguage": "sw"
     },
     "loan": {
-      "amount": "CHF 8,00,000",
+      "amount": "KES 800,000",
       "tenure": "24 months",
       "emiStart": "03/07/2021",
       "emiEnd": "03/07/2031",
-      "outstanding": "CHF 7,10,942",
-      "overdue": "CHF 1,14,099",
+      "outstanding": "KES 710,942",
+      "overdue": "KES 114,099",
       "disbursementDate": "02/07/2025",
       "interestRate": "13.0",
       "instStartDate": "03/08/2025",
@@ -39,15 +39,15 @@
       "lastPaymentOn": "03/04/2025",
       "paymentDueDate": "03/12/2025",
       "lastReversalAmount": "0",
-      "lastPaymentAmount": "CHF 76,066",
-      "installmentAmount": "CHF 38,033",
+      "lastPaymentAmount": "KES 76,066",
+      "installmentAmount": "KES 38,033",
       "currentInstallmentNo": "5",
-      "paymentMode": "ECS"
+      "paymentMode": "M-PESA"
     },
     "additionalDetails": {
       "installmentNo": "5 of 24",
       "dueDate": "03 Dec 2025",
-      "amount": "CHF 1,14,099",
+      "amount": "KES 114,099",
       "bounceCharges": "1,500",
       "penalCharges": "3,240",
       "dpd": 67,
@@ -88,7 +88,7 @@
     "activePolicies": [
       {
         "policy": "settlement_eligibility",
-        "rule": "Customer is eligible for settlement if DPD > 90 and outstanding < CHF 5L"
+        "rule": "Customer is eligible for settlement if DPD > 90 and outstanding < KES 500,000"
       },
       {
         "policy": "payment_plan",
@@ -106,26 +106,26 @@
     "pastCommunications": [
       {
         "date": "12-Dec",
-        "caller": "Priya M.",
+        "caller": "Faith N.",
         "summary": "Callback req. Job change.",
         "type": "Call"
       },
       {
         "date": "11-Dec",
-        "caller": "Amit R.",
+        "caller": "Kevin O.",
         "summary": "No answer. SMS sent.",
         "type": "SMS"
       },
       {
         "date": "5-Dec",
-        "caller": "Priya M.",
-        "summary": "CHF 10K PTP Dec 10. Not rcvd.",
+        "caller": "Faith N.",
+        "summary": "KES 10K PTP Dec 10. Not rcvd.",
         "type": "Call"
       },
       {
         "date": "5-Dec",
         "caller": "System Init",
-        "summary": "Agreed month-end. CHF 5K paid.",
+        "summary": "Agreed month-end. KES 5K paid.",
         "type": "Whatsapp"
       }
     ],
@@ -143,25 +143,25 @@
       "payment_probability_30d": { "probability": 0.58, "band": "Medium" }
     },
     "customer": {
-      "name": "Ritesh Kumar Sharma",
+      "name": "David Mwangi Kamau",
       "mobile": "9870064932",
       "loanType": "Personal Loan",
       "agreementId": "PL-2024-00847391",
-      "email": "r***a@gmail.com",
+      "email": "d***u@gmail.com",
       "cifNumber": "CIF-98234571",
       "noOfAgreements": 3,
       "writeoff": "N",
       "legalProceedings": null,
       "noOfLiabilities": 3,
-      "preferredLanguage": "hi"
+      "preferredLanguage": "sw"
     },
     "loan": {
-      "amount": "CHF 8,00,000",
+      "amount": "KES 800,000",
       "tenure": "24 months",
       "emiStart": "03/07/2021",
       "emiEnd": "03/07/2031",
-      "outstanding": "CHF 7,10,942",
-      "overdue": "CHF 1,14,099",
+      "outstanding": "KES 710,942",
+      "overdue": "KES 114,099",
       "disbursementDate": "02/07/2025",
       "interestRate": "13.0",
       "instStartDate": "03/08/2025",
@@ -174,15 +174,15 @@
       "lastPaymentOn": "03/04/2025",
       "paymentDueDate": "03/12/2025",
       "lastReversalAmount": "0",
-      "lastPaymentAmount": "CHF 76,066",
-      "installmentAmount": "CHF 38,033",
+      "lastPaymentAmount": "KES 76,066",
+      "installmentAmount": "KES 38,033",
       "currentInstallmentNo": "5",
-      "paymentMode": "ECS"
+      "paymentMode": "M-PESA"
     },
     "additionalDetails": {
       "installmentNo": "5 of 24",
       "dueDate": "03 Dec 2025",
-      "amount": "CHF 1,14,099",
+      "amount": "KES 114,099",
       "bounceCharges": "1,500",
       "penalCharges": "3,240",
       "dpd": 67,
@@ -223,7 +223,7 @@
     "activePolicies": [
       {
         "policy": "settlement_eligibility",
-        "rule": "Customer is eligible for settlement if DPD > 90 and outstanding < CHF 5L"
+        "rule": "Customer is eligible for settlement if DPD > 90 and outstanding < KES 500,000"
       },
       {
         "policy": "payment_plan",
@@ -241,26 +241,26 @@
     "pastCommunications": [
       {
         "date": "12-Dec",
-        "caller": "Priya M.",
+        "caller": "Faith N.",
         "summary": "Callback req. Job change.",
         "type": "Call"
       },
       {
         "date": "11-Dec",
-        "caller": "Amit R.",
+        "caller": "Kevin O.",
         "summary": "No answer. SMS sent.",
         "type": "SMS"
       },
       {
         "date": "5-Dec",
-        "caller": "Priya M.",
-        "summary": "CHF 10K PTP Dec 10. Not rcvd.",
+        "caller": "Faith N.",
+        "summary": "KES 10K PTP Dec 10. Not rcvd.",
         "type": "Call"
       },
       {
         "date": "5-Dec",
         "caller": "System Init",
-        "summary": "Agreed month-end. CHF 5K paid.",
+        "summary": "Agreed month-end. KES 5K paid.",
         "type": "Whatsapp"
       }
     ],
@@ -278,7 +278,7 @@
       "payment_probability_30d": { "probability": 0.66, "band": "High" }
     },
     "customer": {
-      "name": "Vikram Sethi",
+      "name": "James Kariuki Njoroge",
       "mobile": "9767887347",
       "loanType": "Business Loan",
       "agreementId": "BL-2023-445591",
@@ -291,12 +291,12 @@
       "preferredLanguage": "en"
     },
     "loan": {
-      "amount": "CHF 15,00,000",
+      "amount": "KES 1,500,000",
       "tenure": "36 months",
       "emiStart": "10-Jun-2023",
       "emiEnd": "10-May-2026",
-      "outstanding": "CHF 4,10,000",
-      "overdue": "CHF 45,000",
+      "outstanding": "KES 410,000",
+      "overdue": "KES 45,000",
       "disbursementDate": "01-Jun-2023",
       "interestRate": "14.5",
       "instStartDate": "10-Jun-2023",
@@ -311,7 +311,7 @@
       "lastReversalAmount": "0",
       "lastPaymentAmount": "22500.0",
       "installmentAmount": "22500",
-      "paymentMode": "NACH"
+      "paymentMode": "Bank Transfer"
     },
     "additionalDetails": {
       "installmentNo": "32 of 36",
@@ -377,19 +377,19 @@
     "pastCommunications": [
       {
         "date": "05-Feb",
-        "caller": "Amit R.",
+        "caller": "Kevin O.",
         "summary": "Called, busy. Promised callback.",
         "type": "Call"
       },
       {
         "date": "25-Jan",
-        "caller": "Amit R.",
+        "caller": "Kevin O.",
         "summary": "Agreed to pay by Jan 30. Broken PTP.",
         "type": "Call"
       },
       {
         "date": "12-Jan",
-        "caller": "Priya M.",
+        "caller": "Faith N.",
         "summary": "Informed about project delay.",
         "type": "Call"
       }
@@ -408,25 +408,25 @@
       "payment_probability_30d": { "probability": 0.87, "band": "High" }
     },
     "customer": {
-      "name": "Rajesh Rao",
+      "name": "Grace Wanjiru Ndungu",
       "mobile": "9123456421",
       "loanType": "Credit Card",
       "agreementId": "CC-2025-992817",
-      "email": "a***o@outlook.com",
+      "email": "g***u@outlook.com",
       "cifNumber": "CIF-99281734",
       "noOfAgreements": 3,
       "writeoff": "N",
       "legalProceedings": null,
       "noOfLiabilities": 4,
-      "preferredLanguage": "mr"
+      "preferredLanguage": "sw"
     },
     "loan": {
-      "amount": "CHF 2,00,000",
+      "amount": "KES 200,000",
       "tenure": "Revolving",
       "emiStart": "N/A",
       "emiEnd": "N/A",
-      "outstanding": "CHF 12,500",
-      "overdue": "CHF 12,500",
+      "outstanding": "KES 12,500",
+      "overdue": "KES 12,500",
       "disbursementDate": "15-Jan-2025",
       "interestRate": "36.0",
       "instStartDate": "N/A",
@@ -441,7 +441,7 @@
       "lastReversalAmount": "0",
       "lastPaymentAmount": "5000.0",
       "installmentAmount": "12500",
-      "paymentMode": "NetBanking"
+      "paymentMode": "M-PESA"
     },
     "additionalDetails": {
       "installmentNo": "N/A",
@@ -532,11 +532,11 @@
       "payment_probability_30d": { "probability": 0.26, "band": "Low" }
     },
     "customer": {
-      "name": "Michael D'Souza",
+      "name": "Michael Omondi Owuor",
       "mobile": "9988776119",
       "loanType": "Personal Loan",
       "agreementId": "PL-2022-007712",
-      "email": "m***a@gmail.com",
+      "email": "m***r@gmail.com",
       "cifNumber": "CIF-00771256",
       "noOfAgreements": 1,
       "writeoff": "Y",
@@ -545,12 +545,12 @@
       "preferredLanguage": "en"
     },
     "loan": {
-      "amount": "CHF 5,00,000",
+      "amount": "KES 500,000",
       "tenure": "60 months",
       "emiStart": "05-Jan-2022",
       "emiEnd": "05-Dec-2026",
-      "outstanding": "CHF 1,85,000",
-      "overdue": "CHF 60,000",
+      "outstanding": "KES 185,000",
+      "overdue": "KES 60,000",
       "disbursementDate": "01-Jan-2022",
       "interestRate": "12.0",
       "instStartDate": "05-Jan-2022",
@@ -565,7 +565,7 @@
       "lastReversalAmount": "500",
       "lastPaymentAmount": "5000.0",
       "installmentAmount": "15000",
-      "paymentMode": "ECS"
+      "paymentMode": "M-PESA"
     },
     "additionalDetails": {
       "installmentNo": "49 of 60",
@@ -635,26 +635,26 @@
     "pastCommunications": [
       {
         "date": "02-Feb",
-        "caller": "Suresh K.",
+        "caller": "Samuel K.",
         "summary": "Unreachable. Field visit recommended.",
         "type": "Call"
       },
       {
         "date": "20-Jan",
-        "caller": "Priya M.",
+        "caller": "Faith N.",
         "summary": "Customer stated financial crisis.",
         "type": "Call"
       },
       {
         "date": "10-Jan",
-        "caller": "Amit R.",
+        "caller": "Kevin O.",
         "summary": "No response to repeated calls.",
         "type": "Call"
       },
       {
         "date": "28-Dec",
-        "caller": "Priya M.",
-        "summary": "Part payment of CHF 5k received.",
+        "caller": "Faith N.",
+        "summary": "Part payment of KES 5k received.",
         "type": "Field Visit"
       }
     ],

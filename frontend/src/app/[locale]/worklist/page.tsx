@@ -11,7 +11,7 @@ export default function WorklistPage() {
   const [currentDate, setCurrentDate] = useState<string>("");
 
   useEffect(() => {
-    setCurrentDate(new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' }));
+    setCurrentDate(new Date().toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'short' }));
   }, []);
 
   if (!ready) return null;

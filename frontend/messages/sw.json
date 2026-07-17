@@ -1,0 +1,168 @@
+{
+  "app": {
+    "title": "Msaidizi wa Makusanyo wa AI",
+    "description": "Usimamizi wa makusanyo unaoendeshwa na AI"
+  },
+  "home": {
+    "heading": "Msaidizi wa Makusanyo wa AI",
+    "subheading": "Rahisisha kazi yako ya makusanyo kwa maarifa ya AI na uchambuzi wa simu wa moja kwa moja.",
+    "launchButton": "Fungua Msaidizi"
+  },
+  "header": {
+    "title": "Msaidizi wa Makusanyo wa AI",
+    "actionLabel": "Hatua:",
+    "followUpCall": "Simu ya Ufuatiliaji",
+    "audio": "Sauti",
+    "onCall": "KWENYE SIMU",
+    "idle": "TULIVU",
+    "endCall": "Maliza Simu",
+    "newCall": "Simu Mpya"
+  },
+  "account": {
+    "title": "Maelezo ya Akaunti",
+    "disbursementDate": "Tarehe ya Utoaji",
+    "tenor": "Muda",
+    "interestRate": "Kiwango cha Riba",
+    "instStartDate": "Tarehe ya Kuanza Awamu",
+    "instEndDate": "Tarehe ya Mwisho ya Awamu",
+    "cycleDays": "Siku za Mzunguko",
+    "productOffered": "Bidhaa Iliyotolewa",
+    "noOfOdInstallments": "Idadi ya Awamu Zilizochelewa",
+    "noOfOsInstallments": "Idadi ya Awamu Zilizosalia",
+    "lastReversalDateAmount": "Tarehe / Kiasi cha Urejeshaji wa Mwisho",
+    "lastReversalOn": "Urejeshaji wa Mwisho",
+    "lastPaymentOn": "Malipo ya Mwisho",
+    "paymentDueDate": "Tarehe ya Malipo",
+    "lastReversalAmount": "Kiasi cha Urejeshaji wa Mwisho",
+    "lastPaymentAmount": "Kiasi cha Malipo ya Mwisho",
+    "installmentAmount": "Kiasi cha Awamu",
+    "currentInstallmentNo": "Nambari ya Awamu ya Sasa",
+    "paymentMode": "Njia ya Malipo"
+  },
+  "customer": {
+    "title": "Mteja",
+    "name": "Jina",
+    "mobile": "Simu",
+    "email": "Barua pepe",
+    "agreement": "Mkataba",
+    "type": "Aina"
+  },
+  "loan": {
+    "title": "Maelezo ya Mkopo",
+    "amount": "Kiasi",
+    "tenure": "Muda",
+    "emiStart": "Mwanzo wa EMI",
+    "emiEnd": "Mwisho wa EMI",
+    "outstanding": "Deni Lililosalia",
+    "overdue": "Deni Lililochelewa"
+  },
+  "additional": {
+    "title": "Ziada",
+    "installment": "Awamu",
+    "dueDate": "Tarehe ya Mwisho",
+    "amount": "Kiasi",
+    "bounce": "Ada ya Kurudi",
+    "penal": "Adhabu",
+    "dpd": "DPD"
+  },
+  "callHistory": {
+    "title": "Historia ya Simu"
+  },
+  "transcript": {
+    "title": "Nakala",
+    "waiting": "Inasubiri mazungumzo...",
+    "pos": "Chanya",
+    "neu": "Wastani",
+    "neg": "Hasi",
+    "agent": "Wakala",
+    "customerSpeaker": "Mteja"
+  },
+  "sentiment": {
+    "title": "Hali ya Mteja",
+    "waiting": "Inasubiri...",
+    "cooperative": "Mshirikiano",
+    "neutral": "Wastani",
+    "resistant": "Mkaidi",
+    "utterances": "kauli"
+  },
+  "insights": {
+    "title": "Maarifa ya AI",
+    "analyzing": "AI inachambua mazungumzo...",
+    "analyzingSubtext": "Maarifa yataonekana hapa yanapogunduliwa",
+    "of": "kati ya",
+    "prev": "← Nyuma",
+    "next": "Mbele →",
+    "aiFilled": "IMEJAZWA NA AI",
+    "aiAutoPopulated": "AI imejaza kiotomatiki..."
+  },
+  "disposition": {
+    "result": "Matokeo",
+    "date": "Tarehe",
+    "amount": "Kiasi",
+    "reason": "Sababu",
+    "notes": "Maelezo",
+    "nextAction": "Ijayo",
+    "select": "Chagua...",
+    "selectReason": "Chagua sababu...",
+    "overrideAi": "Badilisha AI",
+    "submitToLms": "Wasilisha kwa LMS",
+    "savedToLms": "✓ Imehifadhiwa kwenye LMS",
+    "autoFillMessage": "AI imejaza fomu ya matokeo kulingana na uchambuzi wa simu."
+  },
+  "customerInfoBar": {
+    "name": "Jina",
+    "applicationNo": "Nambari ya Maombi",
+    "combinedKpi": "Kiasi cha OD / DPD / Tarehe ya Mwisho",
+    "dpd": "DPD",
+    "outstanding": "Deni Lililosalia (POS)",
+    "overdue": "Deni Lililochelewa",
+    "bucket": "Kundi",
+    "liabilities": "Idadi ya Madeni"
+  },
+  "customerDetails": {
+    "title": "Maelezo ya Mteja",
+    "personal": "Maelezo Binafsi",
+    "agreement": "Maelezo ya Mkataba",
+    "payment": "Maelezo ya Malipo",
+    "overdue": "Maelezo ya Deni Lililochelewa",
+    "cifNumber": "Nambari ya CIF",
+    "noOfAgreements": "Idadi ya Mikataba",
+    "ptpFulfillment": "Utimizaji wa PTP",
+    "paymentProbability15d": "Uwezekano wa Malipo (siku 15)",
+    "paymentProbability30d": "Uwezekano wa Malipo (siku 30)",
+    "writeoff": "Ufutaji wa Deni",
+    "legalProceedings": "Kesi za Kisheria"
+  },
+  "communicationProfile": {
+    "title": "Wasifu wa Mawasiliano",
+    "commLogs": "Kumbukumbu za Mawasiliano",
+    "date": "Tarehe",
+    "type": "Aina",
+    "summary": "Muhtasari",
+    "viewSummary": "Ona Muhtasari",
+    "lastCallBehaviour": "Tabia ya Simu ya Mwisho",
+    "callerBehaviour": "Mpigaji",
+    "customerBehaviour": "Mteja",
+    "sentiment": "Hali",
+    "agent": "Wakala",
+    "customer": "Mteja"
+  },
+  "conversationSummary": {
+    "title": "Muhtasari wa Mazungumzo",
+    "waiting": "Muhtasari utaonekana simu inavyoendelea...",
+    "live": "MOJA KWA MOJA",
+    "summaryTitle": "Muhtasari wa Mazungumzo",
+    "insightsTitle": "Maarifa ya AI",
+    "showTranscript": "Ona Nakala",
+    "backToSummary": "Rudi kwenye Muhtasari"
+  },
+  "nextActions": {
+    "followUpCall": "Simu ya Ufuatiliaji",
+    "sendPaymentLink": "Tuma Kiungo cha Malipo",
+    "fieldVisit": "Ziara ya Uwandani",
+    "legalNotice": "Notisi ya Kisheria",
+    "escalate": "Peleka Ngazi ya Juu",
+    "settlementProcessing": "Usindikaji wa Suluhu",
+    "closeResolved": "Funga — Imetatuliwa"
+  }
+}

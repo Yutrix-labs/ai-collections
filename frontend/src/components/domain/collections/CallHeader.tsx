@@ -19,8 +19,7 @@ import { Waveform } from "./Waveform";
 
 const LOCALE_CONFIG: Record<string, { short: string; label: string }> = {
   en: { short: "EN", label: "English" },
-  hi: { short: "हिं", label: "हिन्दी" },
-  mr: { short: "मरा", label: "मराठी" },
+  sw: { short: "SW", label: "Kiswahili" },
 };
 
 interface CallHeaderProps {

@@ -169,7 +169,7 @@ public class PtpPredictionService {
         return sb.toString();
     }
 
-    /** Strips currency/grouping characters ("CHF 8,00,000") down to a number. */
+    /** Strips currency/grouping characters ("KES 800,000") down to a number. */
     private Double parseAmount(Object value) {
         if (value == null) return null;
         String digits = value.toString().replaceAll("[^0-9]", "");

@@ -299,10 +299,10 @@ public class NextActionApiService {
         additional.put("penalCharges", null);
 
         Map<String, Object> loanNode = new HashMap<>();
-        loanNode.put("amount", sanctioned.doubleValue() > 0 ? "CHF " + String.format("%,d", sanctioned.longValue()) : null);
+        loanNode.put("amount", sanctioned.doubleValue() > 0 ? "KES " + String.format("%,d", sanctioned.longValue()) : null);
         loanNode.put("tenure", primaryLoan.get("tenure"));
-        loanNode.put("outstanding", outstanding.doubleValue() > 0 ? "CHF " + String.format("%,d", outstanding.longValue()) : null);
-        loanNode.put("overdue", overdue.doubleValue() > 0 ? "CHF " + String.format("%,d", overdue.longValue()) : null);
+        loanNode.put("outstanding", outstanding.doubleValue() > 0 ? "KES " + String.format("%,d", outstanding.longValue()) : null);
+        loanNode.put("overdue", overdue.doubleValue() > 0 ? "KES " + String.format("%,d", overdue.longValue()) : null);
         loanNode.put("disbursementDate", primaryLoan.get("disbursementDate"));
         loanNode.put("installmentAmount", emi.doubleValue() > 0 ? String.valueOf(emi) : null);
         loanNode.put("paymentMode", null);
