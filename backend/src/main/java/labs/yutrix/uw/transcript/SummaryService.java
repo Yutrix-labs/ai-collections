@@ -27,11 +27,14 @@ public class SummaryService {
         CallSession session = sessionStore.getByMobile(request.mobileNumber());
         String sessionId = session.getSessionId();
 
-        // Update stored lists (replace with latest accumulated lists from agent)
-        if (request.summaryItems() != null) {
+        // Update stored lists (replace with latest accumulated lists from agent).
+        // Only replace when the incoming list is non-empty: the agent sometimes sends an
+        // empty list on insight-only pushes, and treating that as "replace" would wipe the
+        // accumulated summary and broadcast an empty one to the frontend (last-known-good wins).
+        if (request.summaryItems() != null && !request.summaryItems().isEmpty()) {
             summariesBySession.put(sessionId, new ArrayList<>(request.summaryItems()));
         }
-        if (request.insightItems() != null) {
+        if (request.insightItems() != null && !request.insightItems().isEmpty()) {
             insightsBySession.put(sessionId, new ArrayList<>(request.insightItems()));
         }
 

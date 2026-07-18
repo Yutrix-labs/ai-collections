@@ -1,5 +1,6 @@
 name: Listening Agent CI/CD
 #updated file
+# ci: manual redeploy trigger (ebix-demo)
 on:
   push:
     branches: [ws-telephony]
