@@ -48,6 +48,18 @@ spec:
           LIVEKIT_URL={{ .Data.data.livekit_url }}
           LIVEKIT_API_KEY={{ .Data.data.livekit_api_key }}
           LIVEKIT_API_SECRET={{ .Data.data.livekit_api_secret }}
+          {{- if .Data.data.call_mode }}
+          CALL_MODE="{{ .Data.data.call_mode }}"
+          {{- end }}
+          {{- if .Data.data.tata_api_key }}
+          # Tata Smartflo Click to Call Support. NOTE: the VOICE Bot WebSocket URL is configured in
+          # the Tata portal against this key — it must point at the deployed ws-bridge
+          # (wss://aiassistant.yutrix.io/telephony/stream/...), not a local ngrok URL.
+          TATA_API_KEY="{{ .Data.data.tata_api_key }}"
+          {{- end }}
+          {{- if .Data.data.tata_caller_id }}
+          TATA_CALLER_ID="{{ .Data.data.tata_caller_id }}"
+          {{- end }}
           {{- if .Data.data.api_key }}
           APP_API_KEY="{{ .Data.data.api_key }}"
           {{- end }}

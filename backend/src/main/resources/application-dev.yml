@@ -36,8 +36,28 @@ livekit:
   # Must match the worker's AGENT_NAME env (backend/listening-agent/.env).
   agent-name: silent-transcriber
 
+# Telephony mode: "tata" (Smartflo click-to-call → VOICE Bot WebSocket), "exotel" (legacy SIP),
+# or "livekit" (browser-to-browser, no telephony). Default stays livekit — flip to tata via the
+# CALL_MODE env/Vault when the ws-bridge is deployed and the Tata portal points at it.
 call:
-  mode: livekit
+  mode: ${CALL_MODE:tata}
+
+# Tata Smartflo "Click to Call Support" — customer-first: Tata rings the customer, then routes the
+# answered call to the VOICE Bot pre-configured against this api-key in the portal. That VOICE Bot
+# is the ws_telephony_bridge WebSocket URL.
+#
+# IMPORTANT for the server: the WebSocket URL lives in the TATA PORTAL, not here. For this to work
+# on the server, the portal's VOICE Bot must point at the deployed bridge
+# (wss://aiassistant.yutrix.io/telephony/stream/...), NOT at a local ngrok URL — otherwise Tata
+# streams the audio to a laptop that can't see the server's session. See k8s/ws-bridge/.
+tata:
+  api-url: ${TATA_API_URL:https://api-smartflo.tatateleservices.com/v1/click_to_call_support}
+  # Sent in the request BODY as `api_key` (not an Authorization header). Selects the destination.
+  # Prefer supplying via Vault (TATA_API_KEY); the default is the shared demo key.
+  api-key: ${TATA_API_KEY:cfa57cb3-932b-44bc-84ed-9238f15fb5bc}
+  caller-id: ${TATA_CALLER_ID:}
+  call-timeout: ${TATA_CALL_TIMEOUT:}
+  customer-ring-timeout: ${TATA_CUSTOMER_RING_TIMEOUT:}
 
 app:
   cors:

@@ -50,6 +50,10 @@ spec:
           AGENT_NAME="{{ .Data.data.agent_name }}"
           # Shared secret Tata echoes back as ?token= ; must equal the backend's BRIDGE_AUTH_TOKEN.
           WS_BRIDGE_AUTH_TOKEN="{{ .Data.data.ws_bridge_auth_token }}"
+          {{- if .Data.data.backend_api_key }}
+          # Must equal the backend's api_key so the by-mobile/telephony-call-id calls pass X-API-KEY.
+          BACKEND_API_KEY="{{ .Data.data.backend_api_key }}"
+          {{- end }}
           {{- end }}
     spec:
       serviceAccountName: ws-bridge
@@ -68,6 +72,9 @@ spec:
           ports:
             - containerPort: 8090
           env:
+            # BACKEND_URL is not secret — cluster-internal DNS (bridge appends /collassistantapi itself)
+            - name: BACKEND_URL
+              value: "http://backend.app-services.svc.cluster.local:8080"
             # Backend dispatches the agent in the integrated flow — keep the bridge from double-dispatching.
             - name: BRIDGE_DISPATCH_AGENT
               value: "false"

@@ -49,36 +49,39 @@ exotel:
   auth-token: 5102f8bd375bce451f009c4b98a1fdad6fd83386c69eba75
   caller-id: 02247790125
 
-# NOTE: for the browser (livekit) call mode these MUST point to the same LiveKit project
-# the listening-agent worker connects to (its .env), otherwise agent dispatch never reaches it.
+# CRITICAL: these MUST match backend/listening-agent/.env exactly — same LiveKit project AND the
+# same agent name. If the project differs, the backend mints tokens for one project while the
+# worker/bridge live in another (agent and customer never meet). If agent-name differs, the
+# dispatch never reaches the worker and nothing is transcribed. Both are silent failures.
+# Currently aligned to .env: testing-agents-hojyo1b2 (India West) / AGENT_NAME=agent-local.
 livekit:
-  url: wss://mohan-joshi-e2t1b6ty.livekit.cloud
-  api-key: APIg7kR5wWGojGk
-  api-secret: Wef12WTOTsFYxDQnOpXjUZgzX8cGrJH9AwnjYwNhXjb
-  # Must match the worker's AGENT_NAME env (backend/listening-agent/.env).
-  agent-name: silent-transcriber-dev
+  url: ${LIVEKIT_URL:wss://testing-agents-hojyo1b2.livekit.cloud}
+  api-key: ${LIVEKIT_API_KEY:APIRa6rA4b5k4bz}
+  api-secret: ${LIVEKIT_API_SECRET:X3f6HNt4FSf2V3TRQ3abraOVr702r0gim1eZIJbslbcB}
+  # Must equal the worker's AGENT_NAME env (backend/listening-agent/.env).
+  agent-name: ${LIVEKIT_AGENT_NAME:agent-local}
 
 # Telephony mode: "exotel" (Click2Call/SIP), "tata" (Smartflo click-to-call over WebSocket),
 # or "livekit" (browser-to-browser WebRTC, no telephony). Override via CALL_MODE.
 call:
   mode: ${CALL_MODE:tata}
 
-# Tata Smartflo click-to-call (used when call.mode=tata). Replaces exotel.* for the telephony
-# trigger; audio is streamed to the bridge over WebSocket instead of a SIP trunk.
-# CONFIRM api-url / auth / field names against your Tata onboarding docs.
+# Tata Smartflo "Click to Call Support" (used when call.mode=tata) — full Exotel replacement.
+# https://docs.smartflo.tatatelebusiness.com/reference/v1click_to_call_support
+# Customer-first: Tata rings the customer, then routes the answered call to the VOICE Bot that is
+# pre-configured against this api-key in the portal (API Connect → Click to Call Support API →
+# Destinations → VOICE Bot). That VOICE Bot is the ws_telephony_bridge WebSocket URL — so the WS URL
+# is configured in the PORTAL, not here and not per call.
 tata:
-  api-url: ${TATA_API_URL:https://api-smartflo.tatateleservices.com/v1/click_to_call}
-  auth-token: ${TATA_AUTH_TOKEN:}
-  auth-scheme: ${TATA_AUTH_SCHEME:Bearer}
+  api-url: ${TATA_API_URL:https://api-smartflo.tatateleservices.com/v1/click_to_call_support}
+  # Sent in the request BODY as `api_key` (not an Authorization header). Selects the destination.
+  api-key: ${TATA_API_KEY:cfa57cb3-932b-44bc-84ed-9238f15fb5bc}
+  # Optional DID shown to the customer (e.g. 9180694XXXXX). Blank => portal default.
   caller-id: ${TATA_CALLER_ID:}
-  agent-number: ${TATA_AGENT_NUMBER:}
-  stream-url-field: ${TATA_STREAM_URL_FIELD:ws_url}
-
-# ws_telephony_bridge.py location. In tata mode the backend builds the bridge WS URL from this
-# and hands it to Tata. For a demo, public-ws-base-url is your ngrok wss host.
-bridge:
-  public-ws-base-url: ${BRIDGE_PUBLIC_WS_BASE_URL:}
-  auth-token: ${BRIDGE_AUTH_TOKEN:}
+  # Optional: auto-disconnect after N seconds. Blank => not sent.
+  call-timeout: ${TATA_CALL_TIMEOUT:}
+  # Optional: customer ring duration, 10-30s (Tata default 30). Blank => not sent.
+  customer-ring-timeout: ${TATA_CUSTOMER_RING_TIMEOUT:}
 
 app:
   # Shared API key required on all REST endpoints (X-API-KEY header) and the STOMP CONNECT frame.

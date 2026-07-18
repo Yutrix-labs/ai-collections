@@ -13,13 +13,19 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Initiates a Tata Smartflo click-to-call, handing Tata the WebSocket URL of our bridge so it
- * streams the call audio there (WebSocket replacement for the Exotel SIP trunk).
+ * Tata Smartflo <b>Click to Call Support</b> — rings the customer, then routes the answered call to
+ * the VOICE Bot (our ws_telephony_bridge) that is pre-configured against the API key in the portal.
+ * Replaces {@link ExotelService} when {@code call.mode=tata}.
  *
- * <p>Mirrors {@link ExotelService#initiateCall} — same return shape ({"status","callSid",...})
- * so {@code CallController} treats providers uniformly. The Smartflo request body is built from
- * config-driven field names because the exact contract varies per account; verify the field
- * names and the WS-URL delivery mechanism against your Tata docs (see {@link TataConfig}).
+ * <p>Docs: https://docs.smartflo.tatatelebusiness.com/reference/v1click_to_call_support
+ *
+ * <p>Request body (per the spec): {@code customer_number}, {@code api_key}, {@code async}=1, plus
+ * optional {@code caller_id}, {@code call_timeout}, {@code customer_ring_timeout},
+ * {@code custom_identifier}. Auth is the body's {@code api_key} — <b>no Authorization header</b>.
+ *
+ * <p>The response is only {@code {success, message}} — <b>Tata returns no call id here</b>. The call
+ * is therefore correlated later, when Tata's WebSocket {@code start} event arrives at the bridge
+ * carrying the phone number, which resolves the session via {@code GET /call/by-mobile/{mobile}}.
  */
 @Service
 @RequiredArgsConstructor
@@ -29,59 +35,77 @@ public class TataService {
     private final TataConfig config;
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    private WebClient buildClient() {
-        String authValue = "raw".equalsIgnoreCase(config.getAuthScheme())
-                ? config.getAuthToken()
-                : config.getAuthScheme() + " " + config.getAuthToken();
-        return WebClient.builder()
-                .defaultHeader("Authorization", authValue)
-                .build();
-    }
-
     /**
-     * Dial the customer via Tata and point the media stream at our bridge's WebSocket URL.
+     * Ring the customer via Click to Call Support.
      *
-     * @param customerNumber the customer's phone number (destination)
-     * @param wsStreamUrl    the bridge WebSocket URL (carries room + sessionId + mobile)
-     * @param customField    arbitrary correlation value echoed back by Tata (we pass the mobile)
-     * @return {"status","callSid","response"} on success, {"status":"failed","error":...} otherwise
+     * @param customerNumber customer's phone number (10–15 digits)
+     * @param customField    echoed back by Tata's webhook ({@code custom_identifier}) — we pass the sessionId
+     * @return {"status": initiated|failed|skipped, "message": ...}
      */
-    public Map<String, Object> initiateCall(String customerNumber, String wsStreamUrl, String customField) {
-        if (config.getApiUrl() == null || config.getApiUrl().isBlank()
-                || config.getAuthToken() == null || config.getAuthToken().isBlank()) {
-            log.warn("Tata not configured (apiUrl/authToken blank) — skipping click-to-call. Session is "
-                    + "still created and the human agent can join the room; no customer leg. wsUrl={}", wsStreamUrl);
+    public Map<String, Object> initiateCall(String customerNumber, String customField) {
+        if (config.getApiKey() == null || config.getApiKey().isBlank()) {
+            log.warn("Tata api-key not configured — skipping click-to-call. Session is still created and "
+                    + "the human agent can join the room; no customer leg will ring.");
             return Map.of("status", "skipped", "callSid", "");
         }
 
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put(config.getDestinationField(), customerNumber);
-        body.put(config.getCallerIdField(), config.getCallerId());
-        if (config.getAgentNumber() != null && !config.getAgentNumber().isBlank()) {
-            body.put("agent_number", config.getAgentNumber());
+        body.put("customer_number", customerNumber);
+        body.put("api_key", config.getApiKey());
+        // Required by the spec; 1 = asynchronous (allows concurrent calls).
+        body.put("async", 1);
+        if (config.getCallerId() != null && !config.getCallerId().isBlank()) {
+            body.put("caller_id", config.getCallerId());
         }
-        // The critical bit: tell Tata where to stream the call audio (our bridge WS).
-        body.put(config.getStreamUrlField(), wsStreamUrl);
-        body.put("custom_identifier", customField);
+        if (config.getCallTimeout() != null) {
+            body.put("call_timeout", config.getCallTimeout());
+        }
+        if (config.getCustomerRingTimeout() != null) {
+            body.put("customer_ring_timeout", config.getCustomerRingTimeout());
+        }
+        if (customField != null && !customField.isBlank()) {
+            body.put("custom_identifier", customField);
+        }
 
-        log.info("Initiating Tata click-to-call: To={}, CallerId={}, wsUrl={}",
-                customerNumber, config.getCallerId(), wsStreamUrl);
+        log.info("Initiating Tata click-to-call-support | customer={} callerId={} customId={}",
+                customerNumber, config.getCallerId(), customField);
 
         try {
-            String response = buildClient()
+            String response = WebClient.create()
                     .post()
                     .uri(config.getApiUrl())
                     .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(body)
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
 
             log.info("Tata response: {}", response);
-            String callSid = extractCallSid(response);
+
+            // Spec response: {"success": true|false, "message": "..."}
+            boolean success = true;
+            String message = "";
+            try {
+                JsonNode root = objectMapper.readTree(response);
+                if (!root.path("success").isMissingNode()) {
+                    success = root.path("success").asBoolean(true);
+                }
+                message = root.path("message").asText("");
+            } catch (Exception e) {
+                log.debug("Could not parse Tata response as JSON: {}", e.getMessage());
+            }
+
+            if (!success) {
+                log.error("Tata click-to-call rejected | message={}", message);
+                return Map.of("status", "failed", "error", message.isBlank() ? "rejected by Tata" : message);
+            }
+
+            // No call id in this API's response — correlation happens on the WebSocket `start` event.
             return Map.of(
                     "status", "initiated",
-                    "callSid", callSid != null ? callSid : "",
+                    "callSid", "",
+                    "message", message,
                     "response", response != null ? response : "");
         } catch (WebClientResponseException e) {
             String errBody = e.getResponseBodyAsString();
@@ -91,34 +115,5 @@ public class TataService {
             log.error("Tata click-to-call failed", e);
             return Map.of("status", "failed", "error", e.getMessage() == null ? "unknown error" : e.getMessage());
         }
-    }
-
-    /**
-     * Extract the call id from Tata's JSON response. Smartflo shapes vary
-     * ({"call_id":...} / {"data":{"call_id":...}} / {"Sid":...}); try the common keys.
-     */
-    private String extractCallSid(String response) {
-        if (response == null || response.isBlank()) {
-            return null;
-        }
-        try {
-            JsonNode root = objectMapper.readTree(response);
-            for (String path : new String[] {"call_id", "callId", "Sid", "sid"}) {
-                if (!root.path(path).isMissingNode()) {
-                    return root.path(path).asText();
-                }
-            }
-            JsonNode data = root.path("data");
-            for (String path : new String[] {"call_id", "callId"}) {
-                if (!data.path(path).isMissingNode()) {
-                    return data.path(path).asText();
-                }
-            }
-        } catch (Exception e) {
-            log.debug("Could not parse Tata response as JSON: {}", e.getMessage());
-        }
-        log.warn("Could not extract call id from Tata response: {}",
-                response.substring(0, Math.min(200, response.length())));
-        return null;
     }
 }

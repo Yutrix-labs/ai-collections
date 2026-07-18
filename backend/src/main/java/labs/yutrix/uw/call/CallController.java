@@ -42,14 +42,6 @@ public class CallController {
         @Value("${call.mode:exotel}")
         private String callMode;
 
-        /** Public wss:// base of the telephony bridge (e.g. ngrok host). Used only in tata mode. */
-        @Value("${bridge.public-ws-base-url:}")
-        private String bridgeWsBaseUrl;
-
-        /** Shared secret Tata echoes back to the bridge; must match the bridge's WS_BRIDGE_AUTH_TOKEN. */
-        @Value("${bridge.auth-token:}")
-        private String bridgeAuthToken;
-
         @PostMapping("/start")
         public ApiResponse<StartCallResponse> startCall(@Valid @RequestBody StartCallRequest request) {
                 String sessionId = UUID.randomUUID().toString();
@@ -117,12 +109,18 @@ public class CallController {
         }
 
         /**
-         * Tata + WebSocket path (Exotel/SIP replacement): create the LiveKit room, dispatch the
+         * Tata + WebSocket path (full Exotel/SIP replacement): create the LiveKit room, dispatch the
          * transcription agent and mint the tele-caller's browser link (exactly like livekit mode),
-         * then trigger a Tata click-to-call to the customer's phone — handing Tata the bridge's
-         * WebSocket URL (carrying this room + sessionId + mobile). When the customer answers, the
-         * bridge (ws_telephony_bridge.py) joins THIS same room as the customer and pipes audio both
-         * ways, so the tele-caller and customer share one room in real time.
+         * then fire a Tata <b>Click to Call Support</b> request that rings the customer.
+         *
+         * <p>Tata's flow is customer-first: it rings the customer, and on answer routes the call to the
+         * VOICE Bot pre-configured against the API key in the portal — that VOICE Bot is our
+         * ws_telephony_bridge WebSocket. The bridge then resolves this session from the phone number in
+         * Tata's {@code start} event (via {@code GET /call/by-mobile/{mobile}}) and joins THIS room as
+         * the customer, so the tele-caller and customer share one room in real time.
+         *
+         * <p>Note: the WebSocket URL is configured in the Tata portal (not per call), and Click to Call
+         * Support returns no call id — hence the by-mobile correlation instead of a call-SID.
          */
         private CallSession startTataCall(String sessionId, StartCallRequest request) {
                 String room = liveKitService.roomFor(request.agreementId());
@@ -138,20 +136,17 @@ public class CallController {
                                 "agreementId", request.agreementId(),
                                 "sessionId", sessionId));
 
-                // Tell Tata where to stream the call audio: our bridge's WebSocket URL.
-                String wsStreamUrl = buildBridgeWsUrl(sessionId, room, request.customerMobile());
-                Map<String, Object> tataResult = tataService.initiateCall(
-                                request.customerMobile(), wsStreamUrl, request.customerMobile());
-
-                String callSid = (String) tataResult.getOrDefault("callSid", "");
-                log.info("Tata result for session {}: status={} callSid={}",
-                                sessionId, tataResult.get("status"), callSid);
+                // Ring the customer. Tata routes the answered call to the VOICE Bot (our bridge).
+                Map<String, Object> tataResult = tataService.initiateCall(request.customerMobile(), sessionId);
+                log.info("Tata result for session {}: status={} message={}",
+                                sessionId, tataResult.get("status"), tataResult.get("message"));
 
                 return CallSession.builder()
                                 .sessionId(sessionId)
                                 .agreementId(request.agreementId())
                                 .customerMobile(request.customerMobile())
-                                .exotelCallSid(callSid == null || callSid.isBlank() ? null : callSid)
+                                // Click to Call Support returns no call id; the bridge correlates by mobile.
+                                .exotelCallSid(null)
                                 .roomName(room)
                                 .meetUrl(agentMeetUrl)
                                 .customerContext(request.customerData())
@@ -161,25 +156,56 @@ public class CallController {
         }
 
         /**
-         * Build the bridge WebSocket URL handed to Tata:
-         * {@code wss://<base>/telephony/stream/<sessionId>?room=<room>&sessionId=<id>&mobile=<m>&token=<secret>}.
-         * The bridge reads {@code room}/{@code sessionId} so it joins the room the backend already created.
+         * Resolve an active session from a phone number — used by ws_telephony_bridge when Tata's
+         * {@code start} event arrives. Tata's WebSocket URL is static (portal-configured), so it cannot
+         * carry the room/sessionId; the bridge looks them up here instead. Matching is on the last 10
+         * digits (see {@link SessionStore}), so {@code 91XXXXXXXXXX} resolves a session stored as
+         * {@code XXXXXXXXXX}.
+         *
+         * GET /collassistantapi/call/by-mobile/{mobile}
          */
-        private String buildBridgeWsUrl(String sessionId, String room, String mobile) {
-                String base = bridgeWsBaseUrl == null ? "" : bridgeWsBaseUrl.replaceAll("/+$", "");
-                StringBuilder url = new StringBuilder(base)
-                                .append("/telephony/stream/").append(enc(sessionId))
-                                .append("?room=").append(enc(room))
-                                .append("&sessionId=").append(enc(sessionId))
-                                .append("&mobile=").append(enc(mobile == null ? "" : mobile));
-                if (bridgeAuthToken != null && !bridgeAuthToken.isBlank()) {
-                        url.append("&token=").append(enc(bridgeAuthToken));
+        /**
+         * Bind the telephony call id to a session, reported by ws_telephony_bridge.
+         *
+         * <p>Tata's Click to Call Support API returns no call id in its HTTP response (only
+         * {@code {success, message}}), so the id is only known once Tata's WebSocket {@code start}
+         * event arrives carrying {@code start.callSid}. The bridge posts it here so the session —
+         * and therefore the next-action payload's {@code exotelCallSid} — is populated instead of null.
+         *
+         * <p>Re-{@code put}s the session so it is also indexed by call-SID in {@link SessionStore}.
+         *
+         * POST /collassistantapi/call/telephony-call-id  {"sessionId","callSid","streamSid"?}
+         */
+        @PostMapping("/telephony-call-id")
+        public ApiResponse<String> bindTelephonyCallId(@RequestBody Map<String, String> body) {
+                String sessionId = body.get("sessionId");
+                String callSid = body.get("callSid");
+                if (sessionId == null || sessionId.isBlank() || callSid == null || callSid.isBlank()) {
+                        return ApiResponse.ok("Ignored — sessionId and callSid are required");
                 }
-                return url.toString();
+
+                CallSession session = sessionStore.getBySessionId(sessionId);
+                session.setExotelCallSid(callSid);
+                // Re-index so SessionStore.getByCallSid(callSid) resolves this session too.
+                sessionStore.put(session);
+
+                log.info("Telephony call id bound | sessionId={} callSid={} streamSid={}",
+                                sessionId, callSid, body.get("streamSid"));
+                return ApiResponse.ok("Call id bound");
         }
 
-        private static String enc(String v) {
-                return java.net.URLEncoder.encode(v, java.nio.charset.StandardCharsets.UTF_8);
+        @GetMapping("/by-mobile/{mobile}")
+        public ApiResponse<Map<String, Object>> getByMobile(@PathVariable String mobile) {
+                CallSession session = sessionStore.getByMobile(mobile);
+                Map<String, Object> data = new HashMap<>();
+                data.put("sessionId", session.getSessionId());
+                data.put("roomName", session.getRoomName());
+                data.put("agreementId", session.getAgreementId());
+                data.put("customerMobile", session.getCustomerMobile());
+                data.put("status", session.getStatus());
+                log.info("Session resolved by mobile | mobile={} sessionId={} room={}",
+                                mobile, session.getSessionId(), session.getRoomName());
+                return ApiResponse.ok("Session found", data);
         }
 
         /**

@@ -2,10 +2,11 @@ name: Listening Agent CI/CD
 #updated file
 on:
   push:
-    branches: [ebix-demo]
+    branches: [ws-telephony]
     paths:
       - "backend/listening-agent/**"
       - "k8s/listening-agent/**"
+      - "k8s/ws-bridge/**"
       - ".github/workflows/listening-agent.yml"
   pull_request:
     branches: [master]
@@ -48,7 +49,7 @@ jobs:
         with:
           context: ./backend
           file: ./backend/listening-agent/Dockerfile
-          push: ${{ github.ref == 'refs/heads/ebix-demo' && github.event_name == 'push' }}
+          push: ${{ github.ref == 'refs/heads/ws-telephony' && github.event_name == 'push' }}
           tags: |
             ${{ steps.image.outputs.ref }}
             ${{ steps.image.outputs.latest }}
@@ -59,7 +60,7 @@ jobs:
     name: Deploy to K8s
     needs: build-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/ebix-demo' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/ws-telephony' && github.event_name == 'push'
     # GITHUB_TOKEN needs packages:read so the cluster pull secret can be refreshed from it.
     permissions:
       contents: read
@@ -72,6 +73,9 @@ jobs:
         run: |
           sed -i "s|image: ghcr.io/yutrix-labs/ai-collections/listening-agent:.*|image: ${{ needs.build-push.outputs.image }}|" \
             k8s/listening-agent/deployment.yaml
+          # ws-bridge runs the same image (ws_telephony_bridge.py ships in it) — pin it too.
+          sed -i "s|image: ghcr.io/yutrix-labs/ai-collections/listening-agent:.*|image: ${{ needs.build-push.outputs.image }}|" \
+            k8s/ws-bridge/deployment.yaml
 
       # Copy the (SHA-pinned) manifests to the VPS. We run kubectl ON the VPS over SSH because
       # GitHub-hosted runners can't reliably reach the k3s API on :6443 (i/o timeouts); locally
@@ -83,7 +87,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
-          source: "k8s/listening-agent/authz-policy.yaml,k8s/listening-agent/deployment.yaml"
+          source: "k8s/listening-agent/authz-policy.yaml,k8s/listening-agent/deployment.yaml,k8s/ws-bridge/peer-auth.yaml,k8s/ws-bridge/authz-policy.yaml,k8s/ws-bridge/deployment.yaml"
           target: "/tmp/ai-collections-listening-agent"
           overwrite: true
 
@@ -108,4 +112,9 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
             kubectl apply -f k8s/listening-agent/authz-policy.yaml
             kubectl apply -f k8s/listening-agent/deployment.yaml
+            # Tata telephony WebSocket bridge (same image, different entrypoint)
+            kubectl apply -f k8s/ws-bridge/peer-auth.yaml
+            kubectl apply -f k8s/ws-bridge/authz-policy.yaml
+            kubectl apply -f k8s/ws-bridge/deployment.yaml
             kubectl -n app-services rollout status deployment/listening-agent --timeout=600s
+            kubectl -n app-services rollout status deployment/ws-bridge --timeout=300s

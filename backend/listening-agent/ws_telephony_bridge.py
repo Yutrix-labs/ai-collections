@@ -1,36 +1,31 @@
 """
 ws_telephony_bridge.py
 
-Bridges a telephony provider (Tata Smartflo) that streams call audio over a *bidirectional*
-WebSocket into a LiveKit room — the WebSocket replacement for a SIP trunk.
+Bridges Tata Smartflo's bidirectional VOICE-streaming WebSocket into a LiveKit room — the
+WebSocket replacement for a SIP trunk. This is the "VOICE Bot" Tata connects to.
 
-INTEGRATED FLOW (how it is used in the demo):
-  1. Frontend hits  POST /collassistantapi/call/start  (call.mode=tata).
-  2. The Spring backend creates the LiveKit room `call-<agreementId>`, dispatches the existing
-     listening agent into it, mints the human-agent browser link (meetUrl), and triggers the
-     Tata click-to-call to the customer — handing Tata THIS bridge's WebSocket URL, which
-     carries `room`, `sessionId` and `mobile` as query params.
-  3. When the customer answers, Tata opens a WebSocket to this bridge. The bridge JOINS THE
-     SAME room `call-<agreementId>` as participant `customer_<sessionId>` (the "customer_"
-     prefix makes the existing agent treat it exactly like a browser-joined customer — see
-     `_is_customer()` in silent_transcriber_agent.py), then pipes audio both ways:
-       - customer phone audio  (Tata WS -> LiveKit room, published as the customer track)
-       - human-agent audio     (LiveKit room -> Tata WS, so the customer hears the agent)
+FLOW (full Exotel replacement):
+  1. Frontend hits POST /collassistantapi/call/start (call.mode=tata).
+  2. Spring backend: creates room `call-<agreementId>`, dispatches the listening agent into it,
+     mints the human-agent browser link (meetUrl), then calls Tata "Click to Call Support"
+     (customer-first: Tata rings the CUSTOMER).
+  3. Customer answers → Tata routes the call to the VOICE Bot configured against the API key in
+     the portal → that's THIS bridge's WebSocket URL.
+  4. Tata sends `start` carrying callSid / streamSid / from / to. Because Tata's WS URL is STATIC
+     (portal-configured, so it cannot carry room/sessionId), we resolve the session from the phone
+     number via GET /call/by-mobile/{mobile}, then join THAT room as `customer_<sessionId>`
+     (the "customer_" prefix makes the existing agent treat us as the customer — `_is_customer()`).
+  5. Audio flows both ways: customer phone ⇄ human agent's browser, live transcript to the FE.
 
-Because the bridge reuses the room + sessionId the backend already created, the human agent
-(in the browser) and the customer (on the phone) share ONE room in real time, and transcription
-/ copilot / disposition keep working unchanged. This bridge does NOT dispatch its own agent in
-the integrated flow (the backend already did) — set BRIDGE_DISPATCH_AGENT=true only for
-standalone testing without the backend.
+PROTOCOL (verified against Tata's spec — it is Twilio Media Streams compatible):
+  https://docs.smartflo.tatatelebusiness.com/docs/bi-directional-audio-streaming-integration-document
+  Inbound (Tata → us):  connected | start | media | stop | dtmf | mark
+  Outbound (us → Tata): {"event":"media","streamSid":"<sid>","media":{"payload":"<b64>","chunk":N}}
+                        — streamSid is REQUIRED; payload must be >=160 bytes / multiples of 160.
+  Audio: audio/x-mulaw (G.711 µ-law), 8000 Hz, 8-bit.
 
 ADDITIVE ONLY: does not modify silent_transcriber_agent.py or any existing module. Deploy as a
-sibling process (its own container / ngrok tunnel), not a replacement for the agent worker.
-
-!! CONFIRM AGAINST TATA'S SPEC before a real call:
-   * The JSON envelope of Tata's WS frames (event/field names). The parser below assumes a
-     generic Twilio-Media-Streams-style shape; the first real call auto-logs the raw frames
-     (see LOG_FIRST_N_FRAMES) so you can map their actual schema.
-   * The codec + sample rate Tata sends (default: 8kHz mu-law / G.711 — the telephony norm).
+sibling process (see k8s/ws-bridge/).
 """
 
 import asyncio
@@ -41,8 +36,8 @@ import os
 import uuid
 from array import array
 from typing import Optional
-from urllib.parse import urlencode
 
+import aiohttp
 from aiohttp import web, WSMsgType
 from dotenv import load_dotenv
 from livekit import api, rtc
@@ -53,33 +48,33 @@ logger = logging.getLogger("ws-telephony-bridge")
 logging.basicConfig(level=logging.INFO)
 
 # --------------------------------------------------------------------------------------
-# Config  (LIVEKIT_* / AGENT_NAME are the SAME vars the listening agent already uses)
+# Config  (LIVEKIT_* / AGENT_NAME / BACKEND_URL are the SAME vars the listening agent uses)
 # --------------------------------------------------------------------------------------
 LIVEKIT_URL = os.getenv("LIVEKIT_URL", "")
 LIVEKIT_API_KEY = os.getenv("LIVEKIT_API_KEY", "")
 LIVEKIT_API_SECRET = os.getenv("LIVEKIT_API_SECRET", "")
 AGENT_NAME = os.getenv("AGENT_NAME", "silent-transcriber")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080")
+BACKEND_API_KEY = os.getenv("BACKEND_API_KEY", "").strip()
 
 WS_BRIDGE_HOST = os.getenv("WS_BRIDGE_HOST", "0.0.0.0")
 WS_BRIDGE_PORT = int(os.getenv("WS_BRIDGE_PORT", "8090"))
-# Shared secret Tata must echo back as ?token=... on every connection. Always set in any
-# reachable deployment; leave blank only for a purely-local test.
+# Shared secret Tata echoes back as ?token=... Always set in any reachable deployment.
 WS_BRIDGE_AUTH_TOKEN = os.getenv("WS_BRIDGE_AUTH_TOKEN", "")
-# Public base URL this bridge is reachable at (ngrok URL for testing). Only used to build the
-# example URL logged at startup; in the integrated flow the BACKEND builds the URL it hands Tata.
-PUBLIC_BRIDGE_BASE_URL = os.getenv("PUBLIC_BRIDGE_BASE_URL", "wss://voice-bridge.example.com")
 
 # Identity whose audio is streamed back down to the phone (the tele-caller's browser leg).
 BRIDGE_AGENT_IDENTITY = os.getenv("BRIDGE_AGENT_IDENTITY", "human-agent")
-# In the integrated flow the backend dispatches the agent; keep this false. Set true only for
-# standalone testing (no backend) so the bridge dispatches the agent itself.
+# Fallback when the by-mobile lookup finds no session (e.g. a Tata test call with no /call/start):
+# mint our own room and dispatch the agent so audio is still transcribed. Handy for smoke tests.
 BRIDGE_DISPATCH_AGENT = os.getenv("BRIDGE_DISPATCH_AGENT", "false").lower() == "true"
 
+# Tata's verified media format. Override only if their spec changes.
 TELEPHONY_ENCODING = os.getenv("TELEPHONY_ENCODING", "mulaw").lower()      # "mulaw" | "pcm16"
-TELEPHONY_SAMPLE_RATE = int(os.getenv("TELEPHONY_SAMPLE_RATE", "8000"))    # provider's native rate
-TELEPHONY_WS_FRAMING = os.getenv("TELEPHONY_WS_FRAMING", "json").lower()   # "json" | "raw"
+TELEPHONY_SAMPLE_RATE = int(os.getenv("TELEPHONY_SAMPLE_RATE", "8000"))
 BRIDGE_PUBLISH_SAMPLE_RATE = int(os.getenv("BRIDGE_PUBLISH_SAMPLE_RATE", "16000"))
-# Auto-dump this many raw inbound frames per call so you can reverse-engineer Tata's real schema.
+# Tata requires >=160 bytes, in multiples of 160 (160 bytes = 20ms of 8kHz mu-law).
+OUT_CHUNK_BYTES = int(os.getenv("OUT_CHUNK_BYTES", "160"))
+# Auto-dump this many raw inbound frames per call (schema debugging).
 LOG_FIRST_N_FRAMES = int(os.getenv("LOG_FIRST_N_FRAMES", "5"))
 
 
@@ -119,8 +114,7 @@ _MULAW_DECODE_TABLE = [_mulaw_decode_sample(i) for i in range(256)]
 
 
 def mulaw_to_pcm16(data: bytes) -> bytes:
-    out = array("h", (_MULAW_DECODE_TABLE[b] for b in data))
-    return out.tobytes()
+    return array("h", (_MULAW_DECODE_TABLE[b] for b in data)).tobytes()
 
 
 def pcm16_to_mulaw(data: bytes) -> bytes:
@@ -148,41 +142,83 @@ def resample_pcm16(data: bytes, src_rate: int, dst_rate: int) -> bytes:
 
 
 # --------------------------------------------------------------------------------------
+# Backend session lookup (Tata's static WS URL can't carry room/sessionId — resolve by phone)
+# --------------------------------------------------------------------------------------
+def _backend_headers() -> dict:
+    return {"X-API-KEY": BACKEND_API_KEY} if BACKEND_API_KEY else {}
+
+
+async def resolve_session(mobile: str) -> Optional[dict]:
+    """GET /call/by-mobile/{mobile} -> {sessionId, roomName, ...}. None if not found."""
+    url = f"{BACKEND_URL}/collassistantapi/call/by-mobile/{mobile}"
+    try:
+        async with aiohttp.ClientSession(headers=_backend_headers()) as s:
+            async with s.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                if resp.status != 200:
+                    logger.warning(f"[Bridge] by-mobile lookup {resp.status} | mobile={mobile}")
+                    return None
+                data = (await resp.json()).get("data")
+                logger.info(f"[Bridge] Session resolved | mobile={mobile} -> {data}")
+                return data
+    except Exception as e:
+        logger.error(f"[Bridge] by-mobile lookup failed | mobile={mobile} error={e}")
+        return None
+
+
+async def push_call_id(session_id: str, call_sid: str, stream_sid: str = "") -> None:
+    """Report Tata's call id to the backend so the session (and the next-action payload's
+    `exotelCallSid`) is populated. Tata's Click to Call Support HTTP response carries no call id —
+    it only arrives here, on the WebSocket `start` event."""
+    if not (session_id and call_sid):
+        return
+    url = f"{BACKEND_URL}/collassistantapi/call/telephony-call-id"
+    payload = {"sessionId": session_id, "callSid": call_sid, "streamSid": stream_sid}
+    try:
+        async with aiohttp.ClientSession(headers=_backend_headers()) as s:
+            async with s.post(url, json=payload, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                if resp.status != 200:
+                    logger.warning(f"[Bridge] call-id bind {resp.status} | sessionId={session_id}")
+                else:
+                    logger.info(f"[Bridge] Call id bound | sessionId={session_id} callSid={call_sid}")
+    except Exception as e:
+        logger.error(f"[Bridge] call-id bind failed | sessionId={session_id} error={e}")
+
+
+# --------------------------------------------------------------------------------------
 # One CallBridge per active call
 # --------------------------------------------------------------------------------------
 class CallBridge:
-    def __init__(self, call_id: str, room_name: str, mobile: Optional[str], ws: web.WebSocketResponse):
-        self.call_id = call_id
-        self._room_name = room_name
-        self.mobile = mobile or call_id
+    def __init__(self, call_key: str, room_name: str, mobile: Optional[str],
+                 ws: web.WebSocketResponse, stream_sid: str):
+        self.call_key = call_key
+        self.room_name = room_name
+        self.mobile = mobile or call_key
         self.ws = ws
+        self.stream_sid = stream_sid
         self.room = rtc.Room()
         self.source = rtc.AudioSource(sample_rate=BRIDGE_PUBLISH_SAMPLE_RATE, num_channels=1)
         self.track = rtc.LocalAudioTrack.create_audio_track("phone-audio", self.source)
         self._closed = False
-        self._outbound_started = False  # only forward ONE agent track to the phone
-        self._inbound_frames_logged = 0
-
-    @property
-    def room_name(self) -> str:
-        return self._room_name
+        self._outbound_started = False
+        self._out_buf = bytearray()
+        self._chunk_no = 0
 
     async def maybe_dispatch_agent(self):
-        """Standalone-test only: dispatch the existing agent into the room. In the integrated
-        flow the backend already dispatched it, so this is skipped (BRIDGE_DISPATCH_AGENT=false)."""
+        """Fallback only (BRIDGE_DISPATCH_AGENT=true): no backend session, so send the agent in
+        ourselves. In the normal flow /call/start already dispatched it."""
         if not BRIDGE_DISPATCH_AGENT:
             return
         async with api.LiveKitAPI(
             url=LIVEKIT_URL, api_key=LIVEKIT_API_KEY, api_secret=LIVEKIT_API_SECRET
         ) as lkapi:
-            metadata = json.dumps({"mode": "livekit", "mobile": self.mobile, "sessionId": self.call_id})
+            metadata = json.dumps({"mode": "livekit", "mobile": self.mobile, "sessionId": self.call_key})
             await lkapi.agent_dispatch.create_dispatch(
                 api.CreateAgentDispatchRequest(agent_name=AGENT_NAME, room=self.room_name, metadata=metadata)
             )
         logger.info(f"[Bridge] Dispatched agent={AGENT_NAME} | room={self.room_name}")
 
     async def connect(self):
-        identity = f"customer_{self.call_id}"
+        identity = f"customer_{self.call_key}"
         token = (
             api.AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
             .with_identity(identity)
@@ -196,7 +232,7 @@ class CallBridge:
         await self.room.local_participant.publish_track(self.track)
         logger.info(f"[Bridge] Joined room={self.room_name} as {identity} | mobile={self.mobile}")
 
-        # Forward any agent audio track that was already published before we joined.
+        # Forward any agent audio already published before we joined.
         for participant in self.room.remote_participants.values():
             if participant.identity != BRIDGE_AGENT_IDENTITY:
                 continue
@@ -205,19 +241,18 @@ class CallBridge:
                     self._start_outbound(pub.track)
 
     def _on_track_subscribed(self, track, publication, participant):
-        # Only stream the human tele-caller's audio back to the phone (ignore other tracks so
-        # we never double-send or echo the customer's own audio).
+        # Only the human tele-caller's audio goes back to the phone (never echo the customer).
         if track.kind == rtc.TrackKind.KIND_AUDIO and participant.identity == BRIDGE_AGENT_IDENTITY:
             self._start_outbound(track)
 
-    def _start_outbound(self, track: "rtc.RemoteAudioTrack"):
+    def _start_outbound(self, track):
         if self._outbound_started or self._closed:
             return
         self._outbound_started = True
         logger.info(f"[Bridge] Streaming agent audio -> phone | room={self.room_name}")
         asyncio.create_task(self._pump_outbound(track))
 
-    async def _pump_outbound(self, track: "rtc.RemoteAudioTrack"):
+    async def _pump_outbound(self, track):
         # AudioStream resamples the room audio down to the telephony rate for us.
         stream = rtc.AudioStream(track, sample_rate=TELEPHONY_SAMPLE_RATE, num_channels=1)
         try:
@@ -226,12 +261,14 @@ class CallBridge:
                     break
                 pcm16 = bytes(event.frame.data)
                 payload = pcm16_to_mulaw(pcm16) if TELEPHONY_ENCODING == "mulaw" else pcm16
-                await self._send_to_provider(payload)
+                await self._send_media(payload)
+        except Exception as e:
+            logger.error(f"[Bridge] Outbound pump error | room={self.room_name} error={e}")
         finally:
             await stream.aclose()
 
     async def push_inbound(self, raw_audio: bytes):
-        """raw_audio: bytes exactly as received from Tata (in TELEPHONY_ENCODING)."""
+        """raw_audio: bytes as received from Tata (TELEPHONY_ENCODING, 8kHz)."""
         pcm16 = mulaw_to_pcm16(raw_audio) if TELEPHONY_ENCODING == "mulaw" else raw_audio
         pcm16 = resample_pcm16(pcm16, TELEPHONY_SAMPLE_RATE, BRIDGE_PUBLISH_SAMPLE_RATE)
         samples = len(pcm16) // 2
@@ -242,17 +279,27 @@ class CallBridge:
         )
         await self.source.capture_frame(frame)
 
-    async def _send_to_provider(self, payload: bytes):
+    async def _send_media(self, payload: bytes):
+        """Buffer and emit in >=160-byte multiples with the streamSid, per Tata's spec."""
         if self._closed or self.ws.closed:
             return
-        if TELEPHONY_WS_FRAMING == "raw":
-            await self.ws.send_bytes(payload)
-        else:
-            # Generic Twilio-Media-Streams-style envelope — ADJUST to Tata's outbound schema.
-            await self.ws.send_str(json.dumps({
-                "event": "media",
-                "media": {"payload": base64.b64encode(payload).decode("ascii")},
-            }))
+        self._out_buf.extend(payload)
+        while len(self._out_buf) >= OUT_CHUNK_BYTES:
+            chunk = bytes(self._out_buf[:OUT_CHUNK_BYTES])
+            del self._out_buf[:OUT_CHUNK_BYTES]
+            self._chunk_no += 1
+            try:
+                await self.ws.send_str(json.dumps({
+                    "event": "media",
+                    "streamSid": self.stream_sid,
+                    "media": {
+                        "payload": base64.b64encode(chunk).decode("ascii"),
+                        "chunk": self._chunk_no,
+                    },
+                }))
+            except Exception as e:
+                logger.warning(f"[Bridge] send failed | error={e}")
+                return
 
     async def close(self):
         if self._closed:
@@ -268,96 +315,116 @@ class CallBridge:
 # --------------------------------------------------------------------------------------
 # WebSocket endpoint Tata connects to
 # --------------------------------------------------------------------------------------
-def _parse_inbound_message(msg, framing: str) -> tuple[Optional[str], Optional[bytes]]:
-    """Returns (event, audio_bytes). event ∈ 'start'|'media'|'stop'|None; audio only for 'media'."""
-    if framing == "raw":
-        if msg.type == WSMsgType.BINARY:
-            return "media", msg.data
-        return None, None
-    if msg.type != WSMsgType.TEXT:
-        return None, None
-    try:
-        data = json.loads(msg.data)
-    except (ValueError, TypeError):
-        return None, None
-    event = data.get("event")
-    if event == "media":
-        payload_b64 = (data.get("media") or {}).get("payload")
-        if payload_b64:
-            return "media", base64.b64decode(payload_b64)
-        return "media", None
-    return event, None
+def _pick_customer_number(start: dict) -> Optional[str]:
+    """Tata's start carries from/to. Click-to-Call-Support is outbound to the customer, so `to`
+    is normally the customer and `from` the DID — but fall back across both plus customParameters.
+    The backend matches on the last 10 digits, so country codes are fine."""
+    custom = start.get("customParameters") or {}
+    for candidate in (custom.get("mobile"), custom.get("customer_number"), start.get("to"), start.get("from")):
+        if candidate and str(candidate).strip():
+            return str(candidate).strip()
+    return None
 
 
 async def telephony_ws_handler(request: web.Request) -> web.WebSocketResponse:
     if WS_BRIDGE_AUTH_TOKEN and request.query.get("token") != WS_BRIDGE_AUTH_TOKEN:
         raise web.HTTPUnauthorized(text="invalid or missing token")
 
-    call_id = request.match_info.get("call_id") or uuid.uuid4().hex
-    session_id = request.query.get("sessionId") or call_id
-    mobile = request.query.get("mobile")
-    # Integrated flow: backend passes the room it already created. Standalone: mint one.
-    room_name = request.query.get("room") or f"ws-call-{call_id}"
-    # Use the backend's sessionId as the participant/call key so transcripts correlate.
-    call_key = session_id
-
+    path_id = request.match_info.get("call_id") or uuid.uuid4().hex
     ws = web.WebSocketResponse(heartbeat=20)
     await ws.prepare(request)
-    logger.info(f"[Bridge] WS connected | call_id={call_id} sessionId={session_id} room={room_name} mobile={mobile}")
+    logger.info(f"[Bridge] WS connected | path={path_id} query={dict(request.query)}")
 
-    bridge = CallBridge(call_key, room_name, mobile, ws)
-    try:
-        await bridge.maybe_dispatch_agent()
-        await bridge.connect()
-    except Exception as e:
-        logger.error(f"[Bridge] Setup failed | room={room_name} error={e}")
-        await ws.close()
-        return ws
+    bridge: Optional[CallBridge] = None
+    frames_logged = 0
 
     try:
         async for msg in ws:
             if msg.type in (WSMsgType.ERROR, WSMsgType.CLOSE, WSMsgType.CLOSING):
                 break
-            # Auto-log the first few raw frames so Tata's real schema can be mapped.
-            if bridge._inbound_frames_logged < LOG_FIRST_N_FRAMES:
-                bridge._inbound_frames_logged += 1
-                preview = msg.data if isinstance(msg.data, str) else f"<{len(msg.data)} bytes binary>"
-                logger.info(f"[Bridge] RAW inbound #{bridge._inbound_frames_logged} | {preview[:400]}")
-            event, audio = _parse_inbound_message(msg, TELEPHONY_WS_FRAMING)
-            if event == "stop":
+            if msg.type != WSMsgType.TEXT:
+                continue
+
+            # Dump the first few raw frames (schema debugging / vendor drift).
+            if frames_logged < LOG_FIRST_N_FRAMES:
+                frames_logged += 1
+                logger.info(f"[Bridge] RAW inbound #{frames_logged} | {msg.data[:400]}")
+
+            try:
+                data = json.loads(msg.data)
+            except (ValueError, TypeError):
+                continue
+
+            event = data.get("event")
+
+            if event == "connected":
+                logger.info("[Bridge] Tata handshake: connected")
+
+            elif event == "start":
+                start = data.get("start") or {}
+                stream_sid = data.get("streamSid") or start.get("streamSid") or ""
+                call_sid = start.get("callSid")
+                mobile = _pick_customer_number(start)
+                fmt = start.get("mediaFormat") or {}
+                logger.info(
+                    f"[Bridge] START | callSid={call_sid} streamSid={stream_sid} "
+                    f"from={start.get('from')} to={start.get('to')} mobile={mobile} "
+                    f"format={fmt.get('encoding')}@{fmt.get('sampleRate')}"
+                )
+
+                # Resolve the room the backend already created for this customer.
+                session = await resolve_session(mobile) if mobile else None
+                if session and session.get("roomName"):
+                    room_name = session["roomName"]
+                    call_key = session.get("sessionId") or path_id
+                    # Tata's HTTP response has no call id — bind the one from this start event so
+                    # the session / next-action payload carries it instead of null.
+                    if call_sid:
+                        await push_call_id(session.get("sessionId"), call_sid, stream_sid)
+                elif BRIDGE_DISPATCH_AGENT:
+                    room_name = f"ws-call-{path_id}"
+                    call_key = path_id
+                    logger.warning(
+                        f"[Bridge] No session for mobile={mobile} — standalone fallback room={room_name}"
+                    )
+                else:
+                    logger.error(
+                        f"[Bridge] No session for mobile={mobile} and BRIDGE_DISPATCH_AGENT=false — "
+                        f"closing. Was /call/start called for this customer?"
+                    )
+                    break
+
+                bridge = CallBridge(call_key, room_name, mobile, ws, stream_sid)
+                await bridge.maybe_dispatch_agent()
+                await bridge.connect()
+
+            elif event == "media":
+                if bridge is None:
+                    continue  # media before start — ignore
+                payload_b64 = (data.get("media") or {}).get("payload")
+                if payload_b64:
+                    await bridge.push_inbound(base64.b64decode(payload_b64))
+
+            elif event == "dtmf":
+                logger.info(f"[Bridge] DTMF | digit={(data.get('dtmf') or {}).get('digit')}")
+
+            elif event == "stop":
+                reason = (data.get("stop") or {}).get("reason")
+                logger.info(f"[Bridge] STOP | reason={reason}")
                 break
-            if audio:
-                await bridge.push_inbound(audio)
+
     finally:
-        await bridge.close()
-        logger.info(f"[Bridge] WS closed | call_id={call_id} room={room_name}")
+        if bridge:
+            await bridge.close()
+        logger.info(f"[Bridge] WS closed | path={path_id}")
     return ws
-
-
-def build_provider_ws_url(call_id: Optional[str] = None, room: Optional[str] = None,
-                          session_id: Optional[str] = None, mobile: Optional[str] = None) -> str:
-    """Build the URL handed to Tata. In the integrated flow the SPRING BACKEND builds the
-    equivalent URL (see TataService / CallController); this helper is for standalone testing.
-
-      wss://<host>/telephony/stream/<call_id>?room=<room>&sessionId=<sid>&mobile=<phone>&token=<secret>
-    """
-    call_id = call_id or uuid.uuid4().hex
-    params = {}
-    if room:
-        params["room"] = room
-    if session_id:
-        params["sessionId"] = session_id
-    if mobile:
-        params["mobile"] = mobile
-    if WS_BRIDGE_AUTH_TOKEN:
-        params["token"] = WS_BRIDGE_AUTH_TOKEN
-    query = f"?{urlencode(params)}" if params else ""
-    return f"{PUBLIC_BRIDGE_BASE_URL}/telephony/stream/{call_id}{query}"
 
 
 def create_app() -> web.Application:
     app = web.Application()
     app.router.add_get("/telephony/stream/{call_id}", telephony_ws_handler)
+    # Tata's portal may be configured without a trailing path segment — accept both.
+    app.router.add_get("/telephony/stream", telephony_ws_handler)
     app.router.add_get("/healthz", lambda _: web.json_response({"status": "ok"}))
     return app
 
@@ -365,9 +432,10 @@ def create_app() -> web.Application:
 def main():
     if not (LIVEKIT_URL and LIVEKIT_API_KEY and LIVEKIT_API_SECRET):
         raise SystemExit("LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET must be set")
-    logger.info(f"Bridge listening on {WS_BRIDGE_HOST}:{WS_BRIDGE_PORT} | dispatch_agent={BRIDGE_DISPATCH_AGENT}")
-    logger.info("Example URL: " + build_provider_ws_url(
-        call_id="demo", room="call-PL-2024-00847392", session_id="demo-session", mobile="7838153987"))
+    logger.info(
+        f"Bridge on {WS_BRIDGE_HOST}:{WS_BRIDGE_PORT} | backend={BACKEND_URL} "
+        f"| dispatch_agent={BRIDGE_DISPATCH_AGENT} | {TELEPHONY_ENCODING}@{TELEPHONY_SAMPLE_RATE}"
+    )
     web.run_app(create_app(), host=WS_BRIDGE_HOST, port=WS_BRIDGE_PORT)
 
 
