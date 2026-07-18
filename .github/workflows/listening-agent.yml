@@ -111,11 +111,13 @@ jobs:
               --docker-username=${{ github.actor }} \
               --docker-password="$GHCR_TOKEN" \
               --dry-run=client -o yaml | kubectl apply -f -
-            kubectl apply -f k8s/listening-agent/authz-policy.yaml
+            # Istio resources are best-effort: istiod is scaled to 0 on this cluster (no sidecar
+            # injection), so the validation webhook is down and CREATEs of mesh resources fail.
+            kubectl apply -f k8s/listening-agent/authz-policy.yaml || echo "WARN: istio webhook down — authz-policy skipped (mesh disabled)"
             kubectl apply -f k8s/listening-agent/deployment.yaml
             # Tata telephony WebSocket bridge (same image, different entrypoint)
-            kubectl apply -f k8s/ws-bridge/peer-auth.yaml
-            kubectl apply -f k8s/ws-bridge/authz-policy.yaml
+            kubectl apply -f k8s/ws-bridge/peer-auth.yaml || echo "WARN: istio webhook down — peer-auth skipped (mesh disabled)"
+            kubectl apply -f k8s/ws-bridge/authz-policy.yaml || echo "WARN: istio webhook down — authz-policy skipped (mesh disabled)"
             kubectl apply -f k8s/ws-bridge/deployment.yaml
             kubectl -n app-services rollout status deployment/listening-agent --timeout=600s
             kubectl -n app-services rollout status deployment/ws-bridge --timeout=300s
