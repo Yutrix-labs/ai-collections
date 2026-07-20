@@ -42,4 +42,26 @@ public class TataConfig {
 
     /** Optional: how long the customer's phone rings, 10–30s (Tata default 30). Null => not sent. */
     private Integer customerRingTimeout;
+
+    // ── Call Detail Records (for fetching the call recording URL post-call) ──────────────────
+    // https://docs.smartflo.tatatelebusiness.com/reference/v1callrecords
+
+    /** CDR endpoint. Queried as {@code ?call_id=<id>} to retrieve the recording URL. */
+    private String recordsApiUrl = "https://api-smartflo.tatateleservices.com/v1/call/records";
+
+    /**
+     * Auth token for the CDR API — sent in the {@code Authorization} header. This is the portal
+     * "API Token" (a JWT), which is <b>separate from the click-to-call {@code api_key}</b>. Blank =>
+     * recording fetch is skipped (callRecordingURL stays null).
+     */
+    private String recordsAuthToken;
+
+    /** "Bearer" (default) or "raw" — how {@code recordsAuthToken} is placed in the Authorization header. */
+    private String recordsAuthScheme = "Bearer";
+
+    /** How many times to poll the CDR API for the recording (it finalizes shortly after hangup). */
+    private int recordingFetchRetries = 3;
+
+    /** Delay between recording-fetch attempts, in milliseconds. */
+    private long recordingFetchDelayMs = 3000;
 }

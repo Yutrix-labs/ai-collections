@@ -60,6 +60,10 @@ spec:
           {{- if .Data.data.tata_caller_id }}
           TATA_CALLER_ID="{{ .Data.data.tata_caller_id }}"
           {{- end }}
+          {{- if .Data.data.tata_records_auth_token }}
+          # Portal "API Token" (JWT) for the CDR API — used to fetch the call recording URL post-call.
+          TATA_RECORDS_AUTH_TOKEN="{{ .Data.data.tata_records_auth_token }}"
+          {{- end }}
           {{- if .Data.data.api_key }}
           APP_API_KEY="{{ .Data.data.api_key }}"
           {{- end }}

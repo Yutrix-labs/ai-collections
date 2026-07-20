@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -115,5 +117,106 @@ public class TataService {
             log.error("Tata click-to-call failed", e);
             return Map.of("status", "failed", "error", e.getMessage() == null ? "unknown error" : e.getMessage());
         }
+    }
+
+    /**
+     * Fetch the call recording URL from Tata's Call Detail Records, given the WebSocket callSid.
+     * Recordings finalize a few seconds after hangup, so this polls a bounded number of times.
+     *
+     * @return the {@code recording_url}, or {@code null} if not configured / not found / not ready
+     */
+    public String fetchRecordingUrl(String callSid) {
+        if (callSid == null || callSid.isBlank()) {
+            return null;
+        }
+        if (config.getRecordsAuthToken() == null || config.getRecordsAuthToken().isBlank()) {
+            log.warn("Tata records-auth-token not configured — cannot fetch recording | callSid={}", callSid);
+            return null;
+        }
+
+        // CDR keys on the FULL callSid (verified: "HYD16-T1-1784357746.51527" matches; the stripped
+        // "1784357746.51527" returns count:0). exotelCallSid already holds the full form.
+        String callId = URLEncoder.encode(callSid, StandardCharsets.UTF_8);
+        String authValue = "raw".equalsIgnoreCase(config.getRecordsAuthScheme())
+                ? config.getRecordsAuthToken()
+                : config.getRecordsAuthScheme() + " " + config.getRecordsAuthToken();
+
+        for (int attempt = 1; attempt <= Math.max(1, config.getRecordingFetchRetries()); attempt++) {
+            try {
+                String response = WebClient.create()
+                        .get()
+                        .uri(config.getRecordsApiUrl() + "?call_id=" + callId)
+                        .header("Authorization", authValue)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .block();
+
+                String url = extractRecordingUrl(response);
+                if (url != null && !url.isBlank()) {
+                    log.info("Tata recording URL fetched | callSid={} attempt={} url={}", callSid, attempt, url);
+                    return url;
+                }
+                log.info("Tata recording not ready yet | callSid={} attempt={}/{}",
+                        callSid, attempt, config.getRecordingFetchRetries());
+            } catch (WebClientResponseException e) {
+                log.error("Tata CDR fetch failed | callSid={} status={} body={}",
+                        callSid, e.getStatusCode(), e.getResponseBodyAsString());
+            } catch (Exception e) {
+                log.error("Tata CDR fetch failed | callSid={} error={}", callSid, e.getMessage());
+            }
+
+            if (attempt < config.getRecordingFetchRetries()) {
+                try {
+                    Thread.sleep(config.getRecordingFetchDelayMs());
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        log.warn("Tata recording URL not available after {} attempts | callSid={}",
+                config.getRecordingFetchRetries(), callSid);
+        return null;
+    }
+
+    /** Recursively find the first {@code recording_url} in the CDR response (list or object envelope). */
+    private String extractRecordingUrl(String response) {
+        if (response == null || response.isBlank()) {
+            return null;
+        }
+        try {
+            return findField(objectMapper.readTree(response), "recording_url");
+        } catch (Exception e) {
+            log.debug("Could not parse Tata CDR response: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private String findField(JsonNode node, String field) {
+        if (node == null) {
+            return null;
+        }
+        if (node.isObject()) {
+            JsonNode direct = node.get(field);
+            if (direct != null && direct.isTextual() && !direct.asText().isBlank()) {
+                return direct.asText();
+            }
+            var it = node.elements();
+            while (it.hasNext()) {
+                String found = findField(it.next(), field);
+                if (found != null) {
+                    return found;
+                }
+            }
+        } else if (node.isArray()) {
+            for (JsonNode child : node) {
+                String found = findField(child, field);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
     }
 }

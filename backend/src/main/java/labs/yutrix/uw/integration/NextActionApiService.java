@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import labs.yutrix.uw.call.CallSession;
 import labs.yutrix.uw.call.SessionStore;
+import labs.yutrix.uw.call.TataService;
 import labs.yutrix.uw.customer.CustomerContextService;
 import labs.yutrix.uw.insight.CopilotService;
 import labs.yutrix.uw.insight.InsightService;
@@ -44,6 +45,7 @@ public class NextActionApiService {
     private final SummaryService summaryService;
     private final CopilotService copilotService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final TataService tataService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -51,6 +53,9 @@ public class NextActionApiService {
 
     @Value("${next-action.api-url}")
     private String nextActionApiUrl;
+
+    @Value("${call.mode:exotel}")
+    private String callMode;
 
     @PostConstruct
     public void loadCallFlows() {
@@ -102,8 +107,11 @@ public class NextActionApiService {
             payload.put("agreementId", session.getAgreementId());
             payload.put("customerMobile", session.getCustomerMobile());
             payload.put("exotelCallSid", session.getExotelCallSid());
-            // LiveKit Egress → S3 recording (browser mode); null for Exotel calls (recorded by Exotel).
-            payload.put("callRecordingURL", session.getRecordingUrl());
+            // Recording source depends on call mode:
+            //  - livekit/browser: LiveKit Egress → S3, set on the session via /call/recording
+            //  - tata: fetched here from Tata's CDR API by callSid (recording finalizes after hangup)
+            //  - exotel: recorded by Exotel (left null here)
+            payload.put("callRecordingURL", resolveRecordingUrl(session));
             payload.put("status", session.getStatus());
             payload.put("startedAt", session.getStartedAt() != null ? session.getStartedAt().toString() : null);
             payload.put("endedAt", session.getEndedAt() != null ? session.getEndedAt().toString() : null);
@@ -158,6 +166,26 @@ public class NextActionApiService {
         } catch (Exception e) {
             log.error("[NextActionApi] Failed to build/send payload | sessionId={}", sessionId, e);
         }
+    }
+
+    /**
+     * Resolve the recording URL for the next-action payload. Prefers a URL already on the session
+     * (LiveKit egress in browser mode). In tata mode, if none is set yet, fetches it from Tata's CDR
+     * API by callSid and caches it back on the session.
+     */
+    private String resolveRecordingUrl(CallSession session) {
+        String existing = session.getRecordingUrl();
+        if (existing != null && !existing.isBlank()) {
+            return existing;
+        }
+        if ("tata".equalsIgnoreCase(callMode) && session.getExotelCallSid() != null) {
+            String url = tataService.fetchRecordingUrl(session.getExotelCallSid());
+            if (url != null && !url.isBlank()) {
+                session.setRecordingUrl(url);
+                return url;
+            }
+        }
+        return existing;
     }
 
     private Map<String, Object> buildDispositionPayload(CallSession session) {

@@ -58,6 +58,11 @@ tata:
   caller-id: ${TATA_CALLER_ID:}
   call-timeout: ${TATA_CALL_TIMEOUT:}
   customer-ring-timeout: ${TATA_CUSTOMER_RING_TIMEOUT:}
+  # Call Detail Records — fetches the recording URL by callSid after the call ends.
+  # records-auth-token is the portal "API Token" (JWT), separate from the click-to-call api-key.
+  records-api-url: ${TATA_RECORDS_API_URL:https://api-smartflo.tatateleservices.com/v1/call/records}
+  records-auth-token: ${TATA_RECORDS_AUTH_TOKEN:}
+  records-auth-scheme: ${TATA_RECORDS_AUTH_SCHEME:Bearer}
 
 app:
   cors:
