@@ -51,8 +51,8 @@ export function CSCustomerInfoBar({ data }: CSCustomerInfoBarProps) {
             Total Outstanding
           </span>
           <span className="text-lg font-extrabold text-[#0F172A] leading-none mt-0.5">
-            {"CHF "}
-            {totalOutstanding.toLocaleString("en-US")}
+            {"₹ "}
+            {totalOutstanding.toLocaleString("en-IN")}
           </span>
         </div>
 
@@ -63,8 +63,8 @@ export function CSCustomerInfoBar({ data }: CSCustomerInfoBarProps) {
               Savings Balance
             </span>
             <span className="text-lg font-extrabold text-[#15803D] leading-none mt-0.5">
-              {"CHF "}
-              {savingsAccount.balance.toLocaleString("en-US")}
+              {"₹ "}
+              {savingsAccount.balance.toLocaleString("en-IN")}
             </span>
           </div>
         )}
@@ -84,8 +84,8 @@ export function CSCustomerInfoBar({ data }: CSCustomerInfoBarProps) {
             className="text-lg font-extrabold leading-none mt-0.5"
             style={{ color: totalOverdue > 0 ? "#B91C1C" : "#15803D" }}
           >
-            {"CHF "}
-            {totalOverdue.toLocaleString("en-US")}
+            {"₹ "}
+            {totalOverdue.toLocaleString("en-IN")}
           </span>
         </div>
 
@@ -114,8 +114,8 @@ export function CSCustomerInfoBar({ data }: CSCustomerInfoBarProps) {
             Relationship
           </span>
           <span className="text-lg font-extrabold text-[#0F172A] leading-none mt-0.5">
-            {"CHF "}
-            {profile.relationshipValue.toLocaleString("en-US")}
+            {"₹ "}
+            {profile.relationshipValue.toLocaleString("en-IN")}
           </span>
         </div>
       </div>

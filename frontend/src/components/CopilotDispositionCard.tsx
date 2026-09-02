@@ -146,7 +146,7 @@ export default function CopilotDispositionCard({
                   <span className="text-[10px] font-bold text-teal-600 uppercase">Payment Schedule</span>
                   {disposition.amount != null && (
                     <span className="ml-auto text-[10px] font-bold text-teal-700">
-                      Total: CHF {disposition.amount.toLocaleString('en-US')}
+                      Total: ₹ {disposition.amount.toLocaleString('en-IN')}
                     </span>
                   )}
                 </div>
@@ -168,7 +168,7 @@ export default function CopilotDispositionCard({
                             </div>
                           </td>
                           <td className="px-3 py-2 text-right font-bold text-[#0F172A]">
-                            CHF {entry.amount.toLocaleString('en-US')}
+                            ₹ {entry.amount.toLocaleString('en-IN')}
                           </td>
                         </tr>
                       ))}
@@ -193,7 +193,7 @@ export default function CopilotDispositionCard({
                       <Banknote className="w-3.5 h-3.5 text-teal-600" />
                       <span className="text-[10px] font-bold text-teal-600 uppercase">Amount</span>
                     </div>
-                    <p className="text-sm font-bold text-[#0F172A]">CHF {disposition.amount.toLocaleString('en-US')}</p>
+                    <p className="text-sm font-bold text-[#0F172A]">₹ {disposition.amount.toLocaleString('en-IN')}</p>
                   </div>
                 )}
               </div>
@@ -264,7 +264,7 @@ export default function CopilotDispositionCard({
                 type="text"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                placeholder={'CHF Amount'}
+                placeholder={'₹ Amount'}
                 className="px-3 py-2.5 text-sm border-2 border-teal-200 rounded-lg focus:border-teal-500 focus:outline-none"
               />
             </div>

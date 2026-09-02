@@ -49,8 +49,8 @@ curl -s https://aiassistant.yutrix.io/collassistantapi/worklist \
       "name": "Rajesh Kumar Sharma",
       "mobile": "XXXX-XXX-987",
       "loanType": "Personal Loan",
-      "outstanding": "CHF 7,10,942",
-      "overdue": "CHF 1,14,099",
+      "outstanding": "₹ 7,10,942",
+      "overdue": "₹ 1,14,099",
       "dpd": 67,
       "priority": "HIGH",
       "lastContactDate": "12-Dec",
@@ -81,19 +81,19 @@ curl -s https://aiassistant.yutrix.io/collassistantapi/customer/PL-2024-00847392
       "preferredLanguage": "hi"
     },
     "loan": {
-      "amount": "CHF 8,00,000", "tenure": "24 months", "emiStart": "03/07/2021", "emiEnd": "03/07/2031",
-      "outstanding": "CHF 7,10,942", "overdue": "CHF 1,14,099", "disbursementDate": "02/07/2025",
-      "interestRate": "13.0", "installmentAmount": "CHF 38,033", "currentInstallmentNo": "5",
-      "paymentMode": "ECS", "lastPaymentOn": "03/04/2025", "lastPaymentAmount": "CHF 76,066",
+      "amount": "₹ 8,00,000", "tenure": "24 months", "emiStart": "03/07/2021", "emiEnd": "03/07/2031",
+      "outstanding": "₹ 7,10,942", "overdue": "₹ 1,14,099", "disbursementDate": "02/07/2025",
+      "interestRate": "13.0", "installmentAmount": "₹ 38,033", "currentInstallmentNo": "5",
+      "paymentMode": "ECS", "lastPaymentOn": "03/04/2025", "lastPaymentAmount": "₹ 76,066",
       "paymentDueDate": "03/12/2025"
     },
     "additionalDetails": {
-      "installmentNo": "5 of 24", "dueDate": "03 Dec 2025", "amount": "CHF 1,14,099",
+      "installmentNo": "5 of 24", "dueDate": "03 Dec 2025", "amount": "₹ 1,14,099",
       "bounceCharges": "1,500", "penalCharges": "3,240", "dpd": 67, "profession": "Accountant"
     },
     "pastCommunications": [
       { "date": "12-Dec", "caller": "Priya M.", "summary": "Callback req. Job change.", "type": "Call" },
-      { "date": "5-Dec", "caller": "Priya M.", "summary": "CHF 10K PTP Dec 10. Not rcvd.", "type": "Call" }
+      { "date": "5-Dec", "caller": "Priya M.", "summary": "₹ 10K PTP Dec 10. Not rcvd.", "type": "Call" }
     ],
     "callBehaviour": { "callerBehaviour": "Professional, Firm", "customerBehaviour": "Polite, Defensive" }
   }
@@ -136,7 +136,7 @@ curl -s https://aiassistant.yutrix.io/collassistantapi/call/start \
     "customerMobile": "7838153987",
     "customerData": {
       "customer": { "name": "Test User", "mobile": "7838153987", "agreementId": "PL-2024-00847392", "loanType": "Personal Loan", "writeoff": "N", "legalProceedings": null },
-      "loan": { "outstanding": "CHF 1,20,000", "overdue": "CHF 40,000" },
+      "loan": { "outstanding": "₹ 1,20,000", "overdue": "₹ 40,000" },
       "additionalDetails": { "dpd": 45, "profession": "Business owner" },
       "paymentHistory": [ { "status": "Missed" }, { "status": "Partial" } ],
       "pastCommunications": [ { "date": "01-Jul", "caller": "Agent", "summary": "Broken PTP, amount not rcvd" } ],
@@ -324,7 +324,7 @@ Real captured payload (`callFlows` abbreviated — 5 flow templates are returned
   "callMode": "collections",
   "customerContext": {
     "customer": { "name": "…", "mobile": "…", "agreementId": "…", "loanType": "…", "writeoff": "N", "legalProceedings": null },
-    "loan": { "outstanding": "CHF 1,20,000", "overdue": "CHF 40,000" },
+    "loan": { "outstanding": "₹ 1,20,000", "overdue": "₹ 40,000" },
     "additional": { "dpd": 45, "profession": "Business owner" },
     "payment_history": [ { "status": "Missed" }, { "status": "Partial" } ],
     "past_communications": [ { "date": "01-Jul", "caller": "Agent", "summary": "…" } ],

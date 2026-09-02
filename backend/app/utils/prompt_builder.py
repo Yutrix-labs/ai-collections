@@ -14,7 +14,7 @@ def format_payment_history(payment_history: List[Dict]) -> str:
         channel = payment.get('channel', '')
         status = payment.get('status', '')
 
-        line = f"{date}: CHF {amount:,} {status}"
+        line = f"{date}: ₹ {amount:,} {status}"
         if status == 'bounced':
             bounce_reason = payment.get('bounce_reason', '')
             line += f" ({bounce_reason})"
@@ -33,7 +33,7 @@ def format_policy_rules(policy_rules: Dict) -> str:
     if penalty_waiver:
         max_percent = penalty_waiver.get('max_percent', 0)
         min_commitment = penalty_waiver.get('min_commitment', 0)
-        lines.append(f"- Penalty waiver: Up to {max_percent}% if customer commits CHF {min_commitment:,}+ within 30 days")
+        lines.append(f"- Penalty waiver: Up to {max_percent}% if customer commits ₹ {min_commitment:,}+ within 30 days")
 
     if not policy_rules.get('legal_reference_allowed', True):
         lines.append("- DO NOT mention legal action for DPD < 90 accounts")
@@ -98,9 +98,9 @@ def build_llm_prompt(profile: Dict, transcript: List[Dict], previous_insights: L
     prompt = f"""--- CUSTOMER PROFILE ---
 Name: {customer.get('name', '')}
 Agreement: {customer.get('agreement_id', '')} | Loan Type: {loan.get('loan_type', '')}
-Loan: CHF {loan.get('amount', 0):,} | Tenure: {loan.get('tenure_months', 0)} months
-Outstanding: CHF {loan.get('outstanding', 0):,} | Overdue: CHF {loan.get('overdue', 0):,}
-DPD: {additional.get('dpd', 0)} days | EMI: CHF {additional.get('emi_amount', 0):,}
+Loan: ₹ {loan.get('amount', 0):,} | Tenure: {loan.get('tenure_months', 0)} months
+Outstanding: ₹ {loan.get('outstanding', 0):,} | Overdue: ₹ {loan.get('overdue', 0):,}
+DPD: {additional.get('dpd', 0)} days | EMI: ₹ {additional.get('emi_amount', 0):,}
 
 --- PAYMENT HISTORY (last 6 months) ---
 {format_payment_history(payment_history)}

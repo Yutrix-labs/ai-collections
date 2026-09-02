@@ -405,7 +405,7 @@ def build_llm_prompt(
         status = payment.get("status", "")
         amount = payment.get("amount", 0)
         due_amount = payment.get("dueAmount", 0)
-        payment_lines.append(f"{month}: CHF {amount:,} / CHF {due_amount:,} ({status})")
+        payment_lines.append(f"{month}: ₹ {amount:,} / ₹ {due_amount:,} ({status})")
 
     policy_lines = []
     for policy in active_policies:
@@ -451,7 +451,7 @@ Name: {customer.get("name", "")}
 Agreement: {customer.get("agreementId", "")} | Loan Type: {customer.get("loanType", "")}
 Loan: {loan.get("amount", "")} | Tenure: {loan.get("tenure", "")}
 Outstanding: {loan.get("outstanding", "")} | Overdue: {loan.get("overdue", "")}
-DPD: {additional.get("dpd", 0)} days | EMI Amount: CHF {additional.get("amount", "")}
+DPD: {additional.get("dpd", 0)} days | EMI Amount: ₹ {additional.get("amount", "")}
 {ml_section}
 --- PAYMENT HISTORY (recent) ---
 {chr(10).join(payment_lines)}
@@ -494,7 +494,7 @@ Return JSON object:
     "result": "PTP|Won't Pay|Can't Pay|Wrong Number|Invalid Number|Not Reachable|Not Picking",
     "confidence": 0.0-1.0,
     "date": "YYYY-MM-DD or null",
-    "amount": "CHF XX,XXX or null",
+    "amount": "₹ XX,XXX or null",
     "reason": "reason string or null",
     "notes": "<150 chars summarizing outcome",
     "nextAction": "Follow-up Call|Send Payment Link|Escalate to Supervisor|Legal Notice|No Action",
@@ -1975,7 +1975,7 @@ class InsightEngine:
 Extract ONLY genuinely important key points — things that matter for the collection outcome.
 
 INCLUDE (examples):
-- Payment commitments: "Will pay CHF 10,000 by Friday"
+- Payment commitments: "Will pay ₹ 10,000 by Friday"
 - Explicit refusals: "I won't pay", "Not my loan"
 - Hardship claims: "Lost my job", "Medical emergency"
 - Disputes: "Already paid last month", "Wrong amount"
@@ -2286,12 +2286,12 @@ Rules:
 insights: 1-3 NEW observations from the transcript. Use types: intent (customer intent), suggestion (agent action), policy (policy reminder), alert (risk/flag), sentiment (customer mood). Return empty array if nothing new.
 contextual_details: 3-5 items from profile relevant to last customer statement.
 STRICT FORMAT — label: short field name (max 18 chars). value: raw number/fact ONLY (max 20 chars). NEVER write sentences, analysis, or semicolons in value.
-GOOD: {{"label":"DPD","value":"67 days","highlight":true}}, {{"label":"Overdue","value":"CHF 73,800","highlight":true}}, {{"label":"Last Paid","value":"Dec CHF 5K","highlight":false}}, {{"label":"EMI","value":"CHF 18,450","highlight":false}}, {{"label":"Bounce Charges","value":"CHF 1,500","highlight":false}}
+GOOD: {{"label":"DPD","value":"67 days","highlight":true}}, {{"label":"Overdue","value":"₹ 73,800","highlight":true}}, {{"label":"Last Paid","value":"Dec ₹ 5K","highlight":false}}, {{"label":"EMI","value":"₹ 18,450","highlight":false}}, {{"label":"Bounce Charges","value":"₹ 1,500","highlight":false}}
 BAD (NEVER DO THIS): {{"value":"Aug bounced; Sep cleared; liquidity stress"}}, {{"value":"eligible for plan, not settlement"}}, {{"value":"3 missed in last 6 months"}}
 Use ONLY provided data. No fabrication. Follow the call flow decision tree steps.
 ML SIGNAL: The CALL CONTEXT "ML:" line carries model-predicted probabilities — PTP-fulfil (likelihood the customer keeps a promise to pay), pay-in-15d and pay-in-30d (likelihood of payment within that window), each with a band (high/mid/low). Treat these as a strong signal that MUST inform next_move priority, insights, and disposition. Low PTP-fulfil → make next_move firmer (push for immediate/secured commitment) and set disposition conf lower for PTP; high PTP-fulfil → support a PTP path and a follow-up next action. Align pay-in-15d/30d with any proposed payment timeline. Never state the raw percentages to the customer; use them only to shape your guidance.
 MANDATORY POLICY ENFORCEMENT: The POLICIES section in CALL CONTEXT contains hard bank policy rules. You MUST follow them exactly in every next_move suggestion. Never suggest a repayment amount, timeline, or offer that contradicts any policy rule. If a policy specifies exact payment terms (e.g. 50% today + balance in 7 days), the agent must offer exactly those terms — no flexibility, no alternatives, no exceptions. Always use Today's date (in CALL CONTEXT) to compute and state exact calendar dates — never say "in 7 days" or "by next week", always say the actual date (e.g. "by 28 May 2026").
-If the conversation indicates the customer is questioning payments, disputing amounts, or the agent needs payment context — surface payment history in contextual_details as TWO separate items: one for paid months and one for unpaid months (e.g. {{"label":"Paid Months","value":"Jun CHF 5K, Aug CHF 5K","highlight":false}}, {{"label":"Unpaid Months","value":"Jul ✗, Sep ✗","highlight":true}}).
+If the conversation indicates the customer is questioning payments, disputing amounts, or the agent needs payment context — surface payment history in contextual_details as TWO separate items: one for paid months and one for unpaid months (e.g. {{"label":"Paid Months","value":"Jun ₹ 5K, Aug ₹ 5K","highlight":false}}, {{"label":"Unpaid Months","value":"Jul ✗, Sep ✗","highlight":true}}).
 LANGUAGE: Generate next_move points and contextual_details labels in {LANGUAGE_NAMES.get(preferred_language, "English")}. Keep field values (amounts, dates, numbers) in their original format."""
 
         # ── Static CALL CONTEXT — precooked once, lives in the cached prefix ──────
@@ -2307,7 +2307,7 @@ LANGUAGE: Generate next_move points and contextual_details labels in {LANGUAGE_N
 --- CALL CONTEXT (static for this call) ---
 Today:{today}
 Cust:{customer.get("name", "")} Agr:{customer.get("agreementId", "")} Loan:{loan.get("amount", "")} Ten:{customer.get("loanType", "")}
-Outs:{loan.get("outstanding", "")} Due:{loan.get("overdue", "")} DPD:{additional.get("dpd", 0)}d EMI:CHF {additional.get("amount", "")}{ml_line}
+Outs:{loan.get("outstanding", "")} Due:{loan.get("overdue", "")} DPD:{additional.get("dpd", 0)}d EMI:₹ {additional.get("amount", "")}{ml_line}
 Pay:
 {payment_toon}
 POLICIES (MANDATORY - HARD RULES, NO EXCEPTIONS):
