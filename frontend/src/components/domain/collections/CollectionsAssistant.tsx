@@ -3,6 +3,7 @@
 import { ADDITIONAL, CALL_BEHAVIOUR, CUSTOMER, LOAN, PAST_COMMS } from "@/data/mock-data";
 import { useLiveKitConnection } from "@/hooks/useLiveKitConnection";
 import { useStompClient, type CallStatusEvent } from "@/hooks/useStompClient";
+import { useDemoCall } from "@/hooks/useDemoCall";
 import { useRouter } from "@/i18n/navigation";
 import { endCall, fetchCustomerData, fetchPtpPrediction, startCall } from "@/lib/api/collections-api";
 import type { ConversationSummaryItem, CustomerData, TranscriptItem, SummaryCombinedDTO, Insight, Sentiment, PtpPrediction } from "@/types/collections.types";
@@ -36,6 +37,7 @@ export function CollectionsAssistant() {
   const [micEnabled, setMicEnabled] = useState(true);
   const stomp = useStompClient();
   const liveKit = useLiveKitConnection();
+  const demo = useDemoCall();
 
   /* Call state */
   const [ct, setCt] = useState(0);
@@ -171,6 +173,8 @@ export function CollectionsAssistant() {
         console.error("Failed to end call:", e);
       }
     }
+    // Stop the scripted demo audio (no-op outside demo call mode).
+    demo.stop();
     // Disconnect LiveKit audio but keep STOMP alive for disposition
     liveKit.disconnectLiveKit();
     setCa(false);
@@ -255,10 +259,15 @@ export function CollectionsAssistant() {
           },
         });
 
-        // Browser (livekit) call mode: connect the tele-caller to the LiveKit room.
-        // The customer join link stays internal (backend /call/customer-link endpoint) —
-        // it is intentionally not surfaced on the agent UI.
-        if (session.meetUrl) {
+        if (session.demoScenario) {
+          // Demo call mode: no telephony and no LiveKit. Play the scripted customer audio
+          // out loud and let it drive the transcript, so the room hears the customer while
+          // the copilot reacts to the same lines it would get from a live call.
+          demo.start(session.sessionId, session.demoScenario);
+        } else if (session.meetUrl) {
+          // Browser (livekit) call mode: connect the tele-caller to the LiveKit room.
+          // The customer join link stays internal (backend /call/customer-link endpoint) —
+          // it is intentionally not surfaced on the agent UI.
           liveKit.connectFromMeetUrl(session.meetUrl);
         }
       } catch (e) {

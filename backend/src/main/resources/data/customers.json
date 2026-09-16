@@ -4,11 +4,17 @@
       "probability": 0.36,
       "band": "Low",
       "fulfilled": false,
-      "payment_probability_15d": { "probability": 0.41, "band": "Low" },
-      "payment_probability_30d": { "probability": 0.54, "band": "Medium" }
+      "payment_probability_15d": {
+        "probability": 0.41,
+        "band": "Low"
+      },
+      "payment_probability_30d": {
+        "probability": 0.54,
+        "band": "Medium"
+      }
     },
     "customer": {
-      "name": "Rajesh Kumar Sharma",
+      "name": "Fahad Al-Otaibi",
       "mobile": "7838153987",
       "loanType": "Personal Loan",
       "agreementId": "PL-2024-00847392",
@@ -18,36 +24,36 @@
       "writeoff": "N",
       "legalProceedings": null,
       "noOfLiabilities": 3,
-      "preferredLanguage": "hi"
+      "preferredLanguage": "en"
     },
     "loan": {
-      "amount": "₹ 8,00,000",
+      "amount": "KD 8,000.000",
       "tenure": "24 months",
       "emiStart": "03/07/2021",
       "emiEnd": "03/07/2031",
-      "outstanding": "₹ 7,10,942",
-      "overdue": "₹ 1,14,099",
+      "outstanding": "KD 7,110.000",
+      "overdue": "KD 150.000",
       "disbursementDate": "02/07/2025",
       "interestRate": "13.0",
       "instStartDate": "03/08/2025",
       "instEndDate": "03/07/2027",
       "cycleDays": "3",
       "productOffered": "PL",
-      "noOfOdInstallments": "3",
+      "noOfOdInstallments": "1",
       "noOfOsInstallments": "19",
       "lastReversalOn": "-",
       "lastPaymentOn": "03/04/2025",
       "paymentDueDate": "03/12/2025",
       "lastReversalAmount": "0",
-      "lastPaymentAmount": "₹ 76,066",
-      "installmentAmount": "₹ 38,033",
+      "lastPaymentAmount": "KD 150.000",
+      "installmentAmount": "KD 150.000",
       "currentInstallmentNo": "5",
       "paymentMode": "ECS"
     },
     "additionalDetails": {
       "installmentNo": "5 of 24",
       "dueDate": "03 Dec 2025",
-      "amount": "₹ 1,14,099",
+      "amount": "KD 150.000",
       "bounceCharges": "1,500",
       "penalCharges": "3,240",
       "dpd": 67,
@@ -88,7 +94,7 @@
     "activePolicies": [
       {
         "policy": "settlement_eligibility",
-        "rule": "Customer is eligible for settlement if DPD > 90 and outstanding < ₹ 5L"
+        "rule": "Customer is eligible for settlement if DPD > 90 and outstanding < KD 5,000"
       },
       {
         "policy": "payment_plan",
@@ -107,7 +113,7 @@
       {
         "date": "12-Dec",
         "caller": "Priya M.",
-        "summary": "Callback req. Job change.",
+        "summary": "Callback req. Will check salary date.",
         "type": "Call"
       },
       {
@@ -119,13 +125,13 @@
       {
         "date": "5-Dec",
         "caller": "Priya M.",
-        "summary": "₹ 10K PTP Dec 10. Not rcvd.",
+        "summary": "KD 50 PTP Dec 10. Not rcvd.",
         "type": "Call"
       },
       {
         "date": "5-Dec",
         "caller": "System Init",
-        "summary": "Agreed month-end. ₹ 5K paid.",
+        "summary": "Agreed month-end. KD 75 paid.",
         "type": "Whatsapp"
       }
     ],
@@ -139,11 +145,17 @@
       "probability": 0.47,
       "band": "Medium",
       "fulfilled": false,
-      "payment_probability_15d": { "probability": 0.46, "band": "Medium" },
-      "payment_probability_30d": { "probability": 0.58, "band": "Medium" }
+      "payment_probability_15d": {
+        "probability": 0.46,
+        "band": "Medium"
+      },
+      "payment_probability_30d": {
+        "probability": 0.58,
+        "band": "Medium"
+      }
     },
     "customer": {
-      "name": "Ritesh Kumar Sharma",
+      "name": "Yousef Al-Rashidi",
       "mobile": "9870064932",
       "loanType": "Personal Loan",
       "agreementId": "PL-2024-00847391",
@@ -153,36 +165,36 @@
       "writeoff": "N",
       "legalProceedings": null,
       "noOfLiabilities": 3,
-      "preferredLanguage": "hi"
+      "preferredLanguage": "en"
     },
     "loan": {
-      "amount": "₹ 8,00,000",
+      "amount": "KD 8,000.000",
       "tenure": "24 months",
       "emiStart": "03/07/2021",
       "emiEnd": "03/07/2031",
-      "outstanding": "₹ 7,10,942",
-      "overdue": "₹ 1,14,099",
+      "outstanding": "KD 7,110.000",
+      "overdue": "KD 150.000",
       "disbursementDate": "02/07/2025",
       "interestRate": "13.0",
       "instStartDate": "03/08/2025",
       "instEndDate": "03/07/2027",
       "cycleDays": "3",
       "productOffered": "PL",
-      "noOfOdInstallments": "3",
+      "noOfOdInstallments": "1",
       "noOfOsInstallments": "19",
       "lastReversalOn": "-",
       "lastPaymentOn": "03/04/2025",
       "paymentDueDate": "03/12/2025",
       "lastReversalAmount": "0",
-      "lastPaymentAmount": "₹ 76,066",
-      "installmentAmount": "₹ 38,033",
+      "lastPaymentAmount": "KD 150.000",
+      "installmentAmount": "KD 150.000",
       "currentInstallmentNo": "5",
       "paymentMode": "ECS"
     },
     "additionalDetails": {
       "installmentNo": "5 of 24",
       "dueDate": "03 Dec 2025",
-      "amount": "₹ 1,14,099",
+      "amount": "KD 150.000",
       "bounceCharges": "1,500",
       "penalCharges": "3,240",
       "dpd": 67,
@@ -223,7 +235,7 @@
     "activePolicies": [
       {
         "policy": "settlement_eligibility",
-        "rule": "Customer is eligible for settlement if DPD > 90 and outstanding < ₹ 5L"
+        "rule": "Customer is eligible for settlement if DPD > 90 and outstanding < KD 5,000"
       },
       {
         "policy": "payment_plan",
@@ -242,7 +254,7 @@
       {
         "date": "12-Dec",
         "caller": "Priya M.",
-        "summary": "Callback req. Job change.",
+        "summary": "Customer lost job, no income. Requested time.",
         "type": "Call"
       },
       {
@@ -254,13 +266,13 @@
       {
         "date": "5-Dec",
         "caller": "Priya M.",
-        "summary": "₹ 10K PTP Dec 10. Not rcvd.",
+        "summary": "KD 50 PTP Dec 10. Not rcvd. Medical expenses cited.",
         "type": "Call"
       },
       {
         "date": "5-Dec",
         "caller": "System Init",
-        "summary": "Agreed month-end. ₹ 5K paid.",
+        "summary": "Agreed month-end. KD 30 paid.",
         "type": "Whatsapp"
       }
     ],
@@ -274,8 +286,14 @@
       "probability": 0.55,
       "band": "Medium",
       "fulfilled": true,
-      "payment_probability_15d": { "probability": 0.50, "band": "Medium" },
-      "payment_probability_30d": { "probability": 0.66, "band": "High" }
+      "payment_probability_15d": {
+        "probability": 0.5,
+        "band": "Medium"
+      },
+      "payment_probability_30d": {
+        "probability": 0.66,
+        "band": "High"
+      }
     },
     "customer": {
       "name": "Vikram Sethi",
@@ -404,8 +422,14 @@
       "probability": 0.79,
       "band": "High",
       "fulfilled": true,
-      "payment_probability_15d": { "probability": 0.74, "band": "High" },
-      "payment_probability_30d": { "probability": 0.87, "band": "High" }
+      "payment_probability_15d": {
+        "probability": 0.74,
+        "band": "High"
+      },
+      "payment_probability_30d": {
+        "probability": 0.87,
+        "band": "High"
+      }
     },
     "customer": {
       "name": "Rajesh Rao",
@@ -528,8 +552,14 @@
       "probability": 0.17,
       "band": "Low",
       "fulfilled": false,
-      "payment_probability_15d": { "probability": 0.14, "band": "Low" },
-      "payment_probability_30d": { "probability": 0.26, "band": "Low" }
+      "payment_probability_15d": {
+        "probability": 0.14,
+        "band": "Low"
+      },
+      "payment_probability_30d": {
+        "probability": 0.26,
+        "band": "Low"
+      }
     },
     "customer": {
       "name": "Michael D'Souza",

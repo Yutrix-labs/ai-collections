@@ -24,6 +24,7 @@ public class CallSession {
     private String customerJoinUrl;  // shareable hosted-Meet link for the customer (livekit call mode)
     private String roomName;         // LiveKit room (livekit call mode)
     private String recordingUrl;     // LiveKit Egress → S3 recording URL (livekit call mode)
+    private String demoScenario;     // "ready_to_pay" | "not_ready_to_pay" (demo call mode)
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
 

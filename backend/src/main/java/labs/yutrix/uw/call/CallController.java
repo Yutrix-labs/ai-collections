@@ -37,17 +37,24 @@ public class CallController {
 
         /**
          * "exotel" = Exotel Click2Call (SIP); "tata" = Tata Smartflo click-to-call streamed over
-         * WebSocket into LiveKit; "livekit" = browser-to-browser WebRTC (no telephony).
+         * WebSocket into LiveKit; "livekit" = browser-to-browser WebRTC (no telephony);
+         * "demo" = fully simulated call (no telephony, no LiveKit) for the scripted Arabic demo.
          */
         @Value("${call.mode:exotel}")
         private String callMode;
+
+        /** agreementId -> demo scenario id, e.g. {@code PL-2024-00847392: ready_to_pay}. */
+        @Value("#{${demo.scenarios:{:}}}")
+        private Map<String, String> demoScenarios;
 
         @PostMapping("/start")
         public ApiResponse<StartCallResponse> startCall(@Valid @RequestBody StartCallRequest request) {
                 String sessionId = UUID.randomUUID().toString();
 
                 CallSession session;
-                if ("livekit".equalsIgnoreCase(callMode)) {
+                if ("demo".equalsIgnoreCase(callMode)) {
+                        session = startDemoCall(sessionId, request);
+                } else if ("livekit".equalsIgnoreCase(callMode)) {
                         session = startLiveKitCall(sessionId, request);
                 } else if ("tata".equalsIgnoreCase(callMode)) {
                         session = startTataCall(sessionId, request);
@@ -85,6 +92,33 @@ public class CallController {
                         return v != null ? v.toString() : null;
                 }
                 return null;
+        }
+
+        /**
+         * Demo path: no telephony, no LiveKit, no join link. The browser plays a pre-recorded
+         * customer clip and drives the transcript through {@code /demo/utterance}, so the whole
+         * call is reproducible on a laptop with no phone line and no network dependency on a
+         * telephony vendor.
+         *
+         * <p>The session's callSid is set to the sessionId so the demo runner's transcript pushes
+         * resolve to this session exactly like an agent's would.
+         */
+        private CallSession startDemoCall(String sessionId, StartCallRequest request) {
+                String scenario = demoScenarios.getOrDefault(request.agreementId(), "ready_to_pay");
+                log.info("Demo call started (no telephony) | sessionId={} agreementId={} scenario={}",
+                                sessionId, request.agreementId(), scenario);
+
+                return CallSession.builder()
+                                .sessionId(sessionId)
+                                .agreementId(request.agreementId())
+                                .customerMobile(request.customerMobile())
+                                // Transcript pushes arrive keyed by callSid — point it at the session.
+                                .exotelCallSid(sessionId)
+                                .demoScenario(scenario)
+                                .customerContext(request.customerData())
+                                .status("ACTIVE")
+                                .startedAt(LocalDateTime.now())
+                                .build();
         }
 
         /** Exotel Click2Call path: dials the customer's phone and bridges it into a LiveKit room. */

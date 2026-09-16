@@ -89,6 +89,11 @@ spec:
               if [ -f /vault/secrets/config ]; then
                 set -a; . /vault/secrets/config; set +a
               fi
+              # Scripted Arabic (Kuwait) demo branch: force demo call mode.
+              # These are exported AFTER the Vault config on purpose — sourcing it would
+              # otherwise override them and a stale Vault call_mode would place REAL calls.
+              export CALL_MODE=demo
+              export DEMO_RUNNER_URL=http://demo-runner.app-services.svc.cluster.local:8092
               exec java -jar app.jar --spring.profiles.active=dev
           ports:
             - containerPort: 8080

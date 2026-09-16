@@ -1,0 +1,133 @@
+# Demo runner (demo_runner.py) — drives the scripted Arabic (Kuwait) demo call.
+#
+# The browser plays a pre-recorded customer clip instead of placing a real call, so no audio
+# ever reaches LiveKit and there is no STT. This service receives each scripted line from the
+# backend and feeds it to the SAME CollectionsCopilot the live agent uses, so the transcript,
+# insights and next-best-action on screen are produced by the real pipeline — only the source
+# of the words differs.
+#
+# Reuses the listening-agent image (demo_runner.py ships in the same directory) — only the
+# start command differs, exactly like ws-bridge does.
+#
+# It also reuses the listening-agent ServiceAccount and Vault role on purpose: the copilot
+# needs the same LLM credentials and GCP service account, and borrowing the existing identity
+# avoids having to register a second Vault Kubernetes auth role just for the demo.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-runner
+  namespace: app-services
+  labels:
+    app: demo-runner
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: demo-runner
+  template:
+    metadata:
+      labels:
+        app: demo-runner
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "listening-agent"
+        vault.hashicorp.com/agent-inject-secret-config: "secret/data/app-services/listening-agent/config"
+        vault.hashicorp.com/agent-requests-cpu: "50m"
+        vault.hashicorp.com/agent-limits-cpu: "100m"
+        vault.hashicorp.com/agent-requests-memory: "64Mi"
+        vault.hashicorp.com/agent-limits-memory: "128Mi"
+        sidecar.istio.io/proxyCPU: "10m"
+        sidecar.istio.io/proxyMemory: "64Mi"
+        vault.hashicorp.com/agent-inject-template-config: |
+          {{- with secret "secret/data/app-services/listening-agent/config" -}}
+          ANTHROPIC_API_KEY="{{ .Data.data.anthropic_api_key }}"
+          OPENAI_API_KEY="{{ .Data.data.openai_api_key }}"
+          AWS_ACCESS_KEY_ID="{{ .Data.data.aws_access_key_id }}"
+          AWS_SECRET_ACCESS_KEY="{{ .Data.data.aws_secret_access_key }}"
+          AWS_REGION="{{ .Data.data.aws_region }}"
+          GCP_PROJECT_ID="{{ .Data.data.gcp_project_id }}"
+          GCP_LOCATION="{{ .Data.data.gcp_location }}"
+          GEMINI_MODEL="{{ .Data.data.gemini_model }}"
+          CEREBRAS_API_KEY="{{ .Data.data.cerebras_api_key }}"
+          CEREBRAS_MODEL="{{ .Data.data.cerebras_model }}"
+          AI_PROVIDER="{{ .Data.data.ai_provider }}"
+          COPILOT_MODE="{{ .Data.data.copilot_mode }}"
+          {{- if .Data.data.backend_api_key }}
+          # Must equal the backend's api_key so transcript/copilot pushes pass the X-API-KEY gate.
+          BACKEND_API_KEY="{{ .Data.data.backend_api_key }}"
+          {{- end }}
+          GOOGLE_APPLICATION_CREDENTIALS="/vault/secrets/gcp-sa.json"
+          {{- end }}
+        vault.hashicorp.com/agent-inject-secret-gcp-sa.json: "secret/data/app-services/listening-agent/gcp-sa"
+        vault.hashicorp.com/agent-inject-template-gcp-sa.json: |
+          {{- with secret "secret/data/app-services/listening-agent/gcp-sa" -}}
+          {{ .Data.data.json }}
+          {{- end }}
+    spec:
+      serviceAccountName: listening-agent
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: demo-runner
+          image: ghcr.io/yutrix-labs/ai-collections/listening-agent:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              if [ -f /vault/secrets/config ]; then
+                set -a; . /vault/secrets/config; set +a
+              fi
+              exec /bin/uv run python demo_runner.py
+          ports:
+            - containerPort: 8092
+          env:
+            # BACKEND_URL is not secret — cluster-internal DNS. Note the runner appends
+            # /collassistantapi itself, so this must NOT include the context path.
+            - name: BACKEND_URL
+              value: "http://backend.app-services.svc.cluster.local:8080"
+            - name: DEMO_RUNNER_HOST
+              value: "0.0.0.0"
+            - name: DEMO_RUNNER_PORT
+              value: "8092"
+            # The copilot logs emoji; without this the container's stdout encoding can throw.
+            - name: PYTHONIOENCODING
+              value: "utf-8"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8092
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8092
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "768Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-runner
+  namespace: app-services
+  labels:
+    app: demo-runner
+spec:
+  selector:
+    app: demo-runner
+  ports:
+    - name: http
+      port: 8092
+      targetPort: 8092
+  type: ClusterIP

@@ -158,6 +158,8 @@ export interface CallSession {
   meetUrl: string | null;
   customerJoinUrl?: string | null; // livekit call mode: shareable link for the customer
   roomName?: string | null;
+  /** demo call mode: which scripted scenario the browser should play. */
+  demoScenario?: string | null;
   startedAt: string;
   endedAt: string | null;
   dispositionResult: string | null;

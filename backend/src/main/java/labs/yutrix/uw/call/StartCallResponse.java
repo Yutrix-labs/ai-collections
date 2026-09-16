@@ -15,6 +15,7 @@ public record StartCallResponse(
         String meetUrl,
         String customerJoinUrl,
         String roomName,
+        String demoScenario,
         LocalDateTime startedAt
 ) {
     public static StartCallResponse from(CallSession s) {
@@ -26,6 +27,7 @@ public record StartCallResponse(
                 s.getMeetUrl(),
                 s.getCustomerJoinUrl(),
                 s.getRoomName(),
+                s.getDemoScenario(),
                 s.getStartedAt());
     }
 }

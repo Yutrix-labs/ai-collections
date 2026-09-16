@@ -121,3 +121,28 @@ export async function fetchWorklist(): Promise<WorklistItem[]> {
   const { data } = await api.get<ApiResponse<WorklistItem[]>>("/worklist");
   return data.data;
 }
+
+/**
+ * Demo call mode: push one scripted transcript turn. The browser drives these from the
+ * scenario audio's own clock, so the on-screen transcript stays in step with what the
+ * room can hear.
+ *
+ * Uses raw axios rather than the shared `api` instance on purpose: that instance's
+ * response interceptor raises a success toast for every call, and a scenario fires ~20
+ * of these, which would bury the screen in toasts during the demo.
+ */
+export async function pushDemoUtterance(
+  sessionId: string,
+  speaker: "agent" | "customer",
+  text: string,
+): Promise<void> {
+  const baseURL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/collassistantapi";
+  await axios.post(`${baseURL}/demo/utterance`, { sessionId, speaker, text });
+}
+
+export async function endDemoCall(sessionId: string): Promise<void> {
+  const baseURL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/collassistantapi";
+  await axios.post(`${baseURL}/demo/end`, { sessionId });
+}

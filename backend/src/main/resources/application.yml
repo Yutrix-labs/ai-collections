@@ -66,6 +66,13 @@ livekit:
 call:
   mode: ${CALL_MODE:tata}
 
+# Scripted demo call (call.mode=demo). The browser plays a pre-recorded customer clip and
+# posts each line to /demo/utterance; the demo runner feeds them to the real copilot.
+demo:
+  runner-url: ${DEMO_RUNNER_URL:http://localhost:8092}
+  # agreementId -> scenario id. Parsed as a SpEL map, so keep the inline-map syntax.
+  scenarios: ${DEMO_SCENARIOS:{'PL-2024-00847392':'ready_to_pay','PL-2024-00847391':'not_ready_to_pay'}}
+
 # Tata Smartflo "Click to Call Support" (used when call.mode=tata) — full Exotel replacement.
 # https://docs.smartflo.tatatelebusiness.com/reference/v1click_to_call_support
 # Customer-first: Tata rings the customer, then routes the answered call to the VOICE Bot that is
