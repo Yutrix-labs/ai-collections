@@ -31,6 +31,7 @@ public class TranscriptService {
         TranscriptItemDTO dto = new TranscriptItemDTO(
                 request.speaker(),
                 request.text(),
+                request.textAr(),
                 request.timestamp() != null ? request.timestamp() : "",
                 "neutral" // default sentiment; AI will update later
         );

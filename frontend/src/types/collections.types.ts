@@ -70,7 +70,10 @@ export type Sentiment = "positive" | "neutral" | "negative";
 
 export interface TranscriptItem {
   speaker: "agent" | "customer";
+  /** English. */
   text: string;
+  /** Arabic (Kuwait), shown above the English. Absent outside the scripted demo. */
+  textAr?: string | null;
   ts: string;
   sentiment: Sentiment;
 }

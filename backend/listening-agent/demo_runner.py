@@ -71,8 +71,13 @@ async def get_http_session() -> aiohttp.ClientSession:
 
 
 async def push_transcript(call_sid: str, speaker: str, text: str,
-                          timestamp: str, mobile_number: str | None = None) -> None:
-    """POST a transcript turn to the backend — same contract as the live agent."""
+                          timestamp: str, mobile_number: str | None = None,
+                          text_ar: str | None = None) -> None:
+    """POST a transcript turn to the backend — same contract as the live agent.
+
+    ``text_ar`` is the Arabic (Kuwait) rendering shown next to the English in the live
+    transcript. It is display-only and is deliberately NOT passed to the copilot.
+    """
     try:
         session = await get_http_session()
         payload = {
@@ -83,6 +88,8 @@ async def push_transcript(call_sid: str, speaker: str, text: str,
         }
         if mobile_number:
             payload["mobileNumber"] = mobile_number
+        if text_ar:
+            payload["textAr"] = text_ar
 
         async with session.post(
             f"{BACKEND_URL}/collassistantapi/transcript/push", json=payload
@@ -124,6 +131,7 @@ async def handle_utterance(request: web.Request) -> web.Response:
     call_sid = (body.get("callSid") or "").strip()
     speaker = (body.get("speaker") or "").strip()
     text = (body.get("text") or "").strip()
+    text_ar = (body.get("textAr") or "").strip() or None
     mobile = (body.get("mobileNumber") or "").strip() or None
     timestamp = (body.get("timestamp") or "").strip() or \
         datetime.datetime.now().strftime("%H:%M:%S")
@@ -142,8 +150,9 @@ async def handle_utterance(request: web.Request) -> web.Response:
 
     # Same order the live agent uses: transcript first so the UI paints immediately,
     # then the copilot, whose LLM round-trip is much slower.
-    await push_transcript(call_sid, speaker, text, timestamp, mobile)
+    await push_transcript(call_sid, speaker, text, timestamp, mobile, text_ar)
     try:
+        # English only — the copilot's prompts, insights and disposition stay in English.
         await copilot.process_utterance(speaker, text, timestamp)
     except Exception as e:
         # A copilot failure must never stop the demo — the transcript is already out.

@@ -66,7 +66,7 @@ export function useDemoCall() {
         ) {
           const cue = scenario.cues[cursorRef.current];
           cursorRef.current += 1;
-          pushDemoUtterance(sessionId, cue.speaker, cue.text).catch((e) => {
+          pushDemoUtterance(sessionId, cue.speaker, cue.text, cue.textAr).catch((e) => {
             // Never interrupt playback for a failed push — the audio is the demo.
             console.error("[demo] failed to push utterance", cue.text, e);
           });

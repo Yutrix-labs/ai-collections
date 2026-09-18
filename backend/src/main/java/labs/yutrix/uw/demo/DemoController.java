@@ -64,6 +64,12 @@ public class DemoController {
         payload.put("callSid", sessionId);
         payload.put("speaker", speaker);
         payload.put("text", text);
+        // Arabic is display-only: it rides along to the transcript but is never handed to
+        // the copilot, so insights and next-best-action stay in English.
+        String textAr = str(body.get("textAr"));
+        if (!textAr.isBlank()) {
+            payload.put("textAr", textAr);
+        }
         payload.put("mobileNumber", session.getCustomerMobile());
         if (body.get("timestamp") != null) {
             payload.put("timestamp", str(body.get("timestamp")));

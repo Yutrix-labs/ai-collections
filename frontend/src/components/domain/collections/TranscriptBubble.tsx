@@ -35,7 +35,25 @@ export function TranscriptBubble({ item, t }: { item: TranscriptItem; t: (key: s
               border: `1px solid ${isAgent ? "rgba(13,148,136,0.1)" : "rgba(180,83,9,0.1)"}`,
             }}
           >
-            {item.text}
+            {/* Arabic (Kuwait) is what was actually spoken, so it leads; the English sits
+                beneath it as the working language. Only rendered when present, so live
+                (non-demo) calls are unchanged. */}
+            {item.textAr ? (
+              <>
+                <p dir="rtl" lang="ar" className="text-[14px] leading-[1.7] text-right">
+                  {item.textAr}
+                </p>
+                <div
+                  className="my-2 h-px w-full"
+                  style={{ background: isAgent ? "rgba(13,148,136,0.18)" : "rgba(180,83,9,0.18)" }}
+                />
+                <p dir="ltr" className="text-[12px] leading-[1.5] text-[#475569] italic">
+                  {item.text}
+                </p>
+              </>
+            ) : (
+              item.text
+            )}
           </div>
         </div>
       </div>

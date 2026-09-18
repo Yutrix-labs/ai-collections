@@ -135,10 +135,11 @@ export async function pushDemoUtterance(
   sessionId: string,
   speaker: "agent" | "customer",
   text: string,
+  textAr?: string,
 ): Promise<void> {
   const baseURL =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/collassistantapi";
-  await axios.post(`${baseURL}/demo/utterance`, { sessionId, speaker, text });
+  await axios.post(`${baseURL}/demo/utterance`, { sessionId, speaker, text, textAr });
 }
 
 export async function endDemoCall(sessionId: string): Promise<void> {
